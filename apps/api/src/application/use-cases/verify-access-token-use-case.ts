@@ -1,3 +1,4 @@
+/** Use case de verificação de access token JWT. Usado como middleware de autenticação nas rotas protegidas. */
 import { requireNonEmptyString } from "../../domain";
 import type { AuthTokenPort, JwtTokenClaims } from "../../domain/ports";
 import { createAppError } from "../errors/app-error";

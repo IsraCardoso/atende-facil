@@ -1,3 +1,4 @@
+/** Tipos do flow engine. Define estrutura de nós (message, option, input, transfer, end), edges, sessão e resultado de processamento. */
 type SessionMode = "bot" | "waiting_human" | "human_active";
 
 type FlowNodeType = "message" | "option" | "input" | "transfer" | "end";

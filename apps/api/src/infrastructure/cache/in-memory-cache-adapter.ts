@@ -1,3 +1,4 @@
+/** Adapter de cache in-memory para dev/test. Suporta TTL com expiração lazy (verificada no get). */
 import type { CacheEntry, CachePort } from "../../domain/ports";
 
 type InMemoryCacheItem = Readonly<{

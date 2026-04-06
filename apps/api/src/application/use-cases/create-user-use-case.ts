@@ -1,3 +1,4 @@
+/** Use case de criação de usuário dentro de um tenant existente. Valida unicidade de e-mail e cria membership. */
 import {
   createTenantMembershipEntity,
   createTenantMembershipId,

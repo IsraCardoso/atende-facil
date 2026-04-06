@@ -1,3 +1,4 @@
+/** Use case de autenticação. Valida credenciais, resolve tenant e emite JWT com claims de RBAC. */
 import {
   createTenantSlug,
   requireNonEmptyString,

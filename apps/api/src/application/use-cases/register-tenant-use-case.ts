@@ -1,3 +1,4 @@
+/** Use case de registro de tenant. Cria tenant + usuário admin + membership em transação lógica. */
 import {
   createTenantEntity,
   createTenantId,

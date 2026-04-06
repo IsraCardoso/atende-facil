@@ -1,3 +1,4 @@
+/** Rotas HTTP de autenticação. CRUD de tenants, usuários, login e perfil do usuário autenticado. */
 import { Elysia } from "elysia";
 
 import type {

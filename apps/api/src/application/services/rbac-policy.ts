@@ -1,3 +1,4 @@
+/** Política RBAC centralizada. Define quais roles podem executar quais ações por recurso. */
 import type { UserRole } from "../../domain";
 import { createAppError } from "../errors/app-error";
 

@@ -1,3 +1,4 @@
+/** Middleware de autenticação e autorização. Extrai JWT do header, verifica claims e injeta contexto no request. */
 import { createAppError } from "../../application/errors/app-error";
 import type { VerifyAccessTokenUseCase } from "../../application/use-cases";
 import type { JwtTokenClaims } from "../../domain/ports";

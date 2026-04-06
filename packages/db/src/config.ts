@@ -1,3 +1,4 @@
+/** Configuração de banco de dados. Valida e parseia DATABASE_URL e VALKEY_URL como branded types. */
 import type { DatabaseConfiguration, DatabaseUrl, ValkeyUrl } from "./types";
 
 type RuntimeEnvMap = Readonly<Record<string, string | undefined>>;

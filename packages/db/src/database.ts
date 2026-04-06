@@ -1,3 +1,4 @@
+/** Conexão PostgreSQL via Drizzle ORM. Gerencia pool de conexões e validação de conectividade. */
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres, { type Sql } from "postgres";
 

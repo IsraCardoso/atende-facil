@@ -1,3 +1,4 @@
+/** Adapter que conecta StructuredLogger ao AppLoggerPort. Ponte entre infraestrutura de logging e ports de domínio. */
 import type { AppLoggerPort, LoggerMetadata } from "../../domain/ports";
 import type { StructuredLogger } from "./json-logger";
 

@@ -1,3 +1,4 @@
+/** Engine de processamento de fluxo conversacional. Processa mensagem do usuário, avança nós e retorna mensagens de saída. */
 import {
   createNodeIndex,
   type Flow,

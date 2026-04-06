@@ -1,3 +1,4 @@
+/** Use case que retorna perfil do usuário autenticado com suas memberships. Usa cache para reduzir queries. */
 import { toSafeUserProfile } from "../../domain";
 import type { MembershipRepositoryPort, UserRepositoryPort } from "../../domain/ports";
 import type { GetCurrentUserInput, GetCurrentUserOutput } from "../dtos/auth-dtos";

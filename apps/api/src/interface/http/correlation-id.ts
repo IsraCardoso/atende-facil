@@ -1,3 +1,4 @@
+/** Geração e propagação de correlation-id. Garante rastreabilidade de ponta a ponta em logs estruturados. */
 const correlationIdHeaderName = "x-correlation-id";
 const systemCorrelationId = "system";
 

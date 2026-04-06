@@ -1,3 +1,4 @@
+/** Carregamento e validação de variáveis de ambiente. Falha rápido se configuração obrigatória estiver ausente. */
 type RuntimeEnvironment = "development" | "staging" | "production";
 type LoggerLevel = "debug" | "info" | "warn" | "error";
 

@@ -1,3 +1,6 @@
+/** Branded types e factories do domínio de autenticação. Previnem mistura acidental de IDs via phantom types. */
+
+/** Phantom type para criar tipos nominais a partir de primitivos. @see https://evertpot.com/opaque-ts-types/ */
 type Brand<TValue, TBrand extends string> = TValue & { readonly __brand: TBrand };
 
 type UserId = Brand<string, "UserId">;
@@ -12,6 +15,7 @@ type MembershipStatus = "active" | "invited" | "suspended";
 const acceptedUserRoles: readonly UserRole[] = ["admin", "manager", "agent"];
 const acceptedMembershipStatuses: readonly MembershipStatus[] = ["active", "invited", "suspended"];
 
+/** Valida e retorna string não-vazia. @throws {Error} Se o valor for vazio após trim. */
 function requireNonEmptyString(rawValue: string, fieldName: string): string {
   const trimmedValue = rawValue.trim();
 
@@ -34,6 +38,7 @@ function createTenantMembershipId(rawValue: string): TenantMembershipId {
   return requireNonEmptyString(rawValue, "TenantMembershipId") as TenantMembershipId;
 }
 
+/** Factory que valida formato de e-mail e normaliza para lowercase. @throws {Error} Se o formato for inválido. */
 function createEmailAddress(rawValue: string): EmailAddress {
   const normalizedEmail = requireNonEmptyString(rawValue, "Email").toLowerCase();
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,6 +50,7 @@ function createEmailAddress(rawValue: string): EmailAddress {
   return normalizedEmail as EmailAddress;
 }
 
+/** Factory que valida slug (lowercase alfanumérico com hífens). @throws {Error} Se o formato for inválido. */
 function createTenantSlug(rawValue: string): TenantSlug {
   const normalizedSlug = requireNonEmptyString(rawValue, "TenantSlug").toLowerCase();
   const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
