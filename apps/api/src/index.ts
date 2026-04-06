@@ -15,7 +15,10 @@ export function bootstrapApi(): ApiRuntime {
     environment: env.nodeEnv,
     minimumLevel: env.logLevel,
   });
-  const authModule = createAuthModule(env);
+  const authModule = createAuthModule({
+    environment: env,
+    logger,
+  });
   const app = createApiServer({
     environment: env,
     logger,

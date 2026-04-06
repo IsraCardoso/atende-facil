@@ -1,6 +1,5 @@
 import { Elysia } from "elysia";
 
-import { requireAllowedRole } from "../../application/services";
 import type {
   CreateUserUseCase,
   GetCurrentUserUseCase,
@@ -14,6 +13,7 @@ import {
   parseLoginInput,
   parseRegisterTenantInput,
 } from "./auth-request-body";
+import { resolveCorrelationId } from "./correlation-id";
 
 type CreateAuthRoutesInput = Readonly<{
   registerTenantUseCase: RegisterTenantUseCase;
@@ -34,25 +34,23 @@ export function createAuthRoutes(input: CreateAuthRoutesInput) {
   const protectedRoutes = new Elysia()
     .derive(async ({ request }) => {
       const authClaims = await authenticateRequest(request, verifyAccessTokenUseCase);
+      const correlationId = resolveCorrelationId(request);
 
       return {
         authClaims,
+        correlationId,
       };
     })
-    .get("/me", async ({ authClaims }) => {
+    .get("/me", async ({ authClaims, correlationId }) => {
       return getCurrentUserUseCase.execute({
         userId: authClaims.sub,
         tenantId: authClaims.tenantId,
+        correlationId,
       });
     })
-    .post("/users", async ({ authClaims, body, set }) => {
-      requireAllowedRole({
-        currentRole: authClaims.role,
-        allowedRoles: ["admin"],
-      });
-
+    .post("/users", async ({ authClaims, body, correlationId, set }) => {
       const output = await createUserUseCase.execute(
-        parseCreateUserInput(body, authClaims.tenantId, authClaims.role),
+        parseCreateUserInput(body, authClaims.tenantId, authClaims.role, correlationId),
       );
       set.status = 201;
       return output;

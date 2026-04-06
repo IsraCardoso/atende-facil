@@ -4,6 +4,7 @@ type LogContext = Readonly<Record<string, unknown>>;
 
 type LoggerMetadata = Readonly<{
   correlationId: string;
+  tenantId?: string;
   context?: LogContext;
 }>;
 
@@ -13,6 +14,7 @@ type JsonLogEntry = Readonly<{
   environment: RuntimeEnvironment;
   message: string;
   correlationId: string;
+  tenantId?: string;
   context?: LogContext;
 }>;
 
@@ -70,6 +72,7 @@ function createLogEntry(
     environment: config.environment,
     message,
     correlationId: metadata.correlationId,
+    ...(metadata.tenantId ? { tenantId: metadata.tenantId } : {}),
   };
 
   if (!metadata.context) {

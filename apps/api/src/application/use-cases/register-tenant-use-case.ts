@@ -17,6 +17,7 @@ import type {
 } from "../../domain/ports";
 import type { RegisterTenantInput, RegisterTenantOutput } from "../dtos/auth-dtos";
 import { createAppError } from "../errors/app-error";
+import type { IdentityCacheService } from "../services";
 import type { AuthTenantMode } from "./login-use-case";
 
 type IdGenerator = () => string;
@@ -26,6 +27,7 @@ type RegisterTenantUseCaseDependencies = Readonly<{
   userRepository: UserRepositoryPort;
   membershipRepository: MembershipRepositoryPort;
   passwordHasher: PasswordHasherPort;
+  identityCacheService: IdentityCacheService;
   tenantMode: AuthTenantMode;
   idGenerator?: IdGenerator;
 }>;
@@ -46,6 +48,7 @@ export function createRegisterTenantUseCase(
     userRepository,
     membershipRepository,
     passwordHasher,
+    identityCacheService,
     tenantMode,
     idGenerator = defaultIdGenerator,
   } = dependencies;
@@ -153,6 +156,11 @@ export function createRegisterTenantUseCase(
       await tenantRepository.create(tenant);
       await userRepository.create(adminUser);
       await membershipRepository.create(membership);
+      await identityCacheService.invalidate({
+        tenantId: membership.tenantId,
+        userId: membership.userId,
+        correlationId: "system",
+      });
 
       return {
         tenant,

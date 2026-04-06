@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "better-auth": "^1.5.6",
-    "elysia": "latest"
+    "container": "workspace:*",
+    "elysia": "latest",
+    "redis": "^5.11.0"
   }
 }

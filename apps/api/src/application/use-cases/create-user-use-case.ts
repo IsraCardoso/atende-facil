@@ -13,7 +13,7 @@ import type {
 } from "../../domain/ports";
 import type { CreateUserInput, CreateUserOutput } from "../dtos/auth-dtos";
 import { createAppError } from "../errors/app-error";
-import { requireAllowedRole } from "../services";
+import type { IdentityCacheService, RbacPolicyService } from "../services";
 
 type IdGenerator = () => string;
 
@@ -21,6 +21,8 @@ type CreateUserUseCaseDependencies = Readonly<{
   userRepository: UserRepositoryPort;
   membershipRepository: MembershipRepositoryPort;
   passwordHasher: PasswordHasherPort;
+  identityCacheService: IdentityCacheService;
+  rbacPolicyService: RbacPolicyService;
   idGenerator?: IdGenerator;
 }>;
 
@@ -39,15 +41,14 @@ export function createCreateUserUseCase(
     userRepository,
     membershipRepository,
     passwordHasher,
+    identityCacheService,
+    rbacPolicyService,
     idGenerator = defaultIdGenerator,
   } = dependencies;
 
   return {
     async execute(input: CreateUserInput): Promise<CreateUserOutput> {
-      requireAllowedRole({
-        currentRole: input.actorRole,
-        allowedRoles: ["admin"],
-      });
+      rbacPolicyService.assertAllowed(input.actorRole, "auth.users.create");
 
       const existingUser = await userRepository.findByEmail(input.email);
 
@@ -103,6 +104,11 @@ export function createCreateUserUseCase(
 
       await userRepository.create(user);
       await membershipRepository.create(membership);
+      await identityCacheService.invalidate({
+        tenantId: membership.tenantId,
+        userId: membership.userId,
+        correlationId: input.correlationId,
+      });
 
       return {
         user: toSafeUserProfile(user),

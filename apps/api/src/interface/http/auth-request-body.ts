@@ -109,12 +109,14 @@ export function parseCreateUserInput(
   rawBody: unknown,
   tenantId: TenantId,
   actorRole: UserRole,
+  correlationId: string,
 ): CreateUserInput {
   const body = toRequestBody(rawBody);
 
   return {
     tenantId,
     actorRole,
+    correlationId,
     displayName: readRequiredString(body, "displayName"),
     email: parseEmail(readRequiredString(body, "email"), "email"),
     password: readRequiredString(body, "password"),

@@ -21,15 +21,19 @@ function createTestEnvironment(): ApiEnvironment {
 function createAppUnderTest() {
   const environment = createTestEnvironment();
   const infoLogSpy = vi.fn();
+  const logger = {
+    debug: vi.fn(),
+    info: infoLogSpy,
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
   const app = createApiServer({
     environment,
-    logger: {
-      debug: vi.fn(),
-      info: infoLogSpy,
-      warn: vi.fn(),
-      error: vi.fn(),
-    },
-    auth: createAuthModule(environment),
+    logger,
+    auth: createAuthModule({
+      environment,
+      logger,
+    }),
   });
 
   return {

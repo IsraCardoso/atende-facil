@@ -23,6 +23,7 @@ type RegisterTenantOutput = Readonly<{
 type CreateUserInput = Readonly<{
   tenantId: TenantId;
   actorRole: UserRole;
+  correlationId: string;
   displayName: string;
   email: EmailAddress;
   password: string;
@@ -49,6 +50,7 @@ type LoginOutput = Readonly<{
 type GetCurrentUserInput = Readonly<{
   userId: UserId;
   tenantId: TenantId;
+  correlationId: string;
 }>;
 
 type GetCurrentUserOutput = Readonly<{
