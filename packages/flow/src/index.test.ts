@@ -1,23 +1,56 @@
 import { describe, expect, it } from "vitest";
 
-import { getNextNodeId } from "./index";
+import { processMessage, validateFlowDefinition } from "./index";
 
-describe("getNextNodeId", () => {
-  it("should return the configured next node id when present", () => {
-    const result = getNextNodeId({
-      id: "node-a",
-      nextNodeId: "node-b",
+describe("flow public exports", () => {
+  it("should expose validateFlowDefinition from package index", () => {
+    const result = validateFlowDefinition({
+      id: "flow-index",
+      tenantId: "tenant-01",
+      startNodeId: "end",
+      nodes: [
+        {
+          id: "end",
+          type: "end",
+        },
+      ],
     });
 
-    expect(result).toBe("node-b");
+    expect(result.isValid).toBe(true);
   });
 
-  it("should return null when there is no next node", () => {
-    const result = getNextNodeId({
-      id: "node-a",
-      nextNodeId: null,
-    });
+  it("should expose processMessage from package index", () => {
+    const result = processMessage(
+      {
+        tenantId: "tenant-01",
+        phone: "5511999999999",
+        currentNodeId: null,
+        mode: "bot",
+        data: {},
+      },
+      "oi",
+      {
+        id: "flow-process-index",
+        tenantId: "tenant-01",
+        startNodeId: "welcome",
+        nodes: [
+          {
+            id: "welcome",
+            type: "message",
+            text: "Boas-vindas",
+            nextNodeId: "end",
+          },
+          {
+            id: "end",
+            type: "end",
+          },
+        ],
+      },
+    );
 
-    expect(result).toBeNull();
+    expect(result.action).toEqual({
+      kind: "flow_completed",
+      nodeId: "end",
+    });
   });
 });

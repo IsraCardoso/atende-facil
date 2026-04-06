@@ -1,6 +1,6 @@
 # Flow (`packages/flow`)
 
-Nucleo puro de fluxo conversacional.
+Nucleo puro do motor conversacional.
 
 Este pacote deve permanecer **isolado** de infraestrutura:
 
@@ -11,11 +11,31 @@ Este pacote deve permanecer **isolado** de infraestrutura:
 
 ---
 
-## Objetivo nesta sprint
+## Objetivo da sprint 03
 
-- disponibilizar base tecnica minima para evolucao do motor de fluxo;
-- garantir isolamento arquitetural desde o inicio;
-- manter testes unitarios simples e deterministas.
+- processar mensagens por tipo de no (`message`, `option`, `input`, `transfer`, `end`);
+- evoluir `Session` de forma deterministica;
+- validar fluxo antes da ativacao com regras estruturais;
+- expor contratos de integracao sem acoplamento com adapters concretos.
+
+---
+
+## API publica
+
+- `processMessage(session, message, flow): ProcessResult`
+- `validateFlowDefinition(flow): FlowValidationResult`
+- Tipos de dominio: `Flow`, `FlowNode`, `Session`, `ProcessResult`, `FlowValidationIssue`
+- Contratos de integracao: `FlowEventPublisherPort`, `FlowExecutionObserverPort`
+
+---
+
+## Regras principais
+
+- `Session.data` usa `Record<string, unknown>`;
+- no `option` aceita numero (`1..N`) e matching textual por `label`/`aliases`;
+- `transfer` move sessao para `waiting_human`;
+- `end` encerra fluxo com `currentNodeId = null`;
+- ciclos automaticos sem interacao sao bloqueados (validacao e runtime guard).
 
 ---
 
@@ -33,5 +53,5 @@ Este pacote deve permanecer **isolado** de infraestrutura:
 
 - Regras de dominio devem ser expressas por tipos e funcoes puras.
 - Qualquer acesso a persistencia deve ficar fora deste pacote.
-- Evitar efeitos colaterais e estado global.
+- Evitar efeitos colaterais, estado global e leitura de ambiente.
 
