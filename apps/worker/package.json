@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run --dir src",
+    "test": "bun --bun vitest run --dir src",
     "lint": "biome check ."
   }
 }
