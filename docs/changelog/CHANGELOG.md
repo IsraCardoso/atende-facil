@@ -21,6 +21,39 @@
 
 ---
 
+## [sprint-03] — 2026-04-06
+
+> **Objetivo:** Entregar o flow engine puro para processar mensagens, navegar entre nós, coletar dados e sinalizar handoff humano com validação estrutural de ativação.
+
+### Adicionado
+- Modelagem de domínio do `packages/flow` com contratos semânticos para `Flow`, `FlowNode`, `Session`, `Edge`, `ProcessResult` e eventos de domínio.
+- Implementação de `processMessage(session, message, flow)` cobrindo os nós `message`, `option`, `input`, `transfer` e `end`.
+- Parsing de opção por número (`1..N`) e por texto (`label`/`aliases`), com retorno determinístico para entrada inválida.
+- Contratos de integração para observabilidade/publicação de eventos (`FlowExecutionObserverPort`, `FlowEventPublisherPort`) sem acoplamento de infraestrutura.
+- Módulo `validateFlowDefinition` com validações estruturais, alcançabilidade, caminhos terminais e regras de ciclo controlado.
+- Nova suíte de testes unitários do package `flow` cobrindo engine, validação e exports públicos.
+
+### Alterado
+- Surface pública de `packages/flow/src/index.ts` reorganizada para exportar domínio, engine e validação de forma explícita.
+- README do package `flow` atualizado com API pública, regras de execução e limites arquiteturais.
+
+### Corrigido
+- Proteção de runtime contra loop automático no engine para evitar travamento em fluxos inválidos.
+- Normalização de tipagem estrita em testes de validação para unions de nós com narrowing seguro.
+
+### Decisões técnicas registradas
+- Nenhuma decisão nova em `docs/decisions/` nesta sprint.
+
+### Regras de negócio implementadas
+- [RN-008 — Engine de fluxo puro e determinístico](../business-rules/RN-008-flow-engine-puro-deterministico.md)
+- [RN-009 — Semântica de nós e transição de sessão](../business-rules/RN-009-semantica-nos-transicao-sessao.md)
+- [RN-010 — Validação de fluxo para ativação segura](../business-rules/RN-010-validacao-fluxo-ativacao-segura.md)
+
+### Débitos técnicos gerados
+- [ ] Habilitar relatório de cobertura automatizado no package `flow` para comprovar formalmente o alvo de 100% no CI.
+
+---
+
 ## [sprint-02] — 2026-04-06
 
 > **Objetivo:** Permitir cadastro de tenant, autenticação JWT Bearer e autorização RBAC com isolamento multi-tenant por token.
