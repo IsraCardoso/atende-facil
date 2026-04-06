@@ -7,5 +7,8 @@
     "build": "tsc -p tsconfig.json",
     "test": "bun --bun vitest run --dir src",
     "lint": "biome check ."
+  },
+  "devDependencies": {
+    "vitest": "^4.1.2"
   }
 }
