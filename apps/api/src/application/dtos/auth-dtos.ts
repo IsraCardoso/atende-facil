@@ -2,9 +2,8 @@ import type {
   SafeUserProfile,
   TenantEntity,
   TenantMembershipEntity,
-  UserEntity,
 } from "../../domain/auth-entities";
-import type { EmailAddress, TenantId, UserRole } from "../../domain/auth-types";
+import type { EmailAddress, TenantId, UserId, UserRole } from "../../domain/auth-types";
 import type { JwtTokenClaims } from "../../domain/ports/auth-ports";
 
 type RegisterTenantInput = Readonly<{
@@ -23,6 +22,7 @@ type RegisterTenantOutput = Readonly<{
 
 type CreateUserInput = Readonly<{
   tenantId: TenantId;
+  actorRole: UserRole;
   displayName: string;
   email: EmailAddress;
   password: string;
@@ -37,7 +37,7 @@ type CreateUserOutput = Readonly<{
 type LoginInput = Readonly<{
   email: EmailAddress;
   password: string;
-  tenantSlug: string;
+  tenantSlug?: string;
 }>;
 
 type LoginOutput = Readonly<{
@@ -47,8 +47,8 @@ type LoginOutput = Readonly<{
 }>;
 
 type GetCurrentUserInput = Readonly<{
-  user: UserEntity;
-  memberships: readonly TenantMembershipEntity[];
+  userId: UserId;
+  tenantId: TenantId;
 }>;
 
 type GetCurrentUserOutput = Readonly<{

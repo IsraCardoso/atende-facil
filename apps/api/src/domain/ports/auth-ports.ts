@@ -4,15 +4,19 @@ import type {
   TenantMembershipEntity,
   UserEntity,
 } from "../auth-entities";
-import type { EmailAddress, TenantId, UserId, UserRole } from "../auth-types";
+import type { EmailAddress, TenantId, TenantSlug, UserId, UserRole } from "../auth-types";
 
-type JwtTokenClaims = Readonly<{
-  userId: UserId;
+type JwtTokenIssueInput = Readonly<{
+  sub: UserId;
   tenantId: TenantId;
   role: UserRole;
-  issuedAtEpochSeconds: number;
-  expiresAtEpochSeconds: number;
 }>;
+
+type JwtTokenClaims = JwtTokenIssueInput &
+  Readonly<{
+    iat: number;
+    exp: number;
+  }>;
 
 type UserRepositoryPort = Readonly<{
   create: (user: UserEntity) => Promise<UserEntity>;
@@ -23,7 +27,7 @@ type UserRepositoryPort = Readonly<{
 type TenantRepositoryPort = Readonly<{
   create: (tenant: TenantEntity) => Promise<TenantEntity>;
   findById: (tenantId: TenantId) => Promise<TenantEntity | null>;
-  findBySlug: (slug: string) => Promise<TenantEntity | null>;
+  findBySlug: (slug: TenantSlug) => Promise<TenantEntity | null>;
 }>;
 
 type MembershipRepositoryPort = Readonly<{
@@ -36,7 +40,7 @@ type MembershipRepositoryPort = Readonly<{
 }>;
 
 type AuthTokenPort = Readonly<{
-  issue: (claims: JwtTokenClaims) => Promise<string>;
+  issue: (claims: JwtTokenIssueInput) => Promise<string>;
   verify: (token: string) => Promise<JwtTokenClaims>;
 }>;
 
@@ -82,6 +86,7 @@ export type {
   CachePort,
   CurrentUserProjection,
   JwtTokenClaims,
+  JwtTokenIssueInput,
   LoggerMetadata,
   MembershipRepositoryPort,
   PasswordHasherPort,
