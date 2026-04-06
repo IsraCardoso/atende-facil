@@ -17,6 +17,7 @@
     "redis": "latest"
   },
   "devDependencies": {
-    "drizzle-kit": "latest"
+    "drizzle-kit": "latest",
+    "vitest": "^4.1.2"
   }
 }

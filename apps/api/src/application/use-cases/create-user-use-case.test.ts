@@ -90,10 +90,18 @@ describe("createCreateUserUseCase", () => {
           },
         },
         logger: {
-          debug() {},
-          info() {},
-          warn() {},
-          error() {},
+          debug() {
+            return undefined;
+          },
+          info() {
+            return undefined;
+          },
+          warn() {
+            return undefined;
+          },
+          error() {
+            return undefined;
+          },
         },
       }),
       rbacPolicyService: createRbacPolicyService(),

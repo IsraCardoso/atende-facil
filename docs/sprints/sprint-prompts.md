@@ -133,17 +133,71 @@ Este é o coração do produto. A qualidade e testabilidade do engine determinam
 ```
 Use a skill sprint-definition-rn-flow.
 
-Quero criar a Sprint 04 — Integração WhatsApp agnóstica de provedor.
+Quero criar a Sprint 04 — Integração WhatsApp (Agnóstica de Provedor).
 
 Objetivo: mensagens reais do WhatsApp chegam ao sistema, são processadas pelo flow engine e respostas são enviadas de volta ao usuário, permitindo selecionar o provedor por tenant/instância.
 
 Descrição:
 Projetar a camada de mensageria no `infrastructure` da api com Ports/Adapters para suportar múltiplos provedores sem alterar os use cases: Evolution API, Z-API, Uazapi e API oficial da Meta (WhatsApp Cloud API). O sistema deve permitir selecionar o provedor por tenant/instância e resolver o adapter correto em runtime. Criar contrato canônico de entrada (webhook inbound), contrato canônico de saída (send message) e status de entrega/leitura. Criar adapters por provedor convertendo payloads/headers para o contrato canônico:
+
 - Evolution: autenticação por header `apikey`, envio `POST /message/sendText/:instanceName`, webhooks por eventos configuráveis.
 - Z-API: envio `POST /instances/{instance}/token/{token}/send-text`, segurança adicional por `Client-Token`, webhooks por tipo (`delivery`, `received`, `status`) configurados por endpoints de update.
 - Uazapi: base por subdomínio (`https://{subdomain}.uazapi.com`) e endpoints de envio como `POST /send/text`, com webhooks/SSE na documentação V2.
 - Meta Cloud API: envio `POST /{version}/{phone-number-id}/messages` com `Authorization: Bearer`, webhook com verificação por `hub.mode`, `hub.verify_token`, `hub.challenge` e payload em `entry[].changes[].value`.
+
 Criar a tabela `sessions` com migration. Criar o repositório de Session. Criar o use case `ProcessIncomingMessage` que: busca ou cria sessão do usuário, carrega o fluxo ativo do tenant, chama o flow engine, persiste o novo estado da sessão e envia a resposta pelo adapter selecionado. Criar endpoint webhook no Elysia (`POST /webhook/:tenantId/whatsapp`) e endpoint de verificação quando necessário (ex.: Meta). Implementar lock por sessão no Valkey para evitar condição de corrida quando o usuário manda múltiplas mensagens seguidas. Criar testes de integração para o fluxo completo (mensagem → normalização → engine → envio), cobrindo pelo menos dois provedores com a mesma suíte de contrato.
+
+---
+
+### 🔧 ADIÇÃO — Camada de abstração de provider
+
+Introduzir ProviderFactory para resolver dinamicamente o adapter correto baseado na configuração da instância (tenant/instância), evitando qualquer `if/else` espalhado nos use cases.
+
+Criar tabela `whatsapp_instances`:
+- id
+- tenant_id
+- provider (enum: evolution | zapi | uazapi | meta)
+- config (JSONB)
+- active
+
+---
+
+### 🔧 ADIÇÃO — Integração com Chatwoot
+
+Integrar o :contentReference[oaicite:1]{index=1} como camada oficial de atendimento humano.
+
+Criar ChatwootAdapter no infrastructure com responsabilidades:
+
+- Criar conversa no Chatwoot quando ocorrer hand-off
+- Atualizar conversa existente
+- Enviar mensagens do usuário para o Chatwoot
+- Receber mensagens do agente via webhook
+- Mapear session ↔ conversationId
+
+Adicionar ao modelo de sessão:
+- conversationId (Chatwoot)
+- mode (bot | waiting_human | human_active)
+
+Criar endpoint:
+- POST /webhook/chatwoot
+
+Atualizar o use case `ProcessIncomingMessage`:
+
+Se session.mode === 'bot':
+    → executa flow engine
+
+    Se resposta = BOT:
+        → envia via provider
+
+    Se resposta = TRANSFER:
+        → cria conversa no Chatwoot
+        → envia histórico
+        → session.mode = waiting_human
+
+Se session.mode !== 'bot':
+    → encaminha mensagem diretamente para o Chatwoot
+
+---
 
 Restrições:
 - Webhook deve ser idempotente (mesmo evento duas vezes = mesmo resultado)
@@ -153,10 +207,19 @@ Restrições:
 - Seleção de provedor deve ocorrer por configuração (tenant/instância), nunca por `if/else` espalhado em use case
 - Use cases não podem importar SDK de provedor; toda integração externa deve ficar em adapter
 - Validar assinatura/verificação de webhook quando o provedor exigir
-- Testes E2E: mensagem de opção válida navega para próximo nó; mensagem inválida retorna resposta de erro configurada no nó
+
+### 🔧 ADIÇÃO às Restrições:
+- Integração com Chatwoot deve ocorrer exclusivamente via adapter (nunca diretamente em use case)
+- Mensagens em sessões não-bot devem ser roteadas exclusivamente para o Chatwoot
+
+---
 
 Contexto adicional:
 Esta sprint conecta o engine ao mundo real e precisa evitar lock-in tecnológico. O principal risco é acoplamento com um provedor específico e concorrência de mensagens; por isso o design deve nascer agnóstico, orientado a contracts, com lock por sessão desde o início.
+
+### 🔧 ADIÇÃO ao Contexto:
+O Chatwoot deve ser tratado como a camada de atendimento humano desacoplada, evitando que o backend precise implementar um sistema de inbox próprio, reduzindo complexidade e acelerando o time-to-market.
+
 ```
 
 ---
@@ -171,16 +234,70 @@ Quero criar a Sprint 05 — Hand-off Humano e Sistema de Eventos.
 Objetivo: quando um fluxo determina que é hora de um humano atender, o sistema muda o modo da sessão, notifica o painel em tempo real e pausa o bot.
 
 Descrição:
-Implementar o sistema de eventos com EventEmitter no domínio. Eventos obrigatórios: `conversation.handed_off`, `conversation.human_active`, `conversation.bot_resumed`. Criar a tabela `conversations` com migration. Conversation deve ter: id, tenantId, phone, status (bot | waiting_human | human_active), assignedTo (userId), createdAt, updatedAt. Implementar a transição de modo no use case ProcessIncomingMessage: quando o flow engine retorna ação `transfer`, sessão muda para `waiting_human` e o evento `conversation.handed_off` é emitido. Criar o use case AssignConversation (atendente assume a conversa → status vai para `human_active`). Criar o use case SendHumanMessage (atendente envia mensagem via painel → vai para o usuário pelo adapter da Evolution API). Criar o use case CloseConversation (encerra atendimento humano → status volta para `bot` opcional ou `end`). Implementar WebSocket no Elysia para notificação em tempo real do painel quando chegar nova conversa waiting_human. Escrever testes unitários para todas as transições de estado.
+Implementar o sistema de eventos com EventEmitter no domínio. Eventos obrigatórios: `conversation.handed_off`, `conversation.human_active`, `conversation.bot_resumed`. Criar a tabela `conversations` com migration. Conversation deve ter: id, tenantId, phone, status (bot | waiting_human | human_active), assignedTo (userId), createdAt, updatedAt. Implementar a transição de modo no use case ProcessIncomingMessage: quando o flow engine retorna ação `transfer`, sessão muda para `waiting_human` e o evento `conversation.handed_off` é emitido.
+
+---
+
+### 🔧 ADIÇÃO — Integração com Chatwoot
+
+Integrar o :contentReference[oaicite:2]{index=2} como canal oficial de atendimento humano.
+
+Atualizar Conversation:
+- adicionar chatwootConversationId
+
+Criar sincronização via webhook:
+
+Eventos recebidos do Chatwoot:
+
+- nova mensagem do agente:
+    → enviar mensagem ao usuário via provider correto
+
+- conversa atribuída:
+    → status = human_active
+    → emitir `conversation.human_active`
+
+- conversa encerrada:
+    → status = bot
+    → emitir `conversation.bot_resumed`
+
+---
+
+Criar use cases adicionais:
+
+- SyncChatwootMessage
+- SyncChatwootStatus
+
+---
+
+### 🔧 AJUSTE IMPORTANTE
+
+O envio de mensagens humanas NÃO deve mais ocorrer diretamente via Evolution API.
+
+Todas as mensagens de agentes devem:
+→ entrar via Chatwoot
+→ passar pelo backend
+→ sair pelo provider correto
+
+---
+
+Criar o use case AssignConversation (atendente assume a conversa → status vai para `human_active`). Criar o use case CloseConversation (encerra atendimento humano → status volta para `bot` opcional ou `end`). Implementar WebSocket no Elysia para notificação em tempo real do painel quando chegar nova conversa waiting_human. Escrever testes unitários para todas as transições de estado.
 
 Restrições:
 - Eventos publicados APÓS persistência — nunca antes
 - Bot deve ignorar mensagens enquanto session.mode !== 'bot'
 - 100% de cobertura unitária nas transições de estado
-- Testes E2E: usuário pede humano → sessão muda para waiting_human → evento emitido → atendente assume → mensagem enviada
+
+### 🔧 ADIÇÃO às Restrições:
+- Toda comunicação humana deve passar obrigatoriamente pelo Chatwoot
+- O backend não deve expor endpoint direto de envio humano fora da integração com Chatwoot
+
+Testes E2E: usuário pede humano → sessão muda para waiting_human → evento emitido → atendente assume → mensagem enviada
 
 Contexto adicional:
 O hand-off humano é uma das features mais críticas do produto. A transição de estado deve ser atômica e rastreável. O WebSocket é necessário para o painel que vem na sprint seguinte.
+
+### 🔧 ADIÇÃO ao Contexto:
+A utilização do Chatwoot elimina a necessidade de implementar um sistema de inbox próprio, permitindo foco nas regras de negócio e automação.
 ```
 
 ---
@@ -195,47 +312,69 @@ Quero criar a Sprint 06 — Dashboard de Atendimento (Inbox).
 Objetivo: o atendente (agent) acessa o painel, vê as conversas aguardando atendimento, assume uma conversa, responde e encerra.
 
 Descrição:
-Criar a tela de Inbox no frontend (React + Tailwind + shadcn/ui). A tela deve ter: lista de conversas com status visual (bot 🤖, aguardando humano ⏳, em atendimento 👤), filtros por status, badge de contagem de conversas waiting_human, área de chat ao clicar em uma conversa (histórico de mensagens + campo de resposta), botão de assumir conversa, botão de encerrar atendimento. Criar a tabela `messages` com migration para guardar histórico. Criar os endpoints necessários: GET /conversations (paginado, filtrado por status e tenant), GET /conversations/:id/messages, POST /conversations/:id/messages (atendente responde), POST /conversations/:id/assign, POST /conversations/:id/close. Implementar atualização em tempo real da lista via WebSocket (nova conversa waiting_human aparece sem refresh). Implementar proteção por role: apenas `agent`, `manager` e `admin` acessam o inbox.
-
-Design:
-- Modo claro e escuro desde o início (next-themes ou equivalente)
-- Layout responsivo — funciona em desktop e mobile
-- Usar tokens de cor do package `ui` — sem cores hardcodadas
-- Sidebar de conversas + área principal de chat (layout estilo WhatsApp Web)
-
-Restrições:
-- Paginação obrigatória em GET /conversations (cursor-based ou offset)
-- Histórico de mensagens paginado também
-- Atendente só vê conversas do seu tenant
-- Testes E2E: abrir inbox → ver conversa waiting_human → assumir → responder → encerrar
-
-Contexto adicional:
-Este é o primeiro entregável visível ao usuário final (retailer). A UX deve ser limpa e imediata — o atendente precisa saber o que fazer sem treinamento.
-```
+Criar a tela de Inbox no frontend (React + Tailwind + shadcn/ui).
 
 ---
 
-## Sprint 07 — CRUD de Fluxos + Ativação
+### 🔧 AJUSTE — Uso do Chatwoot
 
-```
-Use a skill sprint-definition-rn-flow.
+O inbox NÃO será implementado do zero.
 
-Quero criar a Sprint 07 — CRUD de Fluxos e Ativação.
+O sistema utilizará o :contentReference[oaicite:3]{index=3} como dashboard de atendimento.
 
-Objetivo: o admin do tenant consegue criar, editar, ativar e desativar fluxos de atendimento pelo painel.
+---
 
-Descrição:
-Criar as tabelas `flows`, `nodes` e `edges` com migrations. Flow tem: id, tenantId, name, description, active, graph (JSONB com nodes e edges), createdAt, updatedAt. Criar os use cases: CreateFlow, UpdateFlow, ActivateFlow, DeactivateFlow, GetFlow, ListFlows. Criar os endpoints CRUD de flows (protegidos por role: apenas admin e manager). Implementar validação de fluxo antes de ativar (regras do flow engine da sprint 03): tem nó inicial? todos os caminhos chegam a end ou transfer? inputs têm destino? Se inválido, retornar erro descritivo. Criar a tela de listagem de flows no frontend: nome, status (ativo/inativo), data de criação, botões de ativar/desativar/editar. Criar a tela de edição de fluxo com formulário JSON (preparação para o editor visual da próxima sprint — por ora, edição manual do JSON é aceitável). Implementar cache do fluxo ativo em Valkey por tenantId (TTL 60s) para o engine não bater no banco a cada mensagem.
+### Atendimento:
+
+- Embutir Chatwoot via iframe no frontend
+- Implementar fallback via deep linking
+
+---
+
+### Backend:
+
+Criar endpoints auxiliares:
+
+- mapping session ↔ conversation
+- listagem opcional de conversas (cache)
+
+---
+
+Criar os endpoints necessários: GET /conversations, etc (mantidos apenas como suporte e integração — não como fonte primária do chat UI).
+
+---
+
+Design:
+- Modo claro e escuro desde o início
+- Layout responsivo
+- Sidebar + área principal (Chatwoot embutido)
+
+### 🔧 ADIÇÃO ao Design:
+- O layout deve acomodar iframe externo sem quebrar responsividade
+- Garantir consistência visual com sistema mesmo com UI externa
+
+---
 
 Restrições:
-- Apenas um fluxo pode estar ativo por tenant por vez (ou por categoria futura)
-- Ativar um fluxo inválido retorna erro 422 com detalhes das violações
-- Cache invalidado ao ativar ou desativar um fluxo
-- 100% de cobertura unitária nos use cases
-- Testes E2E: criar flow → ativar → receber mensagem → flow engine usa o flow ativo
+- Paginação obrigatória
+- Atendente só vê conversas do seu tenant
+
+### 🔧 ADIÇÃO às Restrições:
+- NÃO implementar chat próprio nesta sprint
+- Autenticação integrada com Chatwoot obrigatória (SSO ou sessão compartilhada)
+- Deve funcionar mesmo sem iframe (fallback obrigatório)
+
+---
+
+Testes E2E:
+- acessar inbox via Chatwoot iframe
+- fallback funcionando corretamente
 
 Contexto adicional:
-Esta sprint fecha o loop básico do produto: criar fluxo → ativar → receber mensagem → processar. É o MVP funcional completo antes do editor visual.
+Este é o primeiro entregável visível ao usuário final (retailer). A UX deve ser limpa e imediata.
+
+### 🔧 ADIÇÃO ao Contexto:
+O uso do Chatwoot reduz drasticamente o esforço de desenvolvimento e permite focar na diferenciação do produto.
 ```
 
 ---
@@ -310,6 +449,10 @@ Restrições:
 
 Contexto adicional:
 Esta sprint transforma o produto de funcional para polido. A consistência visual é o que diferencia um produto interno de um SaaS comercial. Priorizar: consistência de tokens e responsividade.
+
+### 🔧 ADIÇÃO ao Design:
+- garantir consistência visual ao integrar Chatwoot (iframe)
+- evitar conflitos de tema (light/dark)
 ```
 
 ---
@@ -333,7 +476,9 @@ Restrições:
 - Se OpenAI estiver indisponível, nó `ai` retorna mensagem de fallback configurada no nó
 - Custo de embeddings deve ser monitorado — logar tokens consumidos por tenant
 - Testes unitários para: chunking, montagem de prompt, fallback de erro de API
-
+### 🔧 ADIÇÃO às Restrições:
+- nó `ai` só pode atuar quando session.mode === 'bot'
+- nunca interferir em sessões humanas (Chatwoot)
 Contexto adicional:
 Esta sprint abre o roadmap de IA do produto. O isolamento de dados por tenant é absolutamente crítico. O nó `ai` deve ser opcional e configurável — não obrigatório em nenhum fluxo.
 ```

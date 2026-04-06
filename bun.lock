@@ -20,6 +20,9 @@
         "elysia": "latest",
         "redis": "^5.11.0",
       },
+      "devDependencies": {
+        "vitest": "^4.1.2",
+      },
     },
     "apps/web": {
       "name": "web",
@@ -31,19 +34,29 @@
       "devDependencies": {
         "@types/react": "latest",
         "@types/react-dom": "latest",
+        "vitest": "^4.1.2",
       },
     },
     "apps/worker": {
       "name": "worker",
       "version": "0.1.0",
+      "devDependencies": {
+        "vitest": "^4.1.2",
+      },
     },
     "packages/auth": {
       "name": "auth",
       "version": "0.1.0",
+      "devDependencies": {
+        "vitest": "^4.1.2",
+      },
     },
     "packages/container": {
       "name": "container",
       "version": "0.1.0",
+      "devDependencies": {
+        "vitest": "^4.1.2",
+      },
     },
     "packages/db": {
       "name": "db",
@@ -55,19 +68,29 @@
       },
       "devDependencies": {
         "drizzle-kit": "latest",
+        "vitest": "^4.1.2",
       },
     },
     "packages/flow": {
       "name": "flow",
       "version": "0.1.0",
+      "devDependencies": {
+        "vitest": "^4.1.2",
+      },
     },
     "packages/types": {
       "name": "types",
       "version": "0.1.0",
+      "devDependencies": {
+        "vitest": "^4.1.2",
+      },
     },
     "packages/ui": {
       "name": "ui",
       "version": "0.1.0",
+      "devDependencies": {
+        "vitest": "^4.1.2",
+      },
     },
   },
   "packages": {
