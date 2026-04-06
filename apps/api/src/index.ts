@@ -1,3 +1,4 @@
+import { createAuthModule } from "./infrastructure/auth";
 import { loadApiEnvironment } from "./infrastructure/config/env";
 import { createJsonLogger, type StructuredLogger } from "./infrastructure/logger/json-logger";
 import { createApiServer } from "./interface/http/create-api-server";
@@ -14,9 +15,14 @@ export function bootstrapApi(): ApiRuntime {
     environment: env.nodeEnv,
     minimumLevel: env.logLevel,
   });
+  const authModule = createAuthModule({
+    environment: env,
+    logger,
+  });
   const app = createApiServer({
     environment: env,
     logger,
+    auth: authModule,
   });
 
   startApiServer({

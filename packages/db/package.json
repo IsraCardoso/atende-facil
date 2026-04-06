@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run --dir src",
+    "test": "bun --bun vitest run --dir src",
     "lint": "biome check .",
     "db:generate": "bunx drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "bun --env-file=../../.env.development.example src/scripts/migrate.ts",

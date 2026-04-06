@@ -10,7 +10,7 @@ export {
   createQueryRunner,
   validateDatabaseConnection,
 } from "./database";
-export { schema, tenantsTable } from "./schema";
+export { schema, tenantMembershipsTable, tenantsTable, usersTable } from "./schema";
 export type {
   DatabaseConfiguration,
   DatabaseConnection,
@@ -19,6 +19,8 @@ export type {
   QueryResultRow,
   RuntimeEnvMap,
   Tenant,
+  TenantMembership,
+  User,
   ValkeyClient,
   ValkeyClientFactory,
   ValkeyUrl,
