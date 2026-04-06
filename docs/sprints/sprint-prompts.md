@@ -7,6 +7,32 @@
 
 ---
 
+## Bloco opcional — Modo Baixo Contexto (subagentes + gates)
+
+> Prefixe qualquer prompt de sprint com o bloco abaixo quando quiser reduzir consumo de contexto e aumentar previsibilidade.
+
+```text
+Ative modo baixo contexto com gates obrigatórios.
+
+Siga as etapas:
+1) Mapear: localizar arquivos/símbolos candidatos antes de leitura ampla.
+2) Decidir: definir abordagem e escopo de edição.
+3) Executar: implementar apenas no escopo definido e validar.
+
+Regras:
+- não ler arquivo inteiro com mais de 200 linhas sem justificativa;
+- ler em fatias de 120 a 180 linhas;
+- usar no máximo 2 subagentes por rodada, com objetivo único;
+- cada etapa deve retornar contrato de saída curto.
+
+Contratos de saída:
+- Mapear (máx 6 linhas): arquivos-alvo, hipótese, risco opcional, próximo passo.
+- Decidir (máx 6 linhas): decisão, escopo, validação (até 3 checks), próximo passo.
+- Executar (máx 8 linhas): arquivos alterados, resultado de validação, pendências, próximo passo.
+```
+
+---
+
 ## Sprint 01 — Monorepo + Infraestrutura Base
 
 ```
@@ -102,27 +128,35 @@ Este é o coração do produto. A qualidade e testabilidade do engine determinam
 
 ---
 
-## Sprint 04 — Integração WhatsApp (Evolution API)
+## Sprint 04 — Integração WhatsApp (Agnóstica de Provedor)
 
 ```
 Use a skill sprint-definition-rn-flow.
 
-Quero criar a Sprint 04 — Integração WhatsApp via Evolution API.
+Quero criar a Sprint 04 — Integração WhatsApp agnóstica de provedor.
 
-Objetivo: mensagens reais do WhatsApp chegam ao sistema, são processadas pelo flow engine e respostas são enviadas de volta ao usuário.
+Objetivo: mensagens reais do WhatsApp chegam ao sistema, são processadas pelo flow engine e respostas são enviadas de volta ao usuário, permitindo selecionar o provedor por tenant/instância.
 
 Descrição:
-Criar o Adapter para a Evolution API no `infrastructure` da api. O adapter deve: receber webhooks de mensagens recebidas, enviar mensagens de texto, validar assinatura do webhook (idempotência — reprocessar o mesmo webhook não gera duplicação). Criar a tabela `sessions` com migration. Criar o repositório de Session. Criar o use case ProcessIncomingMessage que: busca ou cria sessão do usuário, carrega o fluxo ativo do tenant, chama o flow engine, persiste o novo estado da sessão, envia a resposta via adapter. Criar o endpoint de webhook no Elysia (`POST /webhook/:tenantId/whatsapp`). Implementar lock por sessão no Valkey para evitar condição de corrida quando o usuário manda múltiplas mensagens seguidas. Criar testes de integração para o fluxo completo (mensagem → engine → resposta).
+Projetar a camada de mensageria no `infrastructure` da api com Ports/Adapters para suportar múltiplos provedores sem alterar os use cases: Evolution API, Z-API, Uazapi e API oficial da Meta (WhatsApp Cloud API). O sistema deve permitir selecionar o provedor por tenant/instância e resolver o adapter correto em runtime. Criar contrato canônico de entrada (webhook inbound), contrato canônico de saída (send message) e status de entrega/leitura. Criar adapters por provedor convertendo payloads/headers para o contrato canônico:
+- Evolution: autenticação por header `apikey`, envio `POST /message/sendText/:instanceName`, webhooks por eventos configuráveis.
+- Z-API: envio `POST /instances/{instance}/token/{token}/send-text`, segurança adicional por `Client-Token`, webhooks por tipo (`delivery`, `received`, `status`) configurados por endpoints de update.
+- Uazapi: base por subdomínio (`https://{subdomain}.uazapi.com`) e endpoints de envio como `POST /send/text`, com webhooks/SSE na documentação V2.
+- Meta Cloud API: envio `POST /{version}/{phone-number-id}/messages` com `Authorization: Bearer`, webhook com verificação por `hub.mode`, `hub.verify_token`, `hub.challenge` e payload em `entry[].changes[].value`.
+Criar a tabela `sessions` com migration. Criar o repositório de Session. Criar o use case `ProcessIncomingMessage` que: busca ou cria sessão do usuário, carrega o fluxo ativo do tenant, chama o flow engine, persiste o novo estado da sessão e envia a resposta pelo adapter selecionado. Criar endpoint webhook no Elysia (`POST /webhook/:tenantId/whatsapp`) e endpoint de verificação quando necessário (ex.: Meta). Implementar lock por sessão no Valkey para evitar condição de corrida quando o usuário manda múltiplas mensagens seguidas. Criar testes de integração para o fluxo completo (mensagem → normalização → engine → envio), cobrindo pelo menos dois provedores com a mesma suíte de contrato.
 
 Restrições:
 - Webhook deve ser idempotente (mesmo evento duas vezes = mesmo resultado)
 - Lock por sessão obrigatório no Valkey (TTL de 10s)
 - tenant_id do path param do webhook deve ser validado contra o banco
 - Nunca logar conteúdo de mensagem do usuário (privacidade)
+- Seleção de provedor deve ocorrer por configuração (tenant/instância), nunca por `if/else` espalhado em use case
+- Use cases não podem importar SDK de provedor; toda integração externa deve ficar em adapter
+- Validar assinatura/verificação de webhook quando o provedor exigir
 - Testes E2E: mensagem de opção válida navega para próximo nó; mensagem inválida retorna resposta de erro configurada no nó
 
 Contexto adicional:
-Esta sprint conecta o engine ao mundo real. A concorrência de mensagens é o principal risco — o lock por sessão é obrigatório desde o início.
+Esta sprint conecta o engine ao mundo real e precisa evitar lock-in tecnológico. O principal risco é acoplamento com um provedor específico e concorrência de mensagens; por isso o design deve nascer agnóstico, orientado a contracts, com lock por sessão desde o início.
 ```
 
 ---
