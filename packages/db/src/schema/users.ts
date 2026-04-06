@@ -1,3 +1,4 @@
+/** Schema Drizzle da tabela users. Credenciais e perfil — vinculado a tenants via tenant_memberships. */
 import { boolean, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable("users", {

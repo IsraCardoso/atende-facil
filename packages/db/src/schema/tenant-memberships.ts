@@ -1,3 +1,4 @@
+/** Schema Drizzle da tabela tenant_memberships. Relaciona usuários a tenants com role e status. */
 import { index, pgTable, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { tenantsTable } from "./tenants";

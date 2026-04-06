@@ -1,3 +1,4 @@
+/** Inicialização do servidor HTTP. Configura host, porta e loga URL de acesso. */
 import type { ApiEnvironment } from "../../infrastructure/config/env";
 import type { StructuredLogger } from "../../infrastructure/logger/json-logger";
 import { systemCorrelationId } from "./correlation-id";

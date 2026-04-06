@@ -1,3 +1,4 @@
+/** Tipos do sistema de DI. Token<T> garante type-safety na resolução de dependências via generics. */
 type ServiceLifetime = "singleton" | "transient";
 
 type InjectionToken<TValue> = Readonly<{

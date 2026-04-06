@@ -1,3 +1,4 @@
+/** Serviço de cache de identidade. Evita queries repetidas ao banco para dados do usuário autenticado. */
 import type { SafeUserProfile, TenantId, TenantMembershipEntity, UserId } from "../../domain";
 import type { AppLoggerPort, CachePort, CurrentUserProjection } from "../../domain/ports";
 

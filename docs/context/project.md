@@ -133,6 +133,15 @@ Transições:
 - **Validação e normalização** devem ocorrer na criação do tipo específico (fail-fast em caso inválido)
 - **Objetivo:** reduzir ambiguidade, evitar troca acidental de valores entre contextos e aumentar segurança de refatoração
 
+### JSDoc estratégico (obrigatório)
+
+- **Documentar o porquê, não o quê.** JSDoc deve explicar contratos, invariantes e decisões — nunca narrar código óbvio.
+- **Module-level obrigatório:** todo arquivo `.ts` (exceto barrels/index) deve ter um JSDoc de módulo no topo explicando sua responsabilidade em 1-2 linhas.
+- **Ports e interfaces:** documentar o contrato (ex.: "Lock distribuído com TTL de 10s para serializar processamento").
+- **Exported functions:** documentar factory functions com semântica de negócio e `@throws` quando aplicável.
+- **Branded types:** explicar por que o tipo existe (type-safety, prevenção de mistura de IDs).
+- **Proibido:** JSDoc em helpers privados, getters/setters triviais, barrels/index, ou comentários que repetem o nome da função.
+
 ### Política de débito técnico
 
 - Todo débito técnico aberto deve ser registrado com checklist (`[ ]`) no `docs/changelog/CHANGELOG.md`

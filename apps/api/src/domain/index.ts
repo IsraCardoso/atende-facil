@@ -32,3 +32,32 @@ export {
   createUserRole,
   requireNonEmptyString,
 } from "./auth-types";
+export type {
+  CanonicalDeliveryStatus,
+  CanonicalInboundMessage,
+  CanonicalOutboundMessage,
+  ChatwootConversationId,
+  DeliveryStatusKind,
+  EvolutionInstanceConfig,
+  MetaInstanceConfig,
+  Phone,
+  SessionEntity,
+  SessionId,
+  SessionMode,
+  UazapiInstanceConfig,
+  WhatsAppInstanceConfig,
+  WhatsAppInstanceEntity,
+  WhatsAppInstanceId,
+  WhatsAppMessageId,
+  WhatsAppProvider,
+  ZapiInstanceConfig,
+} from "./whatsapp-types";
+export {
+  acceptedWhatsAppProviders,
+  createChatwootConversationId,
+  createPhone,
+  createSessionId,
+  createWhatsAppInstanceId,
+  createWhatsAppMessageId,
+  isValidWhatsAppProvider,
+} from "./whatsapp-types";

@@ -1,3 +1,4 @@
+/** Adapter de cache via Valkey (Redis-compatible). Serializa valores em JSON e respeita TTL configurado. */
 import { createClient } from "redis";
 
 import type { CacheEntry, CachePort } from "../../domain/ports";

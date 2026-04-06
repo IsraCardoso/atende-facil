@@ -1,3 +1,4 @@
+/** DTOs de autenticação. Contratos de entrada/saída entre interface HTTP e use cases — nunca expõem entidades de domínio. */
 import type {
   SafeUserProfile,
   TenantEntity,

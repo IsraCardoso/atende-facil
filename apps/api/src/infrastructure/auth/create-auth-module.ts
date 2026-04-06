@@ -1,3 +1,4 @@
+/** Módulo DI de autenticação. Registra repositórios, hashers, tokens e use cases no container de injeção de dependência. */
 import { createContainer, createToken } from "container";
 
 import {

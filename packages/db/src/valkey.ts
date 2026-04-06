@@ -1,3 +1,4 @@
+/** Factory de cliente Valkey (Redis-compatible). Conecta via URL e expõe interface tipada. */
 import { createClient } from "redis";
 
 import type { ValkeyUrl } from "./types";

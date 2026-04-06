@@ -1,3 +1,4 @@
+/** Validação estática de definições de fluxo. Detecta nós órfãos, edges inválidos e ciclos antes da ativação. */
 import {
   createNodeIndex,
   type Flow,

@@ -1,3 +1,4 @@
+/** Container de injeção de dependência manual e tipado. Suporta singleton e transient sem libs externas. */
 import type {
   Container,
   ContainerRegistration,

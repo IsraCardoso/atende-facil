@@ -1,3 +1,4 @@
+/** Erros de aplicação tipados com código e detalhes estruturados. Usados em toda camada de application e interface. */
 type AppErrorCode =
   | "AUTH_INVALID_CREDENTIALS"
   | "AUTH_UNAUTHORIZED"

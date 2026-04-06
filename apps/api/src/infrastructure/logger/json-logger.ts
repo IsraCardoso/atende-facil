@@ -1,3 +1,4 @@
+/** Logger estruturado em JSON. Filtra por nível mínimo e formata saída para consumo por ferramentas de observabilidade. */
 import type { LoggerLevel, RuntimeEnvironment } from "../config/env";
 
 type LogContext = Readonly<Record<string, unknown>>;

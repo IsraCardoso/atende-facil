@@ -1,3 +1,4 @@
+/** Schema Drizzle da tabela tenants. Raiz do isolamento multi-tenant — todas as tabelas referenciam tenant_id. */
 import { pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const tenantsTable = pgTable("tenants", {

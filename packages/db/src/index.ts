@@ -10,7 +10,14 @@ export {
   createQueryRunner,
   validateDatabaseConnection,
 } from "./database";
-export { schema, tenantMembershipsTable, tenantsTable, usersTable } from "./schema";
+export {
+  schema,
+  sessionsTable,
+  tenantMembershipsTable,
+  tenantsTable,
+  usersTable,
+  whatsappInstancesTable,
+} from "./schema";
 export type {
   DatabaseConfiguration,
   DatabaseConnection,

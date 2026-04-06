@@ -169,6 +169,21 @@ type Phone = string & { readonly _brand: 'Phone' }
 - **Sem comentários desnecessários:** o código deve ser autoexplicativo; comentários justificam *por que*, não *o que*
 - **Early return obrigatório:** elimine aninhamentos desnecessários retornando cedo
 
+### 6.1 JSDoc Estratégico (obrigatório)
+
+| O que documentar | Exemplo |
+|---|---|
+| **Module-level** (topo de todo `.ts` exceto barrels) | `/** Orquestra processamento de mensagem: idempotência → lock → flow → envio. */` |
+| **Ports e interfaces** (contrato/invariante) | `/** Lock distribuído com TTL de 10s. Previne deadlock via auto-release (RN-012). */` |
+| **Exported factories** (semântica + `@throws`) | `/** Cria adapter Evolution API. @throws {Error} Se config.provider !== 'evolution'. */` |
+| **Branded types** (razão de existir) | `/** Previne mistura acidental de IDs via phantom type. */` |
+| **Unions discriminadas** (quando/como usar switch) | `/** Resolvida via switch exaustivo — erro de compilação se provider for esquecido. */` |
+
+**Proibido:**
+- JSDoc em helpers privados, getters/setters triviais ou barrels/index
+- Comentários que narram o código (`/** Retorna o usuário */` em `getUser()`)
+- `@param` / `@returns` quando a tipagem já comunica tudo
+
 ```typescript
 // ❌ Errado
 function processMessage(session: Session, msg: string) {
