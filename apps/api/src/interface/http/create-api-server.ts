@@ -1,3 +1,4 @@
+/** Bootstrap do servidor Elysia. Compõe middleware global (CORS, error handling, correlation-id) com rotas de auth e webhook. */
 import { Elysia } from "elysia";
 
 import { createAppError, isAppError, toAppErrorPayload } from "../../application/errors/app-error";
@@ -8,10 +9,17 @@ import type {
   RegisterTenantUseCase,
   VerifyAccessTokenUseCase,
 } from "../../application/use-cases";
+import type {
+  ProcessIncomingMessageInput,
+  ProcessIncomingMessageResult,
+} from "../../application/use-cases/process-incoming-message-use-case";
+import type { AppLoggerPort } from "../../domain/ports/auth-ports";
+import type { WhatsAppInstanceRepositoryPort } from "../../domain/ports/whatsapp-ports";
 import type { ApiEnvironment } from "../../infrastructure/config/env";
 import type { StructuredLogger } from "../../infrastructure/logger/json-logger";
 import { createAuthRoutes } from "./auth-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
+import { createWebhookRoutes } from "./webhook-routes";
 
 type CreateApiServerAuthDependencies = Readonly<{
   registerTenantUseCase: RegisterTenantUseCase;
@@ -21,10 +29,19 @@ type CreateApiServerAuthDependencies = Readonly<{
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
 }>;
 
+type CreateApiServerWhatsAppDependencies = Readonly<{
+  instanceRepository: WhatsAppInstanceRepositoryPort;
+  processIncomingMessage: Readonly<{
+    execute: (input: ProcessIncomingMessageInput) => Promise<ProcessIncomingMessageResult>;
+  }>;
+  logger: AppLoggerPort;
+}>;
+
 type CreateApiServerInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
   auth: CreateApiServerAuthDependencies;
+  whatsapp?: CreateApiServerWhatsAppDependencies;
 }>;
 
 type HealthResponse = Readonly<{
@@ -40,9 +57,9 @@ function createHealthResponse(environment: ApiEnvironment["nodeEnv"]): HealthRes
 }
 
 export function createApiServer(input: CreateApiServerInput) {
-  const { environment, logger, auth } = input;
+  const { environment, logger, auth, whatsapp } = input;
 
-  return new Elysia()
+  const app = new Elysia()
     .onError(({ request, error, set }) => {
       const correlationId = resolveCorrelationId(request);
       set.headers[correlationIdHeaderName] = correlationId;
@@ -99,4 +116,16 @@ export function createApiServer(input: CreateApiServerInput) {
         verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
       }),
     );
+
+  if (!whatsapp) {
+    return app;
+  }
+
+  return app.use(
+    createWebhookRoutes({
+      instanceRepository: whatsapp.instanceRepository,
+      processIncomingMessage: whatsapp.processIncomingMessage,
+      logger: whatsapp.logger,
+    }),
+  );
 }
