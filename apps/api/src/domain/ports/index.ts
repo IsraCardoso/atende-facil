@@ -12,3 +12,22 @@ export type {
   TenantRepositoryPort,
   UserRepositoryPort,
 } from "./auth-ports";
+export type {
+  ChatwootCreateConversationInput,
+  ChatwootPort,
+  ChatwootSendMessageInput,
+  FlowDefinitionRecord,
+  FlowRepositoryPort,
+  InboundNormalizer,
+  MetaChallengeInput,
+  MetaChallengeResult,
+  ProviderBundle,
+  SessionLockPort,
+  SessionRepositoryPort,
+  WebhookIdempotencyPort,
+  WebhookVerificationInput,
+  WebhookVerificationResult,
+  WebhookVerifier,
+  WhatsAppInstanceRepositoryPort,
+  WhatsAppSenderPort,
+} from "./whatsapp-ports";
