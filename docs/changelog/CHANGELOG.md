@@ -21,6 +21,41 @@
 
 ---
 
+## [sprint-02] — 2026-04-06
+
+> **Objetivo:** Permitir cadastro de tenant, autenticação JWT Bearer e autorização RBAC com isolamento multi-tenant por token.
+
+### Adicionado
+- Modelo de identidade multi-tenant com `users` e `tenant_memberships`, incluindo constraints e índices para vínculo N:N entre usuário e tenant.
+- Use cases de auth (`RegisterTenant`, `CreateUser`, `Login`, `GetCurrentUser`) com tipagem estrita, `AppError` padronizado e testes unitários cobrindo cenários de sucesso e erro.
+- Ports e adapters de cross-cutting para cache e logs (`CachePort`, `AppLoggerPort`, `ValkeyCacheAdapter`, `InMemoryCacheAdapter`, adapter de logger estruturado).
+- Services de aplicação para política RBAC e cache de identidade (`RbacPolicyService`, `IdentityCacheService`) integrados ao módulo de auth.
+- Testes de integração/E2E para fluxos obrigatórios de auth, 401 sem token, 403 por role, isolamento de `tenantId` por token e cenário single-tenant.
+
+### Alterado
+- Composição de dependências do auth centralizada no container DI com resolução lazy e lifetimes explícitos.
+- Rotas e middleware HTTP de auth com extração de token Bearer, derive de contexto autenticado e envelope único de erro.
+- Configuração de ambiente da API expandida para `MULTI_TENANT`, `DEFAULT_TENANT_ID`, `AUTH_SECRET` e TTL de token.
+
+### Corrigido
+- Execução global de lint no monorepo estabilizada com formatação consistente entre workspaces.
+- Fluxos de teste e build consolidados para garantir `bun run build`, `bun run test` e `bun run lint` passando na raiz.
+
+### Decisões técnicas registradas
+- Nenhuma decisão nova em `docs/decisions/` nesta sprint.
+
+### Regras de negócio implementadas
+- [RN-004 — Identidade e isolamento multi-tenant por token](../business-rules/RN-004-identidade-isolamento-tenant-token.md)
+- [RN-005 — Autenticação JWT Bearer e segurança de credenciais](../business-rules/RN-005-autenticacao-jwt-bearer-seguranca.md)
+- [RN-006 — RBAC por papel com autorização por endpoint](../business-rules/RN-006-rbac-autorizacao-endpoints.md)
+- [RN-007 — Ports, Adapters e Services para cache e logs](../business-rules/RN-007-ports-adapters-services-cache-logs.md)
+
+### Débitos técnicos gerados
+- [ ] Substituir repositórios de auth in-memory por implementações persistentes (PostgreSQL/Drizzle) para produção.
+- [ ] Habilitar relatório de cobertura automatizado no Vitest para comprovar a meta de 100% nos use cases de auth/rbac.
+
+---
+
 ## [sprint-01] — 2026-04-06
 
 > **Objetivo:** Configurar a fundação técnica do projeto com monorepo funcional, observabilidade mínima e infraestrutura local reproduzível.

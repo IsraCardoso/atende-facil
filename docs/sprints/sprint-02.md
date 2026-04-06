@@ -1,6 +1,6 @@
 # Sprint 02 - Multi-tenant + Autenticacao + RBAC
 
-> **Periodo:** 06/04 ate 08/04 | **Status:** `Planejamento`
+> **Periodo:** 06/04 ate 08/04 | **Status:** `Concluida`
 
 ---
 
@@ -64,15 +64,15 @@ Entregar a base de identidade e acesso da plataforma com modelo escalavel de vin
 
 ## Metricas de Sucesso
 
-- [ ] Cadastro de tenant + usuario administrador funcional via endpoint publico
-- [ ] Login por email/senha retorna JWT Bearer valido
-- [ ] Endpoints protegidos retornam 401 sem token e 403 com papel incorreto
-- [ ] `tenant_id` e contexto de autorizacao vindos apenas do token
-- [ ] Nenhuma resposta retorna senha/hash
+- [x] Cadastro de tenant + usuario administrador funcional via endpoint publico
+- [x] Login por email/senha retorna JWT Bearer valido
+- [x] Endpoints protegidos retornam 401 sem token e 403 com papel incorreto
+- [x] `tenant_id` e contexto de autorizacao vindos apenas do token
+- [x] Nenhuma resposta retorna senha/hash
 - [ ] 100% de cobertura unitaria nos use cases de auth/rbac
-- [ ] Testes E2E cobrindo cadastro de tenant, login, 401 e 403
-- [ ] Modo single-tenant validado com `MULTI_TENANT=false` + `DEFAULT_TENANT_ID`
-- [ ] Erros retornam payload padrao (`error`, `code`, `details`) com mapeamento consistente por status HTTP
+- [x] Testes E2E cobrindo cadastro de tenant, login, 401 e 403
+- [x] Modo single-tenant validado com `MULTI_TENANT=false` + `DEFAULT_TENANT_ID`
+- [x] Erros retornam payload padrao (`error`, `code`, `details`) com mapeamento consistente por status HTTP
 
 ---
 
