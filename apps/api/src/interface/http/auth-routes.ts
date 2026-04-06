@@ -41,13 +41,13 @@ export function createAuthRoutes(input: CreateAuthRoutesInput) {
         correlationId,
       };
     })
-    .get("/me", async ({ authClaims, correlationId }) => {
-      return getCurrentUserUseCase.execute({
+    .get("/me", async ({ authClaims, correlationId }) =>
+      getCurrentUserUseCase.execute({
         userId: authClaims.sub,
         tenantId: authClaims.tenantId,
         correlationId,
-      });
-    })
+      }),
+    )
     .post("/users", async ({ authClaims, body, correlationId, set }) => {
       const output = await createUserUseCase.execute(
         parseCreateUserInput(body, authClaims.tenantId, authClaims.role, correlationId),

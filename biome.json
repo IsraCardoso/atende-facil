@@ -92,9 +92,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "apps/web/**/*.{js,jsx,ts,tsx}"
-      ],
+      "includes": ["apps/web/**/*.{js,jsx,ts,tsx}"],
       "linter": {
         "rules": {
           "a11y": {
@@ -245,28 +243,32 @@
                     "selector": {
                       "kind": "function"
                     },
-                    "formats": [
-                      "camelCase",
-                      "PascalCase"
-                    ]
+                    "formats": ["camelCase", "PascalCase"]
                   },
                   {
                     "selector": {
                       "kind": "variable"
                     },
-                    "formats": [
-                      "camelCase",
-                      "PascalCase",
-                      "CONSTANT_CASE"
-                    ]
+                    "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "objectLiteralMember"
+                    },
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "typeProperty"
+                    },
+                    "match": "_*(.+)",
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
                   },
                   {
                     "selector": {
                       "kind": "typeLike"
                     },
-                    "formats": [
-                      "PascalCase"
-                    ]
+                    "formats": ["PascalCase"]
                   }
                 ]
               }
@@ -331,11 +333,7 @@
       }
     },
     {
-      "includes": [
-        "apps/api/**/*.{js,ts}",
-        "apps/worker/**/*.{js,ts}",
-        "packages/**/*.{js,ts}"
-      ],
+      "includes": ["apps/api/**/*.{js,ts}", "apps/worker/**/*.{js,ts}", "packages/**/*.{js,ts}"],
       "linter": {
         "rules": {
           "complexity": {
@@ -432,28 +430,32 @@
                     "selector": {
                       "kind": "function"
                     },
-                    "formats": [
-                      "camelCase",
-                      "PascalCase"
-                    ]
+                    "formats": ["camelCase", "PascalCase"]
                   },
                   {
                     "selector": {
                       "kind": "variable"
                     },
-                    "formats": [
-                      "camelCase",
-                      "PascalCase",
-                      "CONSTANT_CASE"
-                    ]
+                    "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "objectLiteralMember"
+                    },
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "typeProperty"
+                    },
+                    "match": "_*(.+)",
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
                   },
                   {
                     "selector": {
                       "kind": "typeLike"
                     },
-                    "formats": [
-                      "PascalCase"
-                    ]
+                    "formats": ["PascalCase"]
                   }
                 ]
               }
