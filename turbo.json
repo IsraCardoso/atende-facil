@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV",
+    "API_HOST",
+    "API_PORT",
+    "LOG_LEVEL",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "MULTI_TENANT",
+    "DEFAULT_TENANT_ID",
+    "AUTH_SECRET",
+    "EVOLUTION_API_URL",
+    "EVOLUTION_API_KEY",
+    "OPENAI_API_KEY"
+  ],
+  "globalDependencies": ["tsconfig.base.json", "biome.json", "vitest.config.ts"],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    }
+  }
+}
