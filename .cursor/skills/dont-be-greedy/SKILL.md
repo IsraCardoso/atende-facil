@@ -29,6 +29,26 @@ Evitar estouro de janela de contexto e manter respostas precisas ao trabalhar co
 4. Trabalhar incrementalmente:
    - explorar -> resumir -> decidir próximo bloco.
 
+## Protocolo com gates (obrigatório em tarefas amplas)
+
+Quando o escopo for difuso ou tocar múltiplos módulos, seguir:
+
+1. **Mapear (gate)**:
+   - identificar arquivos-alvo por busca;
+   - evitar leitura ampla sem evidência.
+2. **Decidir (gate)**:
+   - declarar abordagem e escopo exato;
+   - definir validação mínima antes de editar.
+3. **Executar**:
+   - implementar apenas no escopo decidido;
+   - validar e reportar de forma curta.
+
+## Contratos de saída curtos
+
+- **Mapear** (máx 6 linhas): `arquivos-alvo`, `hipotese`, `risco` (opcional), `proximo-passo`
+- **Decidir** (máx 6 linhas): `decisao`, `escopo`, `validacao` (até 3 checks), `proximo-passo`
+- **Executar** (máx 8 linhas): `arquivos-alterados`, `resultado-validacao`, `pendencias`, `proximo-passo`
+
 ## Regras obrigatórias
 
 - Não carregar arquivos grandes integralmente sem necessidade explícita.
@@ -51,3 +71,5 @@ Nesses casos: pare, resuma o que já foi validado e prossiga em blocos menores.
 - [ ] Resumi cada bloco antes de abrir o próximo
 - [ ] Mantive rastreabilidade de arquivos e decisões
 - [ ] Evitei carregar contexto irrelevante
+- [ ] Segui gates de mapear -> decidir -> executar quando o escopo era amplo
+- [ ] Entreguei contratos de saída curtos por etapa

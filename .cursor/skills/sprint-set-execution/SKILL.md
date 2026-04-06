@@ -68,6 +68,26 @@ Apresentar o resultado consolidado da cadeia inteira **antes** de exibir as opç
 - Aplicar `dont-be-greedy` em análise de arquivos longos antes de leitura ampla.
 - Ler apenas trechos necessários e expandir por evidência.
 
+## Gating de contexto (mapear -> decidir -> executar)
+
+Em tasks com escopo incerto ou impacto em múltiplos arquivos, aplicar gates explícitos:
+
+1. **Mapear (gate)**: localizar arquivos-alvo e hipótese técnica inicial.
+2. **Decidir (gate)**: fechar abordagem e escopo de edição antes de codar.
+3. **Executar**: implementar, validar e reportar resultado.
+
+### Contratos de saída curtos por etapa
+
+- **Mapear** (máx 6 linhas): `arquivos-alvo`, `hipotese`, `risco` (opcional), `proximo-passo`
+- **Decidir** (máx 6 linhas): `decisao`, `escopo`, `validacao` (até 3 checks), `proximo-passo`
+- **Executar** (máx 8 linhas): `arquivos-alterados`, `resultado-validacao`, `pendencias`, `proximo-passo`
+
+### Regras adicionais
+
+- Não ler arquivo inteiro com mais de 200 linhas sem justificativa.
+- Ler arquivos longos em fatias de 120 a 180 linhas.
+- Se usar subagentes, limitar a 2 por rodada, cada um com objetivo único.
+
 ---
 
 ## Checklist de qualidade por set
@@ -79,6 +99,8 @@ Apresentar o resultado consolidado da cadeia inteira **antes** de exibir as opç
 - [ ] `code-review` executado automaticamente (escopo: set)
 - [ ] Checkpoint apresentado com resultado do review incluso
 - [ ] Se último set: Cadeia de Fechamento executada automaticamente
+- [ ] Gating de contexto aplicado quando necessário
+- [ ] Contratos de saída curtos reportados por etapa
 
 ---
 

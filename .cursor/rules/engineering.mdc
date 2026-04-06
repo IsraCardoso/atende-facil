@@ -375,6 +375,54 @@ Rodada 3:  [SET-D]               ← só após SET-B e SET-C concluídos
 - [ ] Lint passa sem warnings?
 - [ ] Testes passam?
 
+### 17.1 Protocolo de Contexto com Gate (mapear -> decidir -> executar)
+
+Aplicar obrigatoriamente em tarefas com escopo não claro, análise de arquitetura ou mudança que toque mais de 2 arquivos.
+
+#### Etapa 1 — Mapear (gate obrigatório)
+
+- Descobrir candidatos com busca textual/semântica antes de abrir arquivos longos.
+- Quando o escopo for amplo, usar subagente `explore` com profundidade `quick` para triagem inicial.
+- Evitar leitura integral de arquivos grandes sem evidência de relevância.
+
+**Contrato de saída curto (Mapear) — máximo 6 linhas:**
+- `arquivos-alvo:` até 5 caminhos
+- `hipotese:` 1 frase objetiva
+- `risco:` 1 frase (opcional)
+- `proximo-passo:` 1 frase
+
+#### Etapa 2 — Decidir (gate obrigatório)
+
+- Escolher uma abordagem principal com escopo de edição explícito.
+- Registrar por que as alternativas foram descartadas.
+- Definir validações mínimas antes de editar.
+
+**Contrato de saída curto (Decidir) — máximo 6 linhas:**
+- `decisao:` 1 frase
+- `escopo:` lista de arquivos que serão alterados
+- `validacao:` até 3 checks
+- `proximo-passo:` 1 frase
+
+#### Etapa 3 — Executar
+
+- Editar apenas o escopo definido no gate anterior.
+- Validar com lint/testes adequados ao impacto.
+- Reportar resultado sem copiar blocos extensos desnecessários.
+
+**Contrato de saída curto (Executar) — máximo 8 linhas:**
+- `arquivos-alterados:` lista curta
+- `resultado-validacao:` status de lint/testes
+- `pendencias:` item único ou "nenhuma"
+- `proximo-passo:` 1 frase
+
+#### Regras de orçamento de contexto (obrigatórias)
+
+- Proibido ler arquivo inteiro com mais de 200 linhas sem justificativa.
+- Ler em fatias de 120 a 180 linhas quando necessário.
+- A cada 3 leituras, produzir síntese curta antes de continuar.
+- Não usar mais de 2 subagentes na mesma rodada de trabalho.
+- Cada subagente deve receber objetivo único e retornar somente o contrato de saída curto da etapa.
+
 ---
 
 ## 18. Versionamento (Git)
