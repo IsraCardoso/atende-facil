@@ -107,6 +107,48 @@ Referência completa: `.cursor/rules/engineering.mdc`
 
 ---
 
+## Protocolo de contexto e subagentes (baixo consumo)
+
+Use este protocolo quando houver risco de estouro de contexto, escopo desconhecido ou investigação em múltiplos módulos.
+
+### Etapas com gate
+```text
+Mapear  ->  Decidir  ->  Executar
+```
+
+- **Mapear:** localizar arquivos/símbolos candidatos e formular hipótese inicial
+- **Decidir:** fechar abordagem e escopo de edição antes de codar
+- **Executar:** implementar e validar sem expandir escopo sem novo gate
+
+### Contratos de saída curtos (obrigatórios)
+
+- **Mapear (máx 6 linhas):**
+  - `arquivos-alvo` (até 5 caminhos)
+  - `hipotese` (1 frase)
+  - `risco` (opcional)
+  - `proximo-passo` (1 frase)
+- **Decidir (máx 6 linhas):**
+  - `decisao` (1 frase)
+  - `escopo` (arquivos que serão alterados)
+  - `validacao` (até 3 checks)
+  - `proximo-passo` (1 frase)
+- **Executar (máx 8 linhas):**
+  - `arquivos-alterados`
+  - `resultado-validacao`
+  - `pendencias`
+  - `proximo-passo`
+
+### Regras práticas
+
+- Arquivo grande: ler em fatias (120 a 180 linhas), não inteiro por padrão
+- A cada 3 leituras, resumir antes de continuar
+- Subagentes: no máximo 2 por rodada, cada um com objetivo único
+- Saída de subagente deve ser curta e no formato do contrato da etapa
+
+Referência detalhada: `docs/context/context-budget.md`
+
+---
+
 ## Onboarding rápido (primeiro uso)
 
 1. Preencha `docs/context/project.md` com a stack e estrutura real do projeto
