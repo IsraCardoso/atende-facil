@@ -8,7 +8,7 @@ import { createCachedFlowRepository } from "./cached-flow-repository";
 function createMockCachePort(): CachePort {
   const store = new Map<string, unknown>();
   return {
-    get: vi.fn(async <T>(key: string) => (store.get(key) as T) ?? null),
+    get: vi.fn(async (key: string) => store.get(key) ?? null) as CachePort["get"],
     set: vi.fn(async ({ key, value }) => {
       store.set(key, value);
     }),

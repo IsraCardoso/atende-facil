@@ -10,7 +10,7 @@ type UserRow = typeof usersTable.$inferSelect;
 function mapRowToEntity(row: UserRow): UserEntity {
   return createUserEntity({
     id: row.id as UserId,
-    email: row.email,
+    email: row.email as EmailAddress,
     displayName: row.displayName,
     passwordHash: row.passwordHash,
     createdAt: row.createdAt,

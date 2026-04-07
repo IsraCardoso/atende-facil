@@ -8,12 +8,10 @@ import {
 } from "../../domain/auth-entities";
 import {
   createEmailAddress,
-  createMembershipStatus,
   createTenantId,
   createTenantMembershipId,
   createTenantSlug,
   createUserId,
-  createUserRole,
 } from "../../domain/auth-types";
 import { createDrizzleMembershipRepository } from "./drizzle-membership-repository";
 import { createDrizzleTenantRepository } from "./drizzle-tenant-repository";
@@ -41,7 +39,7 @@ function createMockDb() {
   const db = {
     select: vi.fn().mockReturnValue(chainableSelect),
     insert: vi.fn().mockReturnValue(chainableInsert),
-    _mocks: { mockReturning, mockLimit, mockWhere, chainableSelect, chainableInsert },
+    testHelpers: { mockReturning, mockLimit, mockWhere, chainableSelect, chainableInsert },
   };
 
   return db;
@@ -80,7 +78,7 @@ const membershipRow = {
 describe("DrizzleTenantRepository", () => {
   it("should create tenant and return entity", async () => {
     const db = createMockDb();
-    db._mocks.mockReturning.mockResolvedValue([tenantRow]);
+    db.testHelpers.mockReturning.mockResolvedValue([tenantRow]);
 
     const repo = createDrizzleTenantRepository(db as never);
     const tenant = createTenantEntity({
@@ -100,7 +98,7 @@ describe("DrizzleTenantRepository", () => {
 
   it("should return tenant by id when found", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([tenantRow]);
+    db.testHelpers.mockLimit.mockResolvedValue([tenantRow]);
 
     const repo = createDrizzleTenantRepository(db as never);
     const result = await repo.findById(createTenantId("t-001"));
@@ -111,7 +109,7 @@ describe("DrizzleTenantRepository", () => {
 
   it("should return null when tenant not found by id", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([]);
+    db.testHelpers.mockLimit.mockResolvedValue([]);
 
     const repo = createDrizzleTenantRepository(db as never);
     const result = await repo.findById(createTenantId("nonexistent"));
@@ -121,7 +119,7 @@ describe("DrizzleTenantRepository", () => {
 
   it("should return tenant by slug when found", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([tenantRow]);
+    db.testHelpers.mockLimit.mockResolvedValue([tenantRow]);
 
     const repo = createDrizzleTenantRepository(db as never);
     const result = await repo.findBySlug(createTenantSlug("test-tenant"));
@@ -132,7 +130,7 @@ describe("DrizzleTenantRepository", () => {
 
   it("should return null when tenant not found by slug", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([]);
+    db.testHelpers.mockLimit.mockResolvedValue([]);
 
     const repo = createDrizzleTenantRepository(db as never);
     const result = await repo.findBySlug(createTenantSlug("nonexistent"));
@@ -144,7 +142,7 @@ describe("DrizzleTenantRepository", () => {
 describe("DrizzleUserRepository", () => {
   it("should create user and return entity", async () => {
     const db = createMockDb();
-    db._mocks.mockReturning.mockResolvedValue([userRow]);
+    db.testHelpers.mockReturning.mockResolvedValue([userRow]);
 
     const repo = createDrizzleUserRepository(db as never);
     const user = createUserEntity({
@@ -165,7 +163,7 @@ describe("DrizzleUserRepository", () => {
 
   it("should return user by id when found", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([userRow]);
+    db.testHelpers.mockLimit.mockResolvedValue([userRow]);
 
     const repo = createDrizzleUserRepository(db as never);
     const result = await repo.findById(createUserId("u-001"));
@@ -176,7 +174,7 @@ describe("DrizzleUserRepository", () => {
 
   it("should return null when user not found by id", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([]);
+    db.testHelpers.mockLimit.mockResolvedValue([]);
 
     const repo = createDrizzleUserRepository(db as never);
     const result = await repo.findById(createUserId("nonexistent"));
@@ -186,7 +184,7 @@ describe("DrizzleUserRepository", () => {
 
   it("should return user by email when found", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([userRow]);
+    db.testHelpers.mockLimit.mockResolvedValue([userRow]);
 
     const repo = createDrizzleUserRepository(db as never);
     const result = await repo.findByEmail(createEmailAddress("test@test.com"));
@@ -197,7 +195,7 @@ describe("DrizzleUserRepository", () => {
 
   it("should return null when user not found by email", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([]);
+    db.testHelpers.mockLimit.mockResolvedValue([]);
 
     const repo = createDrizzleUserRepository(db as never);
     const result = await repo.findByEmail(createEmailAddress("notfound@test.com"));
@@ -209,7 +207,7 @@ describe("DrizzleUserRepository", () => {
 describe("DrizzleMembershipRepository", () => {
   it("should create membership and return entity", async () => {
     const db = createMockDb();
-    db._mocks.mockReturning.mockResolvedValue([membershipRow]);
+    db.testHelpers.mockReturning.mockResolvedValue([membershipRow]);
 
     const repo = createDrizzleMembershipRepository(db as never);
     const membership = createTenantMembershipEntity({
@@ -231,13 +229,10 @@ describe("DrizzleMembershipRepository", () => {
 
   it("should return membership by user and tenant when found", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([membershipRow]);
+    db.testHelpers.mockLimit.mockResolvedValue([membershipRow]);
 
     const repo = createDrizzleMembershipRepository(db as never);
-    const result = await repo.findByUserAndTenant(
-      createUserId("u-001"),
-      createTenantId("t-001"),
-    );
+    const result = await repo.findByUserAndTenant(createUserId("u-001"), createTenantId("t-001"));
 
     expect(result).not.toBeNull();
     expect(result?.id).toBe("m-001");
@@ -245,13 +240,10 @@ describe("DrizzleMembershipRepository", () => {
 
   it("should return null when membership not found", async () => {
     const db = createMockDb();
-    db._mocks.mockLimit.mockResolvedValue([]);
+    db.testHelpers.mockLimit.mockResolvedValue([]);
 
     const repo = createDrizzleMembershipRepository(db as never);
-    const result = await repo.findByUserAndTenant(
-      createUserId("u-999"),
-      createTenantId("t-999"),
-    );
+    const result = await repo.findByUserAndTenant(createUserId("u-999"), createTenantId("t-999"));
 
     expect(result).toBeNull();
   });
@@ -259,7 +251,9 @@ describe("DrizzleMembershipRepository", () => {
   it("should list memberships by user id", async () => {
     const db = createMockDb();
     const mockFrom = {
-      where: vi.fn().mockResolvedValue([membershipRow, { ...membershipRow, id: "m-002", role: "agent" }]),
+      where: vi
+        .fn()
+        .mockResolvedValue([membershipRow, { ...membershipRow, id: "m-002", role: "agent" }]),
     };
     db.select.mockReturnValue({ from: vi.fn().mockReturnValue(mockFrom) });
 

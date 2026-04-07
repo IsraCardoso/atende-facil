@@ -60,7 +60,7 @@ export function createFlowRoutes(input: CreateFlowRoutesInput) {
         return createFlow.execute({
           tenantId: authClaims.tenantId,
           name: body.name,
-          description: body.description,
+          description: body.description ?? undefined,
         });
       },
       {
@@ -91,7 +91,7 @@ export function createFlowRoutes(input: CreateFlowRoutesInput) {
           tenantId: authClaims.tenantId,
           flowId: createFlowId(params.id),
           name: body.name,
-          description: body.description,
+          description: body.description ?? undefined,
           definition: body.definition,
         }),
       {

@@ -80,7 +80,6 @@ function createNewSession(tenantId: string, message: CanonicalInboundMessage): S
     mode: "bot",
     data: {},
     flowId: null,
-    chatwootConversationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
