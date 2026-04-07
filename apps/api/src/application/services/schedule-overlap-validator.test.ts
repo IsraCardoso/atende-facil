@@ -84,10 +84,11 @@ describe("validateScheduleOverlap", () => {
   });
 
   it("should return valid for empty existing schedules", () => {
-    const result = validateScheduleOverlap(
-      [],
-      { daysOfWeek: [1] as const, startTime: "08:00", endTime: "12:00" },
-    );
+    const result = validateScheduleOverlap([], {
+      daysOfWeek: [1] as const,
+      startTime: "08:00",
+      endTime: "12:00",
+    });
     expect(result.valid).toBe(true);
   });
 });

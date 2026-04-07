@@ -48,15 +48,12 @@ export function createUpdateScheduleUseCase(deps: {
       const updatedEndTime = input.endTime ?? existing.endTime;
 
       const allSchedules = await deps.scheduleRepository.findActiveByTenant(input.tenantId);
-      const overlapResult = validateScheduleOverlap(
-        [...allSchedules],
-        {
-          id: scheduleId,
-          daysOfWeek: updatedDays as readonly DayOfWeek[],
-          startTime: updatedStartTime,
-          endTime: updatedEndTime,
-        },
-      );
+      const overlapResult = validateScheduleOverlap([...allSchedules], {
+        id: scheduleId,
+        daysOfWeek: updatedDays as readonly DayOfWeek[],
+        startTime: updatedStartTime,
+        endTime: updatedEndTime,
+      });
 
       if (!overlapResult.valid) {
         throw new Error("SCHEDULE_OVERLAP: conflito de horario detectado.");

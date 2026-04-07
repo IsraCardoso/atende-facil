@@ -9,7 +9,6 @@ import type {
   ConversationRepositoryPort,
   DomainEventPublisherPort,
 } from "../../domain/ports/conversation-ports";
-import type { FlowResolverService } from "../services/flow-resolver-service";
 import type {
   ChatwootPort,
   SessionLockPort,
@@ -23,6 +22,7 @@ import type {
   WhatsAppInstanceConfig,
 } from "../../domain/whatsapp-types";
 import { createSessionId } from "../../domain/whatsapp-types";
+import type { FlowResolverService } from "../services/flow-resolver-service";
 
 const SESSION_LOCK_TTL_MS = 10_000;
 const IDEMPOTENCY_TTL_SECONDS = 86_400;

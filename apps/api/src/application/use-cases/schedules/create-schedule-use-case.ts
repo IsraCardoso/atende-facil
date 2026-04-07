@@ -42,10 +42,11 @@ export function createCreateScheduleUseCase(
 
       const days = createDaysOfWeek(input.daysOfWeek);
       const existing = await scheduleRepository.findActiveByTenant(input.tenantId);
-      const overlapResult = validateScheduleOverlap(
-        [...existing],
-        { daysOfWeek: days as readonly DayOfWeek[], startTime: input.startTime, endTime: input.endTime },
-      );
+      const overlapResult = validateScheduleOverlap([...existing], {
+        daysOfWeek: days as readonly DayOfWeek[],
+        startTime: input.startTime,
+        endTime: input.endTime,
+      });
 
       if (!overlapResult.valid) {
         throw new Error(`SCHEDULE_OVERLAP: conflito de horario detectado.`);

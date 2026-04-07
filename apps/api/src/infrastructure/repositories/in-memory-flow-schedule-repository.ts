@@ -15,7 +15,9 @@ export function createInMemoryFlowScheduleRepository(): FlowScheduleRepositoryPo
       scheduleId: FlowScheduleId,
     ): Promise<FlowScheduleEntity | null> {
       const schedule = store.get(scheduleId);
-      if (!schedule || schedule.tenantId !== tenantId) return null;
+      if (!schedule || schedule.tenantId !== tenantId) {
+        return null;
+      }
       return schedule;
     },
 
@@ -39,10 +41,16 @@ export function createInMemoryFlowScheduleRepository(): FlowScheduleRepositoryPo
       excludeId?: FlowScheduleId | undefined,
     ): Promise<readonly FlowScheduleEntity[]> {
       return [...store.values()].filter((schedule) => {
-        if (schedule.tenantId !== tenantId || !schedule.active) return false;
-        if (excludeId && schedule.id === excludeId) return false;
+        if (schedule.tenantId !== tenantId || !schedule.active) {
+          return false;
+        }
+        if (excludeId && schedule.id === excludeId) {
+          return false;
+        }
         const hasCommonDay = schedule.daysOfWeek.some((d) => daysOfWeek.includes(d));
-        if (!hasCommonDay) return false;
+        if (!hasCommonDay) {
+          return false;
+        }
         return schedule.startTime < endTime && startTime < schedule.endTime;
       });
     },

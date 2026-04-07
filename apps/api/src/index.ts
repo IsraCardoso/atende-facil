@@ -13,9 +13,7 @@ import { createConversationModule } from "./infrastructure/conversation";
 import { createFlowModule } from "./infrastructure/flow";
 import { createStructuredAppLoggerAdapter } from "./infrastructure/logger";
 import { createJsonLogger, type StructuredLogger } from "./infrastructure/logger/json-logger";
-import {
-  createDrizzleFlowScheduleRepository,
-} from "./infrastructure/repositories/drizzle-flow-schedule-repository";
+import { createDrizzleFlowScheduleRepository } from "./infrastructure/repositories/drizzle-flow-schedule-repository";
 import { createInMemoryFlowScheduleRepository } from "./infrastructure/repositories/in-memory-flow-schedule-repository";
 import { createWhatsAppModule } from "./infrastructure/whatsapp";
 import { createApiServer } from "./interface/http/create-api-server";

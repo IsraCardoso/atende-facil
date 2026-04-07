@@ -35,12 +35,18 @@ export function validateScheduleOverlap(
   const conflicts: OverlapConflict[] = [];
 
   for (const existing of existingSchedules) {
-    if (candidate.id && existing.id === candidate.id) continue;
+    if (candidate.id && existing.id === candidate.id) {
+      continue;
+    }
 
     for (const day of candidate.daysOfWeek) {
-      if (!existing.daysOfWeek.includes(day)) continue;
+      if (!existing.daysOfWeek.includes(day)) {
+        continue;
+      }
 
-      if (hasTimeOverlap(existing.startTime, existing.endTime, candidate.startTime, candidate.endTime)) {
+      if (
+        hasTimeOverlap(existing.startTime, existing.endTime, candidate.startTime, candidate.endTime)
+      ) {
         conflicts.push({
           scheduleId: existing.id,
           day,
@@ -51,7 +57,9 @@ export function validateScheduleOverlap(
     }
   }
 
-  if (conflicts.length === 0) return { valid: true };
+  if (conflicts.length === 0) {
+    return { valid: true };
+  }
   return { valid: false, conflicts };
 }
 

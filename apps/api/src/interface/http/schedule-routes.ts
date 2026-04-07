@@ -34,7 +34,13 @@ const updateBodySchema = t.Object({
 });
 
 export function createScheduleRoutes(input: CreateScheduleRoutesInput) {
-  const { createSchedule, listSchedules, updateSchedule, deleteSchedule, verifyAccessTokenUseCase } = input;
+  const {
+    createSchedule,
+    listSchedules,
+    updateSchedule,
+    deleteSchedule,
+    verifyAccessTokenUseCase,
+  } = input;
 
   return new Elysia({ prefix: "/flows/schedules" })
     .derive(async ({ request }) => {
@@ -68,9 +74,7 @@ export function createScheduleRoutes(input: CreateScheduleRoutesInput) {
       },
       { body: scheduleBodySchema },
     )
-    .get("/", async ({ authClaims }) =>
-      listSchedules.execute({ tenantId: authClaims.tenantId }),
-    )
+    .get("/", async ({ authClaims }) => listSchedules.execute({ tenantId: authClaims.tenantId }))
     .put(
       "/:id",
       async ({ authClaims, params, body, set }) => {

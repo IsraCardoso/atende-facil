@@ -22,18 +22,18 @@ import type {
   UpdateFlowDefinitionUseCase,
   ValidateFlowUseCase,
 } from "../../application/use-cases/flows";
-import type {
-  CreateScheduleUseCase,
-  DeleteScheduleUseCase,
-  ListSchedulesUseCase,
-  UpdateScheduleUseCase,
-} from "../../application/use-cases/schedules";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
 import type {
   ProcessIncomingMessageInput,
   ProcessIncomingMessageResult,
 } from "../../application/use-cases/process-incoming-message-use-case";
+import type {
+  CreateScheduleUseCase,
+  DeleteScheduleUseCase,
+  ListSchedulesUseCase,
+  UpdateScheduleUseCase,
+} from "../../application/use-cases/schedules";
 import type { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
 import type { createSyncChatwootStatusUseCase } from "../../application/use-cases/sync-chatwoot-status-use-case";
 import type { AppLoggerPort, AuthTokenPort } from "../../domain/ports/auth-ports";

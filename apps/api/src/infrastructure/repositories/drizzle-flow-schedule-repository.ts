@@ -1,6 +1,6 @@
 /** Repositorio Drizzle de flow schedules. Persistencia real em PostgreSQL com tenant isolation (RN-027). */
-import { and, eq, type PostgresJsDatabase, type schema, flowSchedulesTable } from "db";
-
+import { and, eq, flowSchedulesTable, type PostgresJsDatabase, type schema } from "db";
+import type { FlowScheduleRepositoryPort } from "../../domain/ports/schedule-ports";
 import {
   createDaysOfWeek,
   createFlowScheduleId,
@@ -8,7 +8,6 @@ import {
   type FlowScheduleEntity,
   type FlowScheduleId,
 } from "../../domain/schedule-types";
-import type { FlowScheduleRepositoryPort } from "../../domain/ports/schedule-ports";
 
 function mapRowToEntity(row: typeof flowSchedulesTable.$inferSelect): FlowScheduleEntity {
   return {
@@ -32,9 +31,7 @@ export function createDrizzleFlowScheduleRepository(
       const rows = await db
         .select()
         .from(flowSchedulesTable)
-        .where(
-          and(eq(flowSchedulesTable.tenantId, tenantId), eq(flowSchedulesTable.active, true)),
-        );
+        .where(and(eq(flowSchedulesTable.tenantId, tenantId), eq(flowSchedulesTable.active, true)));
       return rows.map(mapRowToEntity);
     },
 
@@ -84,7 +81,9 @@ export function createDrizzleFlowScheduleRepository(
           )
           .returning();
         const row = updated[0];
-        if (!row) throw new Error("Falha ao atualizar schedule.");
+        if (!row) {
+          throw new Error("Falha ao atualizar schedule.");
+        }
         return mapRowToEntity(row);
       }
 
@@ -103,7 +102,9 @@ export function createDrizzleFlowScheduleRepository(
         })
         .returning();
       const row = inserted[0];
-      if (!row) throw new Error("Falha ao criar schedule.");
+      if (!row) {
+        throw new Error("Falha ao criar schedule.");
+      }
       return mapRowToEntity(row);
     },
 
@@ -124,9 +125,13 @@ export function createDrizzleFlowScheduleRepository(
     ): Promise<readonly FlowScheduleEntity[]> {
       const activeSchedules = await this.findActiveByTenant(tenantId);
       return activeSchedules.filter((schedule) => {
-        if (excludeId && schedule.id === excludeId) return false;
+        if (excludeId && schedule.id === excludeId) {
+          return false;
+        }
         const hasCommonDay = schedule.daysOfWeek.some((d) => daysOfWeek.includes(d));
-        if (!hasCommonDay) return false;
+        if (!hasCommonDay) {
+          return false;
+        }
         return schedule.startTime < endTime && startTime < schedule.endTime;
       });
     },
