@@ -1,3 +1,5 @@
+import { createDatabaseConnection, createDatabaseUrl } from "db";
+
 import { createAuthModule } from "./infrastructure/auth";
 import { loadApiEnvironment } from "./infrastructure/config/env";
 import { createConversationModule } from "./infrastructure/conversation";
@@ -20,9 +22,13 @@ export function bootstrapApi(): ApiRuntime {
     minimumLevel: env.logLevel,
   });
   const appLoggerPort = createStructuredAppLoggerAdapter(logger);
+
+  const { db } = createDatabaseConnection(createDatabaseUrl(env.databaseUrl));
+
   const authModule = createAuthModule({
     environment: env,
     logger,
+    db,
   });
   const whatsappModule = createWhatsAppModule({
     logger: appLoggerPort,
