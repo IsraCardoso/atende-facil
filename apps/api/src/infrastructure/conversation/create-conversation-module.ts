@@ -1,3 +1,5 @@
+import type { PostgresJsDatabase, schema } from "db";
+
 import {
   type ChatwootAccessConfig,
   createChatwootAccessService,
@@ -24,6 +26,7 @@ import { createConnectionManager } from "../../interface/ws/connection-manager";
 import { initializeEventToWebSocketBridge } from "../events/event-to-websocket-bridge";
 import { createInMemoryEventPublisher } from "../events/in-memory-event-publisher";
 import { createInMemoryEventSubscriber } from "../events/in-memory-event-subscriber";
+import { createDrizzleConversationRepository } from "../repositories/drizzle-conversation-repository";
 import { createInMemoryConversationRepository } from "../repositories/in-memory-conversation-repository";
 import { resolveProviderBundle } from "../whatsapp/provider-factory";
 
@@ -46,13 +49,16 @@ type CreateConversationModuleInput = Readonly<{
   instanceRepository: WhatsAppInstanceRepositoryPort;
   logger: AppLoggerPort;
   chatwootAccessConfig: ChatwootAccessConfig;
+  db?: PostgresJsDatabase<typeof schema>;
 }>;
 
 /** Bootstrap do módulo Conversation. In-memory para dev; produção usa Drizzle + Valkey. */
 export function createConversationModule(input: CreateConversationModuleInput): ConversationModule {
-  const { sessionRepository, instanceRepository, logger, chatwootAccessConfig } = input;
+  const { sessionRepository, instanceRepository, logger, chatwootAccessConfig, db } = input;
 
-  const conversationRepository = createInMemoryConversationRepository();
+  const conversationRepository = db
+    ? createDrizzleConversationRepository(db)
+    : createInMemoryConversationRepository();
   const eventPublisher = createInMemoryEventPublisher();
   const eventSubscriber = createInMemoryEventSubscriber();
   const connectionManager = createConnectionManager();

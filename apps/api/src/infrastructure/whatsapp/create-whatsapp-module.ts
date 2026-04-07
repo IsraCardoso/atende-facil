@@ -1,11 +1,14 @@
 /** Módulo DI para WhatsApp. Registra todos os ports, adapters e use cases no container de injeção de dependência. */
 import { createContainer, createToken } from "container";
+import type { PostgresJsDatabase, schema } from "db";
+
 import { createProcessIncomingMessageUseCase } from "../../application/use-cases/process-incoming-message-use-case";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
 import type {
   ConversationRepositoryPort,
   DomainEventPublisherPort,
 } from "../../domain/ports/conversation-ports";
+import type { FlowRepositoryPort as FullFlowRepositoryPort } from "../../domain/ports/flow-ports";
 import type {
   ChatwootPort,
   FlowRepositoryPort,
@@ -18,6 +21,9 @@ import { createInMemorySessionLockAdapter } from "../cache/session-lock-adapter"
 import { createInMemoryWebhookIdempotencyAdapter } from "../cache/webhook-idempotency-adapter";
 import { createInMemoryChatwootAdapter } from "../chatwoot";
 import { createInMemoryEventPublisher } from "../events/in-memory-event-publisher";
+import { createDrizzleConversationRepository } from "../repositories/drizzle-conversation-repository";
+import { createDrizzleSessionRepository } from "../repositories/drizzle-session-repository";
+import { createDrizzleWhatsAppInstanceRepository } from "../repositories/drizzle-whatsapp-instance-repository";
 import { createInMemoryConversationRepository } from "../repositories/in-memory-conversation-repository";
 import { createInMemoryWhatsAppRepositories } from "../repositories/in-memory-whatsapp-repositories";
 import { resolveProviderBundle } from "./provider-factory";
@@ -30,6 +36,8 @@ type WhatsAppModule = Readonly<{
 
 type CreateWhatsAppModuleInput = Readonly<{
   logger: AppLoggerPort;
+  db?: PostgresJsDatabase<typeof schema>;
+  flowRepository?: FullFlowRepositoryPort;
 }>;
 
 type WhatsAppContainerTokenMap = Readonly<{
@@ -72,24 +80,51 @@ function createInMemoryFlowRepository(): FlowRepositoryPort {
   };
 }
 
+/** Adapta FullFlowRepositoryPort (flow-ports) para WhatsApp FlowRepositoryPort (whatsapp-ports). */
+function adaptFlowRepository(fullRepo: FullFlowRepositoryPort): FlowRepositoryPort {
+  return {
+    async findActiveByTenant(tenantId) {
+      const flow = await fullRepo.findActiveByTenant(tenantId);
+      if (!flow) {
+        return null;
+      }
+      return { id: flow.id, tenantId: flow.tenantId, definition: flow.definition };
+    },
+  };
+}
+
 /** Bootstrap do módulo WhatsApp. Retorna instanceRepository e processIncomingMessage prontos para uso. */
 export function createWhatsAppModule(input: CreateWhatsAppModuleInput): WhatsAppModule {
   const container = createContainer();
-  const { logger } = input;
+  const { logger, db, flowRepository: externalFlowRepo } = input;
 
-  const repos = createInMemoryWhatsAppRepositories();
+  if (db) {
+    container.registerSingleton(whatsappTokens.sessionRepository, () =>
+      createDrizzleSessionRepository(db),
+    );
+    container.registerSingleton(whatsappTokens.conversationRepository, () =>
+      createDrizzleConversationRepository(db),
+    );
+    container.registerSingleton(whatsappTokens.instanceRepository, () =>
+      createDrizzleWhatsAppInstanceRepository(db),
+    );
+  } else {
+    const repos = createInMemoryWhatsAppRepositories();
+    container.registerSingleton(whatsappTokens.sessionRepository, () => repos.sessionRepository);
+    container.registerSingleton(whatsappTokens.conversationRepository, () =>
+      createInMemoryConversationRepository(),
+    );
+    container.registerSingleton(whatsappTokens.instanceRepository, () => repos.instanceRepository);
+  }
 
-  container.registerSingleton(whatsappTokens.sessionRepository, () => repos.sessionRepository);
-  container.registerSingleton(whatsappTokens.conversationRepository, () =>
-    createInMemoryConversationRepository(),
-  );
-  container.registerSingleton(whatsappTokens.instanceRepository, () => repos.instanceRepository);
   container.registerSingleton(whatsappTokens.sessionLock, () => createInMemorySessionLockAdapter());
   container.registerSingleton(whatsappTokens.webhookIdempotency, () =>
     createInMemoryWebhookIdempotencyAdapter(),
   );
   container.registerSingleton(whatsappTokens.chatwootPort, () => createInMemoryChatwootAdapter());
-  container.registerSingleton(whatsappTokens.flowRepository, () => createInMemoryFlowRepository());
+  container.registerSingleton(whatsappTokens.flowRepository, () =>
+    externalFlowRepo ? adaptFlowRepository(externalFlowRepo) : createInMemoryFlowRepository(),
+  );
   container.registerSingleton(whatsappTokens.eventPublisher, () => createInMemoryEventPublisher());
   container.registerTransient(whatsappTokens.processIncomingMessage, (resolver) =>
     createProcessIncomingMessageUseCase({

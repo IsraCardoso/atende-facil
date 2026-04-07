@@ -30,8 +30,12 @@ export function bootstrapApi(): ApiRuntime {
     logger,
     db,
   });
+  const flowModule = createFlowModule({ db });
+
   const whatsappModule = createWhatsAppModule({
     logger: appLoggerPort,
+    db,
+    flowRepository: flowModule.flowRepository,
   });
 
   const conversationModule = createConversationModule({
@@ -43,9 +47,8 @@ export function bootstrapApi(): ApiRuntime {
       chatwootSsoSecret: env.chatwootSsoSecret,
       chatwootAccountId: env.chatwootAccountId ?? "1",
     },
+    db,
   });
-
-  const flowModule = createFlowModule({});
 
   const app = createApiServer({
     environment: env,
