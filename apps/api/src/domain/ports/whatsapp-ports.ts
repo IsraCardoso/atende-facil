@@ -18,12 +18,7 @@ import type {
 type SessionRepositoryPort = Readonly<{
   findByTenantAndPhone: (tenantId: string, phone: Phone) => Promise<SessionEntity | null>;
   save: (session: SessionEntity) => Promise<SessionEntity>;
-  updateMode: (
-    tenantId: string,
-    sessionId: SessionId,
-    mode: SessionMode,
-    chatwootConversationId?: ChatwootConversationId,
-  ) => Promise<void>;
+  updateMode: (tenantId: string, sessionId: SessionId, mode: SessionMode) => Promise<void>;
 }>;
 
 /** Port de consulta de instâncias WhatsApp. Resolve qual provider usar para cada tenant. */

@@ -1,18 +1,9 @@
 /** Repositorio Drizzle de sessions. Persistencia real com upsert em (tenant_id, phone) (RN-024). */
 import { and, eq, type PostgresJsDatabase, type schema, sessionsTable } from "db";
+
 import type { SessionRepositoryPort } from "../../domain/ports/whatsapp-ports";
-import type {
-  ChatwootConversationId,
-  Phone,
-  SessionEntity,
-  SessionId,
-  SessionMode,
-} from "../../domain/whatsapp-types";
-import {
-  createChatwootConversationId,
-  createPhone,
-  createSessionId,
-} from "../../domain/whatsapp-types";
+import type { Phone, SessionEntity, SessionId, SessionMode } from "../../domain/whatsapp-types";
+import { createPhone, createSessionId } from "../../domain/whatsapp-types";
 
 type SessionRow = typeof sessionsTable.$inferSelect;
 
@@ -25,9 +16,6 @@ function mapRowToEntity(row: SessionRow): SessionEntity {
     mode: row.mode as SessionMode,
     data: (row.data ?? {}) as Readonly<Record<string, unknown>>,
     flowId: row.flowId,
-    chatwootConversationId: row.chatwootConversationId
-      ? createChatwootConversationId(row.chatwootConversationId)
-      : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -59,7 +47,6 @@ export function createDrizzleSessionRepository(
           mode: session.mode,
           data: session.data as Record<string, unknown>,
           flowId: session.flowId,
-          chatwootConversationId: session.chatwootConversationId,
           createdAt: session.createdAt,
           updatedAt: session.updatedAt,
         })
@@ -70,7 +57,6 @@ export function createDrizzleSessionRepository(
             mode: session.mode,
             data: session.data as Record<string, unknown>,
             flowId: session.flowId,
-            chatwootConversationId: session.chatwootConversationId,
             updatedAt: new Date(),
           },
         })
@@ -83,23 +69,10 @@ export function createDrizzleSessionRepository(
       return mapRowToEntity(row);
     },
 
-    async updateMode(
-      tenantId: string,
-      sessionId: SessionId,
-      mode: SessionMode,
-      chatwootConversationId?: ChatwootConversationId,
-    ): Promise<void> {
-      const updateData: Record<string, unknown> = {
-        mode,
-        updatedAt: new Date(),
-      };
-      if (chatwootConversationId !== undefined) {
-        updateData.chatwootConversationId = chatwootConversationId;
-      }
-
+    async updateMode(tenantId: string, sessionId: SessionId, mode: SessionMode): Promise<void> {
       await db
         .update(sessionsTable)
-        .set(updateData)
+        .set({ mode, updatedAt: new Date() })
         .where(and(eq(sessionsTable.id, sessionId), eq(sessionsTable.tenantId, tenantId)));
     },
   };

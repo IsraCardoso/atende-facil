@@ -245,18 +245,7 @@ async function handleHandoff(
       contextMessages: [...flowResult.outgoingMessages],
     });
 
-    await deps.conversationRepository.updateStatus(
-      session.tenantId,
-      conversation.id,
-      "waiting_human",
-    );
-
-    await deps.sessionRepository.updateMode(
-      session.tenantId,
-      session.id,
-      "waiting_human",
-      chatwootConversationId,
-    );
+    await deps.sessionRepository.updateMode(session.tenantId, session.id, "waiting_human");
 
     const updatedConversation: ConversationEntity = {
       ...conversation,

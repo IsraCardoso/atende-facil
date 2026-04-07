@@ -58,7 +58,6 @@ export function createTestSession(overrides: Partial<SessionEntity> = {}): Sessi
     mode: "bot",
     data: {},
     flowId: null,
-    chatwootConversationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

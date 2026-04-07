@@ -62,7 +62,6 @@ const sessionRow = {
   mode: "bot",
   data: {},
   flowId: null,
-  chatwootConversationId: null,
   createdAt: now,
   updatedAt: now,
 };
@@ -125,7 +124,6 @@ describe("DrizzleSessionRepository", () => {
       mode: "bot",
       data: {},
       flowId: null,
-      chatwootConversationId: null,
       createdAt: now,
       updatedAt: now,
     };
