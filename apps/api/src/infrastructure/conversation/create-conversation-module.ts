@@ -1,5 +1,11 @@
+import {
+  type ChatwootAccessConfig,
+  createChatwootAccessService,
+} from "../../application/services/chatwoot-access-service";
 import { createAssignConversationUseCase } from "../../application/use-cases/assign-conversation-use-case";
 import { createCloseConversationUseCase } from "../../application/use-cases/close-conversation-use-case";
+import { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
+import { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
 import { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
 import { createSyncChatwootStatusUseCase } from "../../application/use-cases/sync-chatwoot-status-use-case";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
@@ -27,6 +33,9 @@ type ConversationModule = Readonly<{
   closeConversation: ReturnType<typeof createCloseConversationUseCase>;
   syncChatwootMessage: ReturnType<typeof createSyncChatwootMessageUseCase>;
   syncChatwootStatus: ReturnType<typeof createSyncChatwootStatusUseCase>;
+  listConversations: ReturnType<typeof createListConversationsUseCase>;
+  getConversation: ReturnType<typeof createGetConversationUseCase>;
+  chatwootAccess: ReturnType<typeof createChatwootAccessService>;
   conversationRepository: ConversationRepositoryPort;
   eventPublisher: DomainEventPublisherPort;
   eventSubscriber: DomainEventSubscriberPort;
@@ -36,11 +45,12 @@ type CreateConversationModuleInput = Readonly<{
   sessionRepository: SessionRepositoryPort;
   instanceRepository: WhatsAppInstanceRepositoryPort;
   logger: AppLoggerPort;
+  chatwootAccessConfig: ChatwootAccessConfig;
 }>;
 
 /** Bootstrap do módulo Conversation. In-memory para dev; produção usa Drizzle + Valkey. */
 export function createConversationModule(input: CreateConversationModuleInput): ConversationModule {
-  const { sessionRepository, instanceRepository, logger } = input;
+  const { sessionRepository, instanceRepository, logger, chatwootAccessConfig } = input;
 
   const conversationRepository = createInMemoryConversationRepository();
   const eventPublisher = createInMemoryEventPublisher();
@@ -81,12 +91,19 @@ export function createConversationModule(input: CreateConversationModuleInput): 
     logger,
   });
 
+  const listConversations = createListConversationsUseCase({ conversationRepository });
+  const getConversation = createGetConversationUseCase({ conversationRepository });
+  const chatwootAccess = createChatwootAccessService(chatwootAccessConfig);
+
   return {
     connectionManager,
     assignConversation,
     closeConversation,
     syncChatwootMessage,
     syncChatwootStatus,
+    listConversations,
+    getConversation,
+    chatwootAccess,
     conversationRepository,
     eventPublisher,
     eventSubscriber,

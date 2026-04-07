@@ -19,6 +19,8 @@ function createTestEnvironment(overrides: Partial<ApiEnvironment> = {}): ApiEnvi
     chatwootApiToken: null,
     chatwootAccountId: null,
     chatwootWebhookToken: null,
+    chatwootAppUrl: null,
+    chatwootSsoSecret: null,
     ...overrides,
   };
 }

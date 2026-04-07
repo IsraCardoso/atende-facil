@@ -8,6 +8,22 @@ import type {
 } from "../conversation-types";
 import type { ChatwootConversationId, SessionId } from "../whatsapp-types";
 
+/** Resultado paginado genérico reutilizável em qualquer listagem. */
+type PaginatedResult<T> = Readonly<{
+  data: readonly T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}>;
+
+/** Filtros aceitos na listagem paginada de conversations. */
+type ConversationFilters = Readonly<{
+  status?: ConversationStatus;
+  page: number;
+  limit: number;
+}>;
+
 /** Persistência de conversations. Isolamento por tenant_id obrigatório em todas as queries. */
 type ConversationRepositoryPort = Readonly<{
   findById: (
@@ -22,6 +38,10 @@ type ConversationRepositoryPort = Readonly<{
     tenantId: string,
     status: ConversationStatus,
   ) => Promise<readonly ConversationEntity[]>;
+  findByTenantPaginated: (
+    tenantId: string,
+    filters: ConversationFilters,
+  ) => Promise<PaginatedResult<ConversationEntity>>;
   save: (conversation: ConversationEntity) => Promise<ConversationEntity>;
   updateStatus: (
     tenantId: string,
@@ -42,4 +62,10 @@ type DomainEventSubscriberPort = Readonly<{
   unsubscribeAll: () => void;
 }>;
 
-export type { ConversationRepositoryPort, DomainEventPublisherPort, DomainEventSubscriberPort };
+export type {
+  ConversationFilters,
+  ConversationRepositoryPort,
+  DomainEventPublisherPort,
+  DomainEventSubscriberPort,
+  PaginatedResult,
+};

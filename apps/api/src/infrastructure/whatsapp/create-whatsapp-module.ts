@@ -24,6 +24,7 @@ import { resolveProviderBundle } from "./provider-factory";
 
 type WhatsAppModule = Readonly<{
   instanceRepository: WhatsAppInstanceRepositoryPort;
+  sessionRepository: SessionRepositoryPort;
   processIncomingMessage: ReturnType<typeof createProcessIncomingMessageUseCase>;
 }>;
 
@@ -106,6 +107,7 @@ export function createWhatsAppModule(input: CreateWhatsAppModuleInput): WhatsApp
 
   return {
     instanceRepository: container.resolve(whatsappTokens.instanceRepository),
+    sessionRepository: container.resolve(whatsappTokens.sessionRepository),
     processIncomingMessage: container.resolve(whatsappTokens.processIncomingMessage),
   };
 }

@@ -17,6 +17,8 @@ type ApiEnvironment = Readonly<{
   chatwootApiToken: string | null;
   chatwootAccountId: string | null;
   chatwootWebhookToken: string | null;
+  chatwootAppUrl: string | null;
+  chatwootSsoSecret: string | null;
 }>;
 
 type RuntimeEnvMap = Readonly<Record<string, string | undefined>>;
@@ -161,6 +163,8 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
   const chatwootApiToken = readOptionalEnvVariable("CHATWOOT_API_TOKEN", source) ?? null;
   const chatwootAccountId = readOptionalEnvVariable("CHATWOOT_ACCOUNT_ID", source) ?? null;
   const chatwootWebhookToken = readOptionalEnvVariable("CHATWOOT_WEBHOOK_TOKEN", source) ?? null;
+  const chatwootAppUrl = readOptionalEnvVariable("CHATWOOT_APP_URL", source) ?? null;
+  const chatwootSsoSecret = readOptionalEnvVariable("CHATWOOT_SSO_SECRET", source) ?? null;
 
   return {
     nodeEnv,
@@ -177,6 +181,8 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
     chatwootApiToken,
     chatwootAccountId,
     chatwootWebhookToken,
+    chatwootAppUrl,
+    chatwootSsoSecret,
   };
 }
 

@@ -4,14 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/main.tsx",
-    "build": "tsc -p tsconfig.json",
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
     "test": "bun --bun vitest run --dir src",
     "lint": "biome check ."
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@vitejs/plugin-react": "^6.0.1",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-router-dom": "^7.14.0",
+    "tailwindcss": "^4.2.2",
+    "vite": "^8.0.5"
   },
   "devDependencies": {
     "@types/react": "latest",

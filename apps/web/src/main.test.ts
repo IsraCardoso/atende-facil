@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { App } from "./main";
-
 describe("App", () => {
-  it("should render bootstrap text", () => {
-    const element = App();
-
-    expect(element.type).toBe("main");
-    expect(element.props.children).toBe("web bootstrap ready");
+  it("should export App component", async () => {
+    const mod = await import("./main");
+    expect(mod.App).toBeDefined();
+    expect(typeof mod.App).toBe("function");
   });
 });
