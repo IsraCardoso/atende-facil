@@ -1,5 +1,5 @@
 /** Pagina de configuracoes do tenant. Timezone selecionavel (RN-028). */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "../components/app-shell";
 import { useAuth } from "../hooks/use-auth";
@@ -40,8 +40,18 @@ export function SettingsPage() {
   const api = useMemo(() => createScheduleApi(() => token), [token]);
 
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    api.getTenantTimezone().then((res) => {
+      if (res.ok && res.data) {
+        setTimezone(res.data.timezone);
+      }
+      setLoading(false);
+    });
+  }, [api]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -67,6 +77,10 @@ export function SettingsPage() {
           <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
             Fuso horario usado para avaliar agendamentos de fluxo.
           </p>
+
+          {loading && (
+            <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">Carregando...</p>
+          )}
 
           <div className="mb-4">
             <label

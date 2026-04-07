@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { FlowEntity } from "../../../domain/flow-types";
+import type { FlowRepositoryPort } from "../../../domain/ports/flow-ports";
 import type { FlowScheduleEntity, FlowScheduleId } from "../../../domain/schedule-types";
 import { createInMemoryFlowScheduleRepository } from "../../../infrastructure/repositories/in-memory-flow-schedule-repository";
 import { createCreateScheduleUseCase } from "./create-schedule-use-case";
@@ -8,6 +10,31 @@ import { createListSchedulesUseCase } from "./list-schedules-use-case";
 import { createUpdateScheduleUseCase } from "./update-schedule-use-case";
 
 const TENANT_ID = "tenant-1";
+
+function createStubFlowRepository(
+  findByIdResult: FlowEntity | null = { id: "flow-1" } as unknown as FlowEntity,
+): FlowRepositoryPort {
+  return {
+    async findById() {
+      return findByIdResult;
+    },
+    async findActiveByTenant() {
+      return null;
+    },
+    async findByTenantPaginated() {
+      return { data: [], total: 0, page: 1, limit: 10, hasMore: false };
+    },
+    async save(flow) {
+      return flow;
+    },
+    async updateStatus() {
+      return {} as FlowEntity;
+    },
+    async softDelete() {
+      /* noop */
+    },
+  };
+}
 
 function createTestScheduleEntity(overrides?: Partial<FlowScheduleEntity>): FlowScheduleEntity {
   return {
@@ -27,7 +54,10 @@ function createTestScheduleEntity(overrides?: Partial<FlowScheduleEntity>): Flow
 describe("CreateScheduleUseCase", () => {
   it("should create a schedule successfully", async () => {
     const repo = createInMemoryFlowScheduleRepository();
-    const useCase = createCreateScheduleUseCase({ scheduleRepository: repo });
+    const useCase = createCreateScheduleUseCase({
+      scheduleRepository: repo,
+      flowRepository: createStubFlowRepository(),
+    });
 
     const result = await useCase.execute({
       tenantId: TENANT_ID,
@@ -46,7 +76,10 @@ describe("CreateScheduleUseCase", () => {
     const repo = createInMemoryFlowScheduleRepository();
     await repo.save(createTestScheduleEntity());
 
-    const useCase = createCreateScheduleUseCase({ scheduleRepository: repo });
+    const useCase = createCreateScheduleUseCase({
+      scheduleRepository: repo,
+      flowRepository: createStubFlowRepository(),
+    });
 
     await expect(
       useCase.execute({
@@ -62,7 +95,10 @@ describe("CreateScheduleUseCase", () => {
 
   it("should reject when role is agent", async () => {
     const repo = createInMemoryFlowScheduleRepository();
-    const useCase = createCreateScheduleUseCase({ scheduleRepository: repo });
+    const useCase = createCreateScheduleUseCase({
+      scheduleRepository: repo,
+      flowRepository: createStubFlowRepository(),
+    });
 
     await expect(
       useCase.execute({
@@ -78,7 +114,10 @@ describe("CreateScheduleUseCase", () => {
 
   it("should allow manager role", async () => {
     const repo = createInMemoryFlowScheduleRepository();
-    const useCase = createCreateScheduleUseCase({ scheduleRepository: repo });
+    const useCase = createCreateScheduleUseCase({
+      scheduleRepository: repo,
+      flowRepository: createStubFlowRepository(),
+    });
 
     const result = await useCase.execute({
       tenantId: TENANT_ID,

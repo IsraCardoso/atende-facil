@@ -19,12 +19,27 @@ export function createTenantRoutes(input: CreateTenantRoutesInput) {
       const authClaims = await authenticateRequest(request, verifyAccessTokenUseCase);
       return { authClaims };
     })
+    .get("/me/timezone", async ({ authClaims, set }) => {
+      const tenant = await tenantRepository.findById(authClaims.tenantId as TenantId);
+      if (!tenant) {
+        set.status = 404;
+        return { error: "Tenant nao encontrado." };
+      }
+      return { timezone: tenant.timezone };
+    })
     .patch(
       "/me/timezone",
       async ({ authClaims, body, set }) => {
         if (authClaims.role !== "admin" && authClaims.role !== "manager") {
           set.status = 403;
           return { error: "Apenas admin ou manager podem alterar timezone." };
+        }
+
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: body.timezone });
+        } catch {
+          set.status = 400;
+          return { error: "Timezone invalido. Use um identificador IANA valido." };
         }
 
         await tenantRepository.updateTimezone(authClaims.tenantId as TenantId, body.timezone);

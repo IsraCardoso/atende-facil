@@ -1,5 +1,7 @@
 /** Cria um novo schedule de fluxo. Valida overlap e RBAC (admin/manager) (RN-027). */
 import type { UserRole } from "../../../domain/auth-types";
+import type { FlowId } from "../../../domain/flow-types";
+import type { FlowRepositoryPort } from "../../../domain/ports/flow-ports";
 import type { FlowScheduleRepositoryPort } from "../../../domain/ports/schedule-ports";
 import {
   createDaysOfWeek,
@@ -22,6 +24,7 @@ type CreateScheduleOutput = Readonly<{ schedule: FlowScheduleEntity }>;
 
 type CreateScheduleUseCaseDependencies = Readonly<{
   scheduleRepository: FlowScheduleRepositoryPort;
+  flowRepository: FlowRepositoryPort;
   idGenerator?: () => string;
 }>;
 
@@ -32,11 +35,18 @@ type CreateScheduleUseCase = Readonly<{
 export function createCreateScheduleUseCase(
   deps: CreateScheduleUseCaseDependencies,
 ): CreateScheduleUseCase {
-  const { scheduleRepository, idGenerator = () => crypto.randomUUID() } = deps;
+  const { scheduleRepository, flowRepository, idGenerator = () => crypto.randomUUID() } = deps;
 
   return {
     async execute(input: CreateScheduleInput): Promise<CreateScheduleOutput> {
       assertScheduleWriteRole(input.role, "criar");
+
+      const flow = await flowRepository.findById(input.tenantId, input.flowId as FlowId);
+      if (!flow) {
+        throw new Error(
+          "SCHEDULE_NOT_FOUND: fluxo informado nao existe ou nao pertence ao tenant.",
+        );
+      }
 
       const days = createDaysOfWeek(input.daysOfWeek);
       const existing = await scheduleRepository.findActiveByTenant(input.tenantId);

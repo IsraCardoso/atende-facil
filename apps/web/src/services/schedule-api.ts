@@ -53,6 +53,10 @@ export function createScheduleApi(getToken: () => string | null) {
       return client.delete(`/flows/schedules/${id}`);
     },
 
+    getTenantTimezone(): Promise<ApiResponse<{ timezone: string }>> {
+      return client.get("/tenants/me/timezone");
+    },
+
     updateTenantTimezone(timezone: string): Promise<ApiResponse<{ success: boolean }>> {
       return client.patch("/tenants/me/timezone", { timezone });
     },

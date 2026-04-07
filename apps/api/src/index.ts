@@ -69,7 +69,10 @@ export function bootstrapApi(): ApiRuntime {
     db,
   });
 
-  const createSchedule = createCreateScheduleUseCase({ scheduleRepository });
+  const createSchedule = createCreateScheduleUseCase({
+    scheduleRepository,
+    flowRepository: flowModule.flowRepository,
+  });
   const listSchedules = createListSchedulesUseCase({ scheduleRepository });
   const updateSchedule = createUpdateScheduleUseCase({ scheduleRepository });
   const deleteSchedule = createDeleteScheduleUseCase({ scheduleRepository });

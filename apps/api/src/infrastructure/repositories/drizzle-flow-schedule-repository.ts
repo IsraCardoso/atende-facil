@@ -1,5 +1,5 @@
 /** Repositorio Drizzle de flow schedules. Persistencia real em PostgreSQL com tenant isolation (RN-027). */
-import { and, eq, flowSchedulesTable, type PostgresJsDatabase, type schema } from "db";
+import { and, asc, eq, flowSchedulesTable, type PostgresJsDatabase, type schema } from "db";
 import type { FlowScheduleRepositoryPort } from "../../domain/ports/schedule-ports";
 import {
   createDaysOfWeek,
@@ -32,7 +32,8 @@ export function createDrizzleFlowScheduleRepository(
       const rows = await db
         .select()
         .from(flowSchedulesTable)
-        .where(and(eq(flowSchedulesTable.tenantId, tenantId), eq(flowSchedulesTable.active, true)));
+        .where(and(eq(flowSchedulesTable.tenantId, tenantId), eq(flowSchedulesTable.active, true)))
+        .orderBy(asc(flowSchedulesTable.startTime), asc(flowSchedulesTable.id));
       return rows.map(mapRowToEntity);
     },
 
