@@ -7,6 +7,8 @@ import { FlowEditorPage } from "./pages/flow-editor";
 import { FlowsPage } from "./pages/flows";
 import { InboxPage } from "./pages/inbox";
 import { LoginPage } from "./pages/login";
+import { SchedulesPage } from "./pages/schedules";
+import { SettingsPage } from "./pages/settings";
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/flows" element={<FlowsPage />} />
         <Route path="/flows/:id/edit" element={<FlowEditorPage />} />
+        <Route path="/schedules" element={<SchedulesPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/login" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>

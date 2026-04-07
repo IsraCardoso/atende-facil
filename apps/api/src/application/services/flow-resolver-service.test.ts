@@ -62,6 +62,7 @@ function createMockTenantRepo(tenant: TenantEntity | null): TenantRepositoryPort
     create: vi.fn(),
     findById: vi.fn().mockResolvedValue(tenant),
     findBySlug: vi.fn(),
+    updateTimezone: vi.fn(),
   };
 }
 

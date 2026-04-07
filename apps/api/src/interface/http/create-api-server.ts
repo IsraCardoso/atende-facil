@@ -49,6 +49,7 @@ import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id"
 import { createFlowRoutes } from "./flow-routes";
 import { rateLimitPlugin } from "./rate-limit-middleware";
 import { createScheduleRoutes } from "./schedule-routes";
+import { createTenantRoutes } from "./tenant-routes";
 import { createWebhookRoutes } from "./webhook-routes";
 
 type CreateApiServerAuthDependencies = Readonly<{
@@ -99,6 +100,10 @@ type CreateApiServerScheduleDependencies = Readonly<{
   deleteSchedule: DeleteScheduleUseCase;
 }>;
 
+type CreateApiServerTenantDependencies = Readonly<{
+  tenantRepository: import("../../domain/ports/auth-ports").TenantRepositoryPort;
+}>;
+
 type CreateApiServerInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
@@ -107,6 +112,7 @@ type CreateApiServerInput = Readonly<{
   conversation?: CreateApiServerConversationDependencies;
   flow?: CreateApiServerFlowDependencies;
   schedule?: CreateApiServerScheduleDependencies;
+  tenant?: CreateApiServerTenantDependencies;
 }>;
 
 type HealthResponse = Readonly<{
@@ -122,7 +128,7 @@ function createHealthResponse(environment: ApiEnvironment["nodeEnv"]): HealthRes
 }
 
 export function createApiServer(input: CreateApiServerInput) {
-  const { environment, logger, auth, whatsapp, conversation, flow, schedule } = input;
+  const { environment, logger, auth, whatsapp, conversation, flow, schedule, tenant } = input;
 
   const app = new Elysia()
     .use(rateLimitPlugin())
@@ -232,6 +238,15 @@ export function createApiServer(input: CreateApiServerInput) {
     app.use(
       createScheduleRoutes({
         ...schedule,
+        verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+      }),
+    );
+  }
+
+  if (tenant) {
+    app.use(
+      createTenantRoutes({
+        tenantRepository: tenant.tenantRepository,
         verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
       }),
     );

@@ -74,6 +74,13 @@ function createTenantRepository(store: {
 
       return store.tenantsById.get(tenantId) ?? null;
     },
+
+    async updateTimezone(tenantId, timezone) {
+      const tenant = store.tenantsById.get(tenantId);
+      if (tenant) {
+        store.tenantsById.set(tenantId, { ...tenant, timezone, updatedAt: new Date() });
+      }
+    },
   };
 }
 

@@ -114,6 +114,9 @@ export function bootstrapApi(): ApiRuntime {
       updateSchedule,
       deleteSchedule,
     },
+    tenant: {
+      tenantRepository: authModule.tenantRepository,
+    },
   });
 
   startApiServer({

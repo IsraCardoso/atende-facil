@@ -60,5 +60,12 @@ export function createDrizzleTenantRepository(
       const row = rows[0];
       return row ? mapRowToEntity(row) : null;
     },
+
+    async updateTimezone(tenantId: TenantId, timezone: string): Promise<void> {
+      await db
+        .update(tenantsTable)
+        .set({ timezone, updatedAt: new Date() })
+        .where(eq(tenantsTable.id, tenantId));
+    },
   };
 }
