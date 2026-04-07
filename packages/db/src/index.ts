@@ -17,6 +17,7 @@ export {
   flowsTable,
   schema,
   sessionsTable,
+  tenantIntegrationsTable,
   tenantMembershipsTable,
   tenantsTable,
   usersTable,
