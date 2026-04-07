@@ -11,6 +11,7 @@ export {
   validateDatabaseConnection,
 } from "./database";
 export {
+  conversationsTable,
   schema,
   sessionsTable,
   tenantMembershipsTable,

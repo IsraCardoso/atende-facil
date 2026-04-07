@@ -13,11 +13,16 @@ import type {
   ProcessIncomingMessageInput,
   ProcessIncomingMessageResult,
 } from "../../application/use-cases/process-incoming-message-use-case";
+import type { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
+import type { createSyncChatwootStatusUseCase } from "../../application/use-cases/sync-chatwoot-status-use-case";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
 import type { WhatsAppInstanceRepositoryPort } from "../../domain/ports/whatsapp-ports";
 import type { ApiEnvironment } from "../../infrastructure/config/env";
 import type { StructuredLogger } from "../../infrastructure/logger/json-logger";
+import type { ConnectionManager } from "../ws/connection-manager";
+import { createConversationWs } from "../ws/conversation-ws";
 import { createAuthRoutes } from "./auth-routes";
+import { createChatwootWebhookRoutes } from "./chatwoot-webhook-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
 import { createWebhookRoutes } from "./webhook-routes";
 
@@ -37,11 +42,20 @@ type CreateApiServerWhatsAppDependencies = Readonly<{
   logger: AppLoggerPort;
 }>;
 
+type CreateApiServerConversationDependencies = Readonly<{
+  syncChatwootMessage: ReturnType<typeof createSyncChatwootMessageUseCase>;
+  syncChatwootStatus: ReturnType<typeof createSyncChatwootStatusUseCase>;
+  connectionManager: ConnectionManager;
+  chatwootWebhookToken: string;
+  logger: AppLoggerPort;
+}>;
+
 type CreateApiServerInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
   auth: CreateApiServerAuthDependencies;
   whatsapp?: CreateApiServerWhatsAppDependencies;
+  conversation?: CreateApiServerConversationDependencies;
 }>;
 
 type HealthResponse = Readonly<{
@@ -57,7 +71,7 @@ function createHealthResponse(environment: ApiEnvironment["nodeEnv"]): HealthRes
 }
 
 export function createApiServer(input: CreateApiServerInput) {
-  const { environment, logger, auth, whatsapp } = input;
+  const { environment, logger, auth, whatsapp, conversation } = input;
 
   const app = new Elysia()
     .onError(({ request, error, set }) => {
@@ -117,15 +131,28 @@ export function createApiServer(input: CreateApiServerInput) {
       }),
     );
 
-  if (!whatsapp) {
-    return app;
+  if (whatsapp) {
+    app.use(
+      createWebhookRoutes({
+        instanceRepository: whatsapp.instanceRepository,
+        processIncomingMessage: whatsapp.processIncomingMessage,
+        logger: whatsapp.logger,
+      }),
+    );
   }
 
-  return app.use(
-    createWebhookRoutes({
-      instanceRepository: whatsapp.instanceRepository,
-      processIncomingMessage: whatsapp.processIncomingMessage,
-      logger: whatsapp.logger,
-    }),
-  );
+  if (conversation) {
+    app
+      .use(
+        createChatwootWebhookRoutes({
+          syncMessage: conversation.syncChatwootMessage,
+          syncStatus: conversation.syncChatwootStatus,
+          logger: conversation.logger,
+          webhookToken: conversation.chatwootWebhookToken,
+        }),
+      )
+      .use(createConversationWs({ connectionManager: conversation.connectionManager }));
+  }
+
+  return app;
 }

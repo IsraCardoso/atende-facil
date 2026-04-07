@@ -1,4 +1,16 @@
 export {
+  type AssignConversationDependencies,
+  type AssignConversationInput,
+  type AssignConversationResult,
+  createAssignConversationUseCase,
+} from "./assign-conversation-use-case";
+export {
+  type CloseConversationDependencies,
+  type CloseConversationInput,
+  type CloseConversationResult,
+  createCloseConversationUseCase,
+} from "./close-conversation-use-case";
+export {
   type CreateUserUseCase,
   type CreateUserUseCaseDependencies,
   createCreateUserUseCase,
@@ -9,6 +21,12 @@ export {
   type GetCurrentUserUseCaseDependencies,
 } from "./get-current-user-use-case";
 export { type AuthTenantMode, createLoginUseCase, type LoginUseCase } from "./login-use-case";
+export {
+  createProcessIncomingMessageUseCase,
+  type ProcessIncomingMessageDependencies,
+  type ProcessIncomingMessageInput,
+  type ProcessIncomingMessageResult,
+} from "./process-incoming-message-use-case";
 export {
   createRegisterTenantUseCase,
   type RegisterTenantUseCase,

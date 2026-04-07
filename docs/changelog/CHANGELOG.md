@@ -21,6 +21,61 @@
 
 ---
 
+## [sprint-05] — 2026-04-06
+
+> **Objetivo:** Entregar hand-off humano com entidade Conversation, eventos de domínio via Valkey Pub/Sub, integração reversa com Chatwoot e notificações WebSocket em tempo real.
+
+### Adicionado
+- Entidade `Conversation` separada de `Session`, com máquina de estados validada (`bot → waiting_human → human_active → bot`) e branded type `ConversationId`.
+- Tabela `conversations` com migration, índices em `tenant_id`, `session_id`, `phone`, `status` e unique constraint `(tenant_id, session_id)`.
+- Ports de domínio: `ConversationRepositoryPort`, `DomainEventPublisherPort`, `DomainEventSubscriberPort` — sem dependência de infraestrutura.
+- Repositório `InMemoryConversationRepository` para dev/test, com isolamento de tenant em todas as queries.
+- Sistema de eventos de domínio via Valkey Pub/Sub: `ValkeyDomainEventPublisher` (canal `domain-events:{tenantId}`) e `ValkeyDomainEventSubscriber` (PSUBSCRIBE `domain-events:*`).
+- Implementações in-memory de publisher e subscriber para testes, com `getPublishedEvents()` e `dispatch()`.
+- Use case `AssignConversationUseCase`: transição `waiting_human → human_active` com validação de máquina de estados e emissão de evento `conversation.human_active`.
+- Use case `CloseConversationUseCase`: transição `waiting_human|human_active → bot` com reinício completo de sessão (decisão D7) e emissão de evento `conversation.bot_resumed`.
+- Use case `SyncChatwootMessageUseCase`: recebe mensagem do agente Chatwoot via webhook e envia ao WhatsApp do usuário via provider correto.
+- Use case `SyncChatwootStatusUseCase`: orquestrador que roteia eventos de status do Chatwoot para `AssignConversation` ou `CloseConversation`.
+- Endpoint `POST /webhook/chatwoot` com autenticação por token fixo (`CHATWOOT_WEBHOOK_TOKEN`), parsing de payloads `message_created` e `conversation_status_changed`.
+- WebSocket Elysia em `ws /ws/conversations` com `ConnectionManager` isolando broadcasts por `tenantId`.
+- Bridge `event-to-websocket`: conecta DomainEventSubscriber ao ConnectionManager para notificações em tempo real.
+- Módulo DI `create-conversation-module.ts` integrando todos os novos componentes.
+- Factories de teste compartilhadas em `test-support.ts`: `createFakeLogger`, `createTestConversation`, `createTestSession`, `createFakeSessionRepository`.
+
+### Alterado
+- `ProcessIncomingMessageUseCase` refatorado para criar `Conversation` junto com `Session`, usar `conversation.status` como source of truth para routing e emitir `conversation.handed_off` no hand-off.
+- `AppErrorCode` expandido com `CONVERSATION_NOT_FOUND`, `CONVERSATION_INVALID_TRANSITION`, `WHATSAPP_INSTANCE_NOT_FOUND`.
+- `ApiEnvironment` expandida com variáveis Chatwoot opcionais (`CHATWOOT_API_URL`, `CHATWOOT_API_TOKEN`, `CHATWOOT_ACCOUNT_ID`, `CHATWOOT_WEBHOOK_TOKEN`).
+- `createApiServer` aceita dependência opcional `conversation` para registrar rotas Chatwoot webhook e WebSocket.
+- `.env.example` atualizado com `CHATWOOT_WEBHOOK_TOKEN`.
+
+### Corrigido
+- Nenhum.
+
+### Decisões técnicas registradas
+- D1: `Conversation` separada de `Session` (separação de responsabilidades)
+- D2: Valkey Pub/Sub para eventos (distribuído desde o início)
+- D3: WebSocket push-only com payload mínimo
+- D4: Token fixo para webhook Chatwoot
+- D5: Config Chatwoot global (MVP, débito registrado)
+- D6: `assignedTo` nullable sem FK (Chatwoot gerencia)
+- D7: CloseConversation reinicia sessão do zero
+
+### Regras de negócio implementadas
+- [RN-014 — Conversation entity e transições de estado](../business-rules/RN-014-conversation-entity-transicoes-estado.md)
+- [RN-015 — Sistema de eventos de domínio (Valkey Pub/Sub)](../business-rules/RN-015-sistema-eventos-dominio-valkey-pubsub.md)
+- [RN-016 — Chatwoot webhook reverso e sincronização](../business-rules/RN-016-chatwoot-webhook-reverso-sincronizacao.md)
+
+### Débitos técnicos gerados
+- [ ] Migrar config Chatwoot de variáveis de ambiente globais para configuração por tenant (tabela `tenant_configs` ou JSONB em `tenants`)
+- [ ] Mapear `assignedTo` da Conversation para `userId` interno do sistema, integrando com RBAC e `tenant_memberships`
+- [ ] Remover `chatwootConversationId` da tabela `sessions` (single source of truth em `conversations`) após migração de dados
+- [ ] Unificar `session.mode` e `conversation.status` em source of truth única (conversation como master)
+- [ ] Implementar `DrizzleConversationRepository` para produção (substituir in-memory)
+- [ ] Autenticar WebSocket via JWT no handshake (atualmente usa `tenantId` query param)
+
+---
+
 ## [sprint-03] — 2026-04-06
 
 > **Objetivo:** Entregar o flow engine puro para processar mensagens, navegar entre nós, coletar dados e sinalizar handoff humano com validação estrutural de ativação.

@@ -33,6 +33,17 @@ export {
   requireNonEmptyString,
 } from "./auth-types";
 export type {
+  ConversationBotResumedEvent,
+  ConversationEntity,
+  ConversationHandedOffEvent,
+  ConversationHumanActiveEvent,
+  ConversationId,
+  ConversationStatus,
+  DomainEvent,
+  DomainEventType,
+} from "./conversation-types";
+export { createConversationId, isValidTransition, VALID_TRANSITIONS } from "./conversation-types";
+export type {
   CanonicalDeliveryStatus,
   CanonicalInboundMessage,
   CanonicalOutboundMessage,

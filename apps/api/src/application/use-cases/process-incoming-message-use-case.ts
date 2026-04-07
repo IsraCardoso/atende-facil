@@ -1,7 +1,14 @@
-/** Orquestra o processamento de mensagem WhatsApp recebida: idempotência → lock → session → flow engine → envio → hand-off (RN-011, RN-012, RN-013). */
+/** Orquestra o processamento de mensagem WhatsApp recebida: idempotência → lock → session → conversation → flow engine → envio → hand-off (RN-011, RN-012, RN-013, RN-014, RN-015). */
 import type { Flow, ProcessResult, Session } from "flow";
 import { processMessage } from "flow";
+
+import type { ConversationEntity } from "../../domain/conversation-types";
+import { createConversationId } from "../../domain/conversation-types";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
+import type {
+  ConversationRepositoryPort,
+  DomainEventPublisherPort,
+} from "../../domain/ports/conversation-ports";
 import type {
   ChatwootPort,
   FlowRepositoryPort,
@@ -22,11 +29,13 @@ const IDEMPOTENCY_TTL_SECONDS = 86_400;
 
 type ProcessIncomingMessageDependencies = Readonly<{
   sessionRepository: SessionRepositoryPort;
+  conversationRepository: ConversationRepositoryPort;
   sessionLock: SessionLockPort;
   webhookIdempotency: WebhookIdempotencyPort;
   whatsAppSender: WhatsAppSenderPort;
   chatwootPort: ChatwootPort;
   flowRepository: FlowRepositoryPort;
+  eventPublisher: DomainEventPublisherPort;
   logger: AppLoggerPort;
 }>;
 
@@ -77,6 +86,20 @@ function createNewSession(tenantId: string, message: CanonicalInboundMessage): S
   };
 }
 
+function createNewConversation(session: SessionEntity): ConversationEntity {
+  return {
+    id: createConversationId(crypto.randomUUID()),
+    tenantId: session.tenantId,
+    sessionId: session.id,
+    phone: session.phone,
+    status: "bot",
+    assignedTo: null,
+    chatwootConversationId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
 /** Factory do use case principal de mensageria. Recebe todos os ports via DI — não conhece providers específicos. */
 export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessageDependencies) {
   return {
@@ -119,8 +142,16 @@ export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessage
           (await deps.sessionRepository.findByTenantAndPhone(tenantId, message.from)) ??
           createNewSession(tenantId, message);
 
-        if (session.mode !== "bot") {
-          await handleNonBotMessage(deps, session, message, correlationId);
+        session = await deps.sessionRepository.save(session);
+
+        let conversation = await deps.conversationRepository.findBySessionId(tenantId, session.id);
+        if (!conversation) {
+          conversation = createNewConversation(session);
+          conversation = await deps.conversationRepository.save(conversation);
+        }
+
+        if (conversation.status !== "bot") {
+          await handleNonBotMessage(deps, session, conversation, message, correlationId);
           return { processed: true, action: "forwarded_to_chatwoot" };
         }
 
@@ -149,7 +180,7 @@ export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessage
         );
 
         if (flowResult.action.kind === "transferred_to_human") {
-          await handleHandoff(deps, session, flowResult, correlationId);
+          await handleHandoff(deps, session, conversation, flowResult, correlationId);
           return { processed: true, action: "transferred_to_human" };
         }
 
@@ -182,16 +213,17 @@ async function sendOutgoingMessages(
 async function handleNonBotMessage(
   deps: ProcessIncomingMessageDependencies,
   session: SessionEntity,
+  conversation: ConversationEntity,
   message: CanonicalInboundMessage,
   correlationId: string,
 ): Promise<void> {
-  if (session.chatwootConversationId) {
+  if (conversation.chatwootConversationId) {
     await deps.chatwootPort.sendMessage({
-      conversationId: session.chatwootConversationId,
+      conversationId: conversation.chatwootConversationId,
       message: message.text,
     });
   } else {
-    deps.logger.warn("Sessão não-bot sem conversationId no Chatwoot.", {
+    deps.logger.warn("Conversa não-bot sem conversationId no Chatwoot.", {
       correlationId,
       tenantId: session.tenantId as string & { readonly __brand: "TenantId" },
     });
@@ -201,23 +233,54 @@ async function handleNonBotMessage(
 async function handleHandoff(
   deps: ProcessIncomingMessageDependencies,
   session: SessionEntity,
+  conversation: ConversationEntity,
   flowResult: ProcessResult,
   correlationId: string,
 ): Promise<void> {
   try {
-    const conversationId = await deps.chatwootPort.createConversation({
+    const chatwootConversationId = await deps.chatwootPort.createConversation({
       tenantId: session.tenantId,
       phone: session.phone,
       sessionId: session.id,
       contextMessages: [...flowResult.outgoingMessages],
     });
 
+    await deps.conversationRepository.updateStatus(
+      session.tenantId,
+      conversation.id,
+      "waiting_human",
+    );
+
     await deps.sessionRepository.updateMode(
       session.tenantId,
       session.id,
       "waiting_human",
-      conversationId,
+      chatwootConversationId,
     );
+
+    const updatedConversation: ConversationEntity = {
+      ...conversation,
+      status: "waiting_human",
+      chatwootConversationId,
+      updatedAt: new Date(),
+    };
+    await deps.conversationRepository.save(updatedConversation);
+
+    const reason =
+      flowResult.action.kind === "transferred_to_human" ? flowResult.action.reason : null;
+
+    await deps.eventPublisher.publish({
+      type: "conversation.handed_off",
+      tenantId: session.tenantId,
+      conversationId: conversation.id,
+      phone: session.phone,
+      timestamp: Date.now(),
+      payload: {
+        sessionId: session.id,
+        chatwootConversationId,
+        reason,
+      },
+    });
   } catch (error: unknown) {
     const reason = error instanceof Error ? error.message : "Erro desconhecido";
     deps.logger.error("Falha ao criar conversa no Chatwoot.", {
