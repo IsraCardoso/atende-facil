@@ -1,4 +1,5 @@
 import { conversationsTable } from "./conversations";
+import { flowsTable } from "./flows";
 import { sessionsTable } from "./sessions";
 import { tenantMembershipsTable } from "./tenant-memberships";
 import { tenantsTable } from "./tenants";
@@ -7,6 +8,7 @@ import { whatsappInstancesTable } from "./whatsapp-instances";
 
 const schema = {
   conversationsTable,
+  flowsTable,
   sessionsTable,
   tenantMembershipsTable,
   tenantsTable,
@@ -16,6 +18,7 @@ const schema = {
 
 export {
   conversationsTable,
+  flowsTable,
   schema,
   sessionsTable,
   tenantMembershipsTable,
