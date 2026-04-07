@@ -3,6 +3,10 @@ import { createContainer, createToken } from "container";
 import { createProcessIncomingMessageUseCase } from "../../application/use-cases/process-incoming-message-use-case";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
 import type {
+  ConversationRepositoryPort,
+  DomainEventPublisherPort,
+} from "../../domain/ports/conversation-ports";
+import type {
   ChatwootPort,
   FlowRepositoryPort,
   SessionLockPort,
@@ -13,6 +17,8 @@ import type {
 import { createInMemorySessionLockAdapter } from "../cache/session-lock-adapter";
 import { createInMemoryWebhookIdempotencyAdapter } from "../cache/webhook-idempotency-adapter";
 import { createInMemoryChatwootAdapter } from "../chatwoot";
+import { createInMemoryEventPublisher } from "../events/in-memory-event-publisher";
+import { createInMemoryConversationRepository } from "../repositories/in-memory-conversation-repository";
 import { createInMemoryWhatsAppRepositories } from "../repositories/in-memory-whatsapp-repositories";
 import { resolveProviderBundle } from "./provider-factory";
 
@@ -27,11 +33,13 @@ type CreateWhatsAppModuleInput = Readonly<{
 
 type WhatsAppContainerTokenMap = Readonly<{
   sessionRepository: SessionRepositoryPort;
+  conversationRepository: ConversationRepositoryPort;
   instanceRepository: WhatsAppInstanceRepositoryPort;
   sessionLock: SessionLockPort;
   webhookIdempotency: WebhookIdempotencyPort;
   chatwootPort: ChatwootPort;
   flowRepository: FlowRepositoryPort;
+  eventPublisher: DomainEventPublisherPort;
   processIncomingMessage: ReturnType<typeof createProcessIncomingMessageUseCase>;
 }>;
 
@@ -41,11 +49,15 @@ const whatsappTokens: Readonly<{
   >;
 }> = {
   sessionRepository: createToken<SessionRepositoryPort>("whatsapp.sessionRepository"),
+  conversationRepository: createToken<ConversationRepositoryPort>(
+    "whatsapp.conversationRepository",
+  ),
   instanceRepository: createToken<WhatsAppInstanceRepositoryPort>("whatsapp.instanceRepository"),
   sessionLock: createToken<SessionLockPort>("whatsapp.sessionLock"),
   webhookIdempotency: createToken<WebhookIdempotencyPort>("whatsapp.webhookIdempotency"),
   chatwootPort: createToken<ChatwootPort>("whatsapp.chatwootPort"),
   flowRepository: createToken<FlowRepositoryPort>("whatsapp.flowRepository"),
+  eventPublisher: createToken<DomainEventPublisherPort>("whatsapp.eventPublisher"),
   processIncomingMessage: createToken<ReturnType<typeof createProcessIncomingMessageUseCase>>(
     "whatsapp.processIncomingMessage",
   ),
@@ -67,6 +79,9 @@ export function createWhatsAppModule(input: CreateWhatsAppModuleInput): WhatsApp
   const repos = createInMemoryWhatsAppRepositories();
 
   container.registerSingleton(whatsappTokens.sessionRepository, () => repos.sessionRepository);
+  container.registerSingleton(whatsappTokens.conversationRepository, () =>
+    createInMemoryConversationRepository(),
+  );
   container.registerSingleton(whatsappTokens.instanceRepository, () => repos.instanceRepository);
   container.registerSingleton(whatsappTokens.sessionLock, () => createInMemorySessionLockAdapter());
   container.registerSingleton(whatsappTokens.webhookIdempotency, () =>
@@ -74,14 +89,17 @@ export function createWhatsAppModule(input: CreateWhatsAppModuleInput): WhatsApp
   );
   container.registerSingleton(whatsappTokens.chatwootPort, () => createInMemoryChatwootAdapter());
   container.registerSingleton(whatsappTokens.flowRepository, () => createInMemoryFlowRepository());
+  container.registerSingleton(whatsappTokens.eventPublisher, () => createInMemoryEventPublisher());
   container.registerTransient(whatsappTokens.processIncomingMessage, (resolver) =>
     createProcessIncomingMessageUseCase({
       sessionRepository: resolver.resolve(whatsappTokens.sessionRepository),
+      conversationRepository: resolver.resolve(whatsappTokens.conversationRepository),
       sessionLock: resolver.resolve(whatsappTokens.sessionLock),
       webhookIdempotency: resolver.resolve(whatsappTokens.webhookIdempotency),
       whatsAppSender: resolveProviderBundle("evolution").sender,
       chatwootPort: resolver.resolve(whatsappTokens.chatwootPort),
       flowRepository: resolver.resolve(whatsappTokens.flowRepository),
+      eventPublisher: resolver.resolve(whatsappTokens.eventPublisher),
       logger,
     }),
   );

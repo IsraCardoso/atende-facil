@@ -13,6 +13,10 @@ type ApiEnvironment = Readonly<{
   defaultTenantId: string | null;
   authSecret: string;
   authTokenTtlSeconds: number;
+  chatwootApiUrl: string | null;
+  chatwootApiToken: string | null;
+  chatwootAccountId: string | null;
+  chatwootWebhookToken: string | null;
 }>;
 
 type RuntimeEnvMap = Readonly<Record<string, string | undefined>>;
@@ -153,6 +157,11 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
     throw new Error("DEFAULT_TENANT_ID é obrigatório quando MULTI_TENANT=false.");
   }
 
+  const chatwootApiUrl = readOptionalEnvVariable("CHATWOOT_API_URL", source) ?? null;
+  const chatwootApiToken = readOptionalEnvVariable("CHATWOOT_API_TOKEN", source) ?? null;
+  const chatwootAccountId = readOptionalEnvVariable("CHATWOOT_ACCOUNT_ID", source) ?? null;
+  const chatwootWebhookToken = readOptionalEnvVariable("CHATWOOT_WEBHOOK_TOKEN", source) ?? null;
+
   return {
     nodeEnv,
     apiHost,
@@ -164,6 +173,10 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
     defaultTenantId,
     authSecret,
     authTokenTtlSeconds,
+    chatwootApiUrl,
+    chatwootApiToken,
+    chatwootAccountId,
+    chatwootWebhookToken,
   };
 }
 

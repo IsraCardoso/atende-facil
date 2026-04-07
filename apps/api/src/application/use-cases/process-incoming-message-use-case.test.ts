@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
+import type { ConversationRepositoryPort } from "../../domain/ports/conversation-ports";
 import type {
   ChatwootPort,
   FlowRepositoryPort,
@@ -15,6 +16,8 @@ import type {
   WhatsAppInstanceConfig,
 } from "../../domain/whatsapp-types";
 import { createPhone, createWhatsAppMessageId } from "../../domain/whatsapp-types";
+import { createInMemoryEventPublisher } from "../../infrastructure/events/in-memory-event-publisher";
+import { createInMemoryConversationRepository } from "../../infrastructure/repositories/in-memory-conversation-repository";
 import { createProcessIncomingMessageUseCase } from "./process-incoming-message-use-case";
 
 function createFakeLogger(): AppLoggerPort {
@@ -30,8 +33,8 @@ function createFakeSessionRepository(): SessionRepositoryPort {
   const sessions = new Map<string, SessionEntity>();
 
   return {
-    async findByTenantAndPhone() {
-      return sessions.get("tenant-1:5511999999999") ?? null;
+    async findByTenantAndPhone(tenantId: string, phone: string) {
+      return sessions.get(`${tenantId}:${phone}`) ?? null;
     },
     async save(session: SessionEntity) {
       sessions.set(`${session.tenantId}:${session.phone}`, session);
@@ -98,18 +101,11 @@ function createFakeFlowRepository(hasFlow = true): FlowRepositoryPort {
       if (!hasFlow) {
         return null;
       }
-
       return {
         id: "flow-1",
         tenantId: "tenant-1",
         definition: {
-          nodes: [
-            {
-              id: "start",
-              type: "message",
-              text: "Bem-vindo!",
-            },
-          ],
+          nodes: [{ id: "start", type: "message", text: "Bem-vindo!" }],
           edges: [],
           startNodeId: "start",
         },
@@ -140,21 +136,35 @@ function createTestInstanceConfig(): WhatsAppInstanceConfig {
   };
 }
 
+function createFullDeps(overrides?: {
+  sessionRepository?: SessionRepositoryPort;
+  conversationRepository?: ConversationRepositoryPort;
+  sessionLock?: SessionLockPort;
+  webhookIdempotency?: WebhookIdempotencyPort;
+  flowRepository?: FlowRepositoryPort;
+}) {
+  return {
+    sessionRepository: overrides?.sessionRepository ?? createFakeSessionRepository(),
+    conversationRepository:
+      overrides?.conversationRepository ?? createInMemoryConversationRepository(),
+    sessionLock: overrides?.sessionLock ?? createFakeSessionLock(),
+    webhookIdempotency: overrides?.webhookIdempotency ?? createFakeIdempotency(),
+    whatsAppSender: createFakeSender(),
+    chatwootPort: createFakeChatwoot(),
+    flowRepository: overrides?.flowRepository ?? createFakeFlowRepository(),
+    eventPublisher: createInMemoryEventPublisher(),
+    logger: createFakeLogger(),
+  };
+}
+
 describe("ProcessIncomingMessageUseCase", () => {
   it("should reject duplicate webhook", async () => {
     const idempotency = createFakeIdempotency();
     const message = createTestMessage();
     await idempotency.markProcessed("evolution", message.messageId, 86400);
 
-    const useCase = createProcessIncomingMessageUseCase({
-      sessionRepository: createFakeSessionRepository(),
-      sessionLock: createFakeSessionLock(),
-      webhookIdempotency: idempotency,
-      whatsAppSender: createFakeSender(),
-      chatwootPort: createFakeChatwoot(),
-      flowRepository: createFakeFlowRepository(),
-      logger: createFakeLogger(),
-    });
+    const deps = createFullDeps({ webhookIdempotency: idempotency });
+    const useCase = createProcessIncomingMessageUseCase(deps);
 
     const result = await useCase.execute({
       tenantId: "tenant-1",
@@ -175,19 +185,12 @@ describe("ProcessIncomingMessageUseCase", () => {
         return false;
       },
       async release() {
-        /* no-op for test */
+        /* no-op */
       },
     };
 
-    const useCase = createProcessIncomingMessageUseCase({
-      sessionRepository: createFakeSessionRepository(),
-      sessionLock: lockPort,
-      webhookIdempotency: createFakeIdempotency(),
-      whatsAppSender: createFakeSender(),
-      chatwootPort: createFakeChatwoot(),
-      flowRepository: createFakeFlowRepository(),
-      logger: createFakeLogger(),
-    });
+    const deps = createFullDeps({ sessionLock: lockPort });
+    const useCase = createProcessIncomingMessageUseCase(deps);
 
     const result = await useCase.execute({
       tenantId: "tenant-1",
@@ -203,15 +206,8 @@ describe("ProcessIncomingMessageUseCase", () => {
   });
 
   it("should return no_active_flow when no flow exists", async () => {
-    const useCase = createProcessIncomingMessageUseCase({
-      sessionRepository: createFakeSessionRepository(),
-      sessionLock: createFakeSessionLock(),
-      webhookIdempotency: createFakeIdempotency(),
-      whatsAppSender: createFakeSender(),
-      chatwootPort: createFakeChatwoot(),
-      flowRepository: createFakeFlowRepository(false),
-      logger: createFakeLogger(),
-    });
+    const deps = createFullDeps({ flowRepository: createFakeFlowRepository(false) });
+    const useCase = createProcessIncomingMessageUseCase(deps);
 
     const result = await useCase.execute({
       tenantId: "tenant-1",
@@ -226,16 +222,10 @@ describe("ProcessIncomingMessageUseCase", () => {
     }
   });
 
-  it("should process message through flow engine", async () => {
-    const useCase = createProcessIncomingMessageUseCase({
-      sessionRepository: createFakeSessionRepository(),
-      sessionLock: createFakeSessionLock(),
-      webhookIdempotency: createFakeIdempotency(),
-      whatsAppSender: createFakeSender(),
-      chatwootPort: createFakeChatwoot(),
-      flowRepository: createFakeFlowRepository(),
-      logger: createFakeLogger(),
-    });
+  it("should process message through flow engine and create conversation", async () => {
+    const conversationRepository = createInMemoryConversationRepository();
+    const deps = createFullDeps({ conversationRepository });
+    const useCase = createProcessIncomingMessageUseCase(deps);
 
     const result = await useCase.execute({
       tenantId: "tenant-1",
@@ -245,5 +235,47 @@ describe("ProcessIncomingMessageUseCase", () => {
     });
 
     expect(result.processed).toBe(true);
+    const conversations = conversationRepository.getAll();
+    expect(conversations.length).toBe(1);
+    expect(conversations[0]?.status).toBe("bot");
+  });
+
+  it("should emit conversation.handed_off event on transfer", async () => {
+    const conversationRepository = createInMemoryConversationRepository();
+    const eventPublisher = createInMemoryEventPublisher();
+    const flowRepository: FlowRepositoryPort = {
+      async findActiveByTenant() {
+        return {
+          id: "flow-1",
+          tenantId: "tenant-1",
+          definition: {
+            nodes: [{ id: "start", type: "transfer", reason: "Preciso de ajuda" }],
+            edges: [],
+            startNodeId: "start",
+          },
+        };
+      },
+    };
+
+    const useCase = createProcessIncomingMessageUseCase({
+      ...createFullDeps({ conversationRepository, flowRepository }),
+      eventPublisher,
+    });
+
+    const result = await useCase.execute({
+      tenantId: "tenant-1",
+      instanceConfig: createTestInstanceConfig(),
+      message: createTestMessage(),
+      correlationId: "corr-5",
+    });
+
+    expect(result.processed).toBe(true);
+    if (result.processed) {
+      expect(result.action).toBe("transferred_to_human");
+    }
+
+    const events = eventPublisher.getPublishedEvents();
+    expect(events.length).toBe(1);
+    expect(events[0]?.type).toBe("conversation.handed_off");
   });
 });

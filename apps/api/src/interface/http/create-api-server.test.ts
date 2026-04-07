@@ -15,6 +15,10 @@ function createTestEnvironment(overrides: Partial<ApiEnvironment> = {}): ApiEnvi
     defaultTenantId: null,
     authSecret: "test-secret",
     authTokenTtlSeconds: 3600,
+    chatwootApiUrl: null,
+    chatwootApiToken: null,
+    chatwootAccountId: null,
+    chatwootWebhookToken: null,
     ...overrides,
   };
 }
