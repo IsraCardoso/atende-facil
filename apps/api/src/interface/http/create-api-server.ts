@@ -22,6 +22,12 @@ import type {
   UpdateFlowDefinitionUseCase,
   ValidateFlowUseCase,
 } from "../../application/use-cases/flows";
+import type {
+  CreateScheduleUseCase,
+  DeleteScheduleUseCase,
+  ListSchedulesUseCase,
+  UpdateScheduleUseCase,
+} from "../../application/use-cases/schedules";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
 import type {
@@ -42,6 +48,7 @@ import { createConversationRoutes } from "./conversation-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
 import { createFlowRoutes } from "./flow-routes";
 import { rateLimitPlugin } from "./rate-limit-middleware";
+import { createScheduleRoutes } from "./schedule-routes";
 import { createWebhookRoutes } from "./webhook-routes";
 
 type CreateApiServerAuthDependencies = Readonly<{
@@ -85,6 +92,13 @@ type CreateApiServerFlowDependencies = Readonly<{
   validateFlow: ValidateFlowUseCase;
 }>;
 
+type CreateApiServerScheduleDependencies = Readonly<{
+  createSchedule: CreateScheduleUseCase;
+  listSchedules: ListSchedulesUseCase;
+  updateSchedule: UpdateScheduleUseCase;
+  deleteSchedule: DeleteScheduleUseCase;
+}>;
+
 type CreateApiServerInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
@@ -92,6 +106,7 @@ type CreateApiServerInput = Readonly<{
   whatsapp?: CreateApiServerWhatsAppDependencies;
   conversation?: CreateApiServerConversationDependencies;
   flow?: CreateApiServerFlowDependencies;
+  schedule?: CreateApiServerScheduleDependencies;
 }>;
 
 type HealthResponse = Readonly<{
@@ -107,7 +122,7 @@ function createHealthResponse(environment: ApiEnvironment["nodeEnv"]): HealthRes
 }
 
 export function createApiServer(input: CreateApiServerInput) {
-  const { environment, logger, auth, whatsapp, conversation, flow } = input;
+  const { environment, logger, auth, whatsapp, conversation, flow, schedule } = input;
 
   const app = new Elysia()
     .use(rateLimitPlugin())
@@ -208,6 +223,15 @@ export function createApiServer(input: CreateApiServerInput) {
     app.use(
       createFlowRoutes({
         ...flow,
+        verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+      }),
+    );
+  }
+
+  if (schedule) {
+    app.use(
+      createScheduleRoutes({
+        ...schedule,
         verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
       }),
     );
