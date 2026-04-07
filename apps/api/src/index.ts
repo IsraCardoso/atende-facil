@@ -1,5 +1,6 @@
 import { createAuthModule } from "./infrastructure/auth";
 import { loadApiEnvironment } from "./infrastructure/config/env";
+import { createConversationModule } from "./infrastructure/conversation";
 import { createStructuredAppLoggerAdapter } from "./infrastructure/logger";
 import { createJsonLogger, type StructuredLogger } from "./infrastructure/logger/json-logger";
 import { createWhatsAppModule } from "./infrastructure/whatsapp";
@@ -25,6 +26,18 @@ export function bootstrapApi(): ApiRuntime {
   const whatsappModule = createWhatsAppModule({
     logger: appLoggerPort,
   });
+
+  const conversationModule = createConversationModule({
+    sessionRepository: whatsappModule.sessionRepository,
+    instanceRepository: whatsappModule.instanceRepository,
+    logger: appLoggerPort,
+    chatwootAccessConfig: {
+      chatwootAppUrl: env.chatwootAppUrl ?? "http://localhost:3000",
+      chatwootSsoSecret: env.chatwootSsoSecret,
+      chatwootAccountId: env.chatwootAccountId ?? "1",
+    },
+  });
+
   const app = createApiServer({
     environment: env,
     logger,
@@ -32,6 +45,16 @@ export function bootstrapApi(): ApiRuntime {
     whatsapp: {
       instanceRepository: whatsappModule.instanceRepository,
       processIncomingMessage: whatsappModule.processIncomingMessage,
+      logger: appLoggerPort,
+    },
+    conversation: {
+      syncChatwootMessage: conversationModule.syncChatwootMessage,
+      syncChatwootStatus: conversationModule.syncChatwootStatus,
+      listConversations: conversationModule.listConversations,
+      getConversation: conversationModule.getConversation,
+      chatwootAccess: conversationModule.chatwootAccess,
+      connectionManager: conversationModule.connectionManager,
+      chatwootWebhookToken: env.chatwootWebhookToken ?? "",
       logger: appLoggerPort,
     },
   });

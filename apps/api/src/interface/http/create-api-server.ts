@@ -2,6 +2,7 @@
 import { Elysia } from "elysia";
 
 import { createAppError, isAppError, toAppErrorPayload } from "../../application/errors/app-error";
+import type { createChatwootAccessService } from "../../application/services/chatwoot-access-service";
 import type {
   CreateUserUseCase,
   GetCurrentUserUseCase,
@@ -9,6 +10,8 @@ import type {
   RegisterTenantUseCase,
   VerifyAccessTokenUseCase,
 } from "../../application/use-cases";
+import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
+import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
 import type {
   ProcessIncomingMessageInput,
   ProcessIncomingMessageResult,
@@ -23,6 +26,7 @@ import type { ConnectionManager } from "../ws/connection-manager";
 import { createConversationWs } from "../ws/conversation-ws";
 import { createAuthRoutes } from "./auth-routes";
 import { createChatwootWebhookRoutes } from "./chatwoot-webhook-routes";
+import { createConversationRoutes } from "./conversation-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
 import { createWebhookRoutes } from "./webhook-routes";
 
@@ -45,6 +49,9 @@ type CreateApiServerWhatsAppDependencies = Readonly<{
 type CreateApiServerConversationDependencies = Readonly<{
   syncChatwootMessage: ReturnType<typeof createSyncChatwootMessageUseCase>;
   syncChatwootStatus: ReturnType<typeof createSyncChatwootStatusUseCase>;
+  listConversations: ReturnType<typeof createListConversationsUseCase>;
+  getConversation: ReturnType<typeof createGetConversationUseCase>;
+  chatwootAccess: ReturnType<typeof createChatwootAccessService>;
   connectionManager: ConnectionManager;
   chatwootWebhookToken: string;
   logger: AppLoggerPort;
@@ -149,6 +156,14 @@ export function createApiServer(input: CreateApiServerInput) {
           syncStatus: conversation.syncChatwootStatus,
           logger: conversation.logger,
           webhookToken: conversation.chatwootWebhookToken,
+        }),
+      )
+      .use(
+        createConversationRoutes({
+          listConversations: conversation.listConversations,
+          getConversation: conversation.getConversation,
+          chatwootAccess: conversation.chatwootAccess,
+          verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
         }),
       )
       .use(createConversationWs({ connectionManager: conversation.connectionManager }));

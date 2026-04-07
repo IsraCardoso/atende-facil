@@ -4,7 +4,11 @@ import type {
   ConversationId,
   ConversationStatus,
 } from "../../domain/conversation-types";
-import type { ConversationRepositoryPort } from "../../domain/ports/conversation-ports";
+import type {
+  ConversationFilters,
+  ConversationRepositoryPort,
+  PaginatedResult,
+} from "../../domain/ports/conversation-ports";
 import type { ChatwootConversationId, SessionId } from "../../domain/whatsapp-types";
 
 type InMemoryConversationRepositoryExtras = ConversationRepositoryPort &
@@ -62,6 +66,35 @@ export function createInMemoryConversationRepository(): InMemoryConversationRepo
         }
       }
       return results;
+    },
+
+    async findByTenantPaginated(
+      tenantId: string,
+      filters: ConversationFilters,
+    ): Promise<PaginatedResult<ConversationEntity>> {
+      const all: ConversationEntity[] = [];
+      for (const conversation of store.values()) {
+        if (conversation.tenantId !== tenantId) {
+          continue;
+        }
+        if (filters.status && conversation.status !== filters.status) {
+          continue;
+        }
+        all.push(conversation);
+      }
+      all.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+      const total = all.length;
+      const offset = (filters.page - 1) * filters.limit;
+      const data = all.slice(offset, offset + filters.limit);
+
+      return {
+        data,
+        total,
+        page: filters.page,
+        limit: filters.limit,
+        hasMore: offset + filters.limit < total,
+      };
     },
 
     async save(conversation: ConversationEntity): Promise<ConversationEntity> {

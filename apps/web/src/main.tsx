@@ -1,8 +1,21 @@
-import { type ReactElement, StrictMode } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-function App(): ReactElement<Readonly<{ children: string }>, "main"> {
-  return <main>web bootstrap ready</main>;
+import "./styles.css";
+import { InboxPage } from "./pages/inbox";
+import { LoginPage } from "./pages/login";
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/inbox" replace={true} />} />
+        <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 const rootElement = globalThis.document?.getElementById("root");

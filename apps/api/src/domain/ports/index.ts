@@ -13,9 +13,11 @@ export type {
   UserRepositoryPort,
 } from "./auth-ports";
 export type {
+  ConversationFilters,
   ConversationRepositoryPort,
   DomainEventPublisherPort,
   DomainEventSubscriberPort,
+  PaginatedResult,
 } from "./conversation-ports";
 export type {
   ChatwootCreateConversationInput,
