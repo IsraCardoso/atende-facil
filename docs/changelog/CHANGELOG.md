@@ -21,6 +21,69 @@
 
 ---
 
+## [sprint-09] — 2026-04-07
+
+> **Objetivo:** Resolver todos os débitos técnicos de Categorias 1 (Crítico), 2 (Alto) e 3 (Médio) acumulados das Sprints 01 a 08, preparando o sistema para deploy real.
+
+### Adicionado
+- Repositórios Drizzle para Auth: `DrizzleTenantRepository`, `DrizzleUserRepository`, `DrizzleMembershipRepository` com DI condicional (Drizzle quando `db` presente, in-memory como fallback).
+- Repositórios Drizzle para WhatsApp/Conversation: `DrizzleSessionRepository`, `DrizzleWhatsAppInstanceRepository`, `DrizzleConversationRepository` com suporte a paginação e filtros.
+- Adapter de `FlowRepositoryPort` no módulo WhatsApp para converter `FlowEntity` em `FlowDefinitionRecord` sem quebrar a interface interna.
+- Autenticação JWT no WebSocket: token extraído de header `Authorization` ou query param `token`, close code 4401 para tokens inválidos.
+- Rate limiting via fixed-window counter: categorias `login` (5/min), `webhook` (100/min), `flow` (30/min) com `Retry-After` header e HTTP 429.
+- Validação de input TypeBox nas rotas POST/PUT de flows.
+- Schema `tenant_integrations` para configuração Chatwoot por tenant com JSONB `config`, `isActive` e FK para `tenants`.
+- Port e repositório `TenantIntegrationRepositoryPort` (Drizzle + in-memory) para integrações por tenant.
+- Factory `createChatwootPortFactory` com cache por tenant e fallback para config global via env vars.
+- Serviço `ConversationSessionSyncService` para unificar `session.mode` e `conversation.status` em transação única.
+- Decorator `CachedFlowRepository` com cache Valkey (TTL 5min) e invalidação automática em `updateStatus`/`softDelete`.
+- Worker app básico com BullMQ: `HealthCheckConsumer`, carregamento de env, graceful shutdown via SIGTERM/SIGINT.
+- Helper `startTestDatabase` com Testcontainers para PostgreSQL efêmero (skip automático quando Docker indisponível ou Bun incompatível).
+- Testes de integração para `DrizzleFlowRepository` e `DrizzleTenantRepository` contra PostgreSQL real.
+- Testes unitários faltantes: `SyncChatwootStatusUseCase`, `SyncChatwootMessageUseCase`, `VerifyAccessTokenUseCase`.
+- Teste de verificação de wiring DI completo (auth, flow, whatsapp modules).
+
+### Alterado
+- `packages/db` expandido com re-export de `runDrizzleMigrations` para uso em Testcontainers.
+- `chatwootConversationId` removido da tabela `sessions` e entidade `SessionEntity` — single source of truth em `conversations`.
+- Módulos DI (`createAuthModule`, `createFlowModule`, `createWhatsAppModule`, `createConversationModule`) aceitam `db` opcional para injeção condicional de Drizzle repos.
+- `ApiEnvironment` expandida com campos Chatwoot opcionais (`chatwootAppUrl`, `chatwootSsoSecret`, `chatwootWebhookToken`).
+- Flow routes agora coercem `description: null` para `undefined` ao chamar use cases (compatibilidade com `exactOptionalPropertyTypes`).
+
+### Corrigido
+- `process-incoming-message-use-case.ts`: removido `chatwootConversationId` residual no builder de nova sessão.
+- `drizzle-user-repository.ts`: cast explícito de `row.email` para `EmailAddress` (branded type).
+- `cached-flow-repository.test.ts`: cast do mock `get` para compatibilidade com tipo genérico de `CachePort`.
+
+### Decisões técnicas registradas
+- Nenhuma decisão nova em `docs/decisions/` nesta sprint.
+
+### Regras de negócio implementadas
+- [RN-024 — Persistência Drizzle obrigatória](../business-rules/RN-024-persistencia-drizzle-obrigatoria.md)
+- [RN-025 — Segurança de transporte e rate limiting](../business-rules/RN-025-seguranca-transporte-rate-limiting.md)
+- [RN-026 — Config Chatwoot por tenant](../business-rules/RN-026-config-chatwoot-por-tenant.md)
+
+### Débitos técnicos resolvidos
+- [x] Substituir repositórios de auth in-memory por implementações persistentes (PostgreSQL/Drizzle) — resolvido via SET-A: `DrizzleTenantRepository`, `DrizzleUserRepository`, `DrizzleMembershipRepository` (Sprint 02 débito)
+- [x] Implementar testes de integração com Testcontainers para `DrizzleFlowRepository` — resolvido via SET-F: T38-T39 com helper `startTestDatabase` e testes contra PostgreSQL real (Sprint 07 débito)
+- [x] Adicionar rate limiting nas rotas de flow — resolvido via SET-C: T14 com fixed-window counter e categorias (Sprint 07 débito)
+- [x] Implementar cache de flow ativo em Valkey com invalidação ao ativar/desativar — resolvido via SET-E: T28-T31 com `CachedFlowRepository` decorator (Sprint 07 débito)
+- [x] Migrar config Chatwoot de variáveis de ambiente globais para configuração por tenant — resolvido via SET-D: T17-T19 com tabela `tenant_integrations` e factory per-tenant (Sprint 05 débito)
+- [x] Remover `chatwootConversationId` da tabela `sessions` (single source of truth em `conversations`) — resolvido via SET-D: T26 com remoção do campo e atualização de todas as referências (Sprint 05 débito)
+- [x] Unificar `session.mode` e `conversation.status` em source of truth única — resolvido via SET-D: T23 com `ConversationSessionSyncService` transacional (Sprint 05 débito)
+- [x] Implementar `DrizzleConversationRepository` para produção — resolvido via SET-B: T08 com CRUD completo e paginação (Sprint 05 débito)
+- [x] Autenticar WebSocket via JWT no handshake — resolvido via SET-C: T13 com validação de token no `upgrade` e close code 4401 (Sprint 05 débito)
+
+### Débitos técnicos pendentes (não resolvidos nesta sprint)
+- [ ] Extrair `flow-editor.tsx` (~430 linhas) em hooks menores: `useUndoRedo`, `useAutoSave`, `useFlowLoader` (Sprint 08)
+- [ ] Adicionar suporte PUT/DELETE ao `createApiClient` genérico (Sprint 08)
+- [ ] Adicionar testes unitários para `useFlowSimulation` hook (Sprint 08)
+- [ ] Habilitar relatório de cobertura automatizado no package `flow` (Sprint 03)
+- [ ] Habilitar relatório de cobertura automatizado no Vitest para auth/rbac (Sprint 02)
+- [ ] Mapear `assignedTo` da Conversation para `userId` interno do sistema (Sprint 05)
+
+---
+
 ## [sprint-08] — 2026-04-07
 
 > **Objetivo:** Entregar o editor visual de fluxos com React Flow, custom nodes, serialização bidirecional, save manual/auto-save, validação client-side, simulação local e undo/redo.
@@ -95,9 +158,9 @@
 - [RN-021 — Persistência de flows com Drizzle](../business-rules/RN-021-persistencia-flows-drizzle.md)
 
 ### Débitos técnicos gerados
-- [ ] Implementar testes de integração com Testcontainers para `DrizzleFlowRepository`
-- [ ] Adicionar rate limiting nas rotas de flow
-- [ ] Implementar cache de flow ativo em Valkey com invalidação ao ativar/desativar
+- [x] Implementar testes de integração com Testcontainers para `DrizzleFlowRepository` — resolvido na Sprint 09 (SET-F: T38-T39)
+- [x] Adicionar rate limiting nas rotas de flow — resolvido na Sprint 09 (SET-C: T14)
+- [x] Implementar cache de flow ativo em Valkey com invalidação ao ativar/desativar — resolvido na Sprint 09 (SET-E: T28-T31)
 
 ---
 
@@ -147,12 +210,12 @@
 - [RN-016 — Chatwoot webhook reverso e sincronização](../business-rules/RN-016-chatwoot-webhook-reverso-sincronizacao.md)
 
 ### Débitos técnicos gerados
-- [ ] Migrar config Chatwoot de variáveis de ambiente globais para configuração por tenant (tabela `tenant_configs` ou JSONB em `tenants`)
+- [x] Migrar config Chatwoot de variáveis de ambiente globais para configuração por tenant — resolvido na Sprint 09 (SET-D: T17-T19)
 - [ ] Mapear `assignedTo` da Conversation para `userId` interno do sistema, integrando com RBAC e `tenant_memberships`
-- [ ] Remover `chatwootConversationId` da tabela `sessions` (single source of truth em `conversations`) após migração de dados
-- [ ] Unificar `session.mode` e `conversation.status` em source of truth única (conversation como master)
-- [ ] Implementar `DrizzleConversationRepository` para produção (substituir in-memory)
-- [ ] Autenticar WebSocket via JWT no handshake (atualmente usa `tenantId` query param)
+- [x] Remover `chatwootConversationId` da tabela `sessions` — resolvido na Sprint 09 (SET-D: T26)
+- [x] Unificar `session.mode` e `conversation.status` em source of truth única — resolvido na Sprint 09 (SET-D: T23)
+- [x] Implementar `DrizzleConversationRepository` para produção — resolvido na Sprint 09 (SET-B: T08)
+- [x] Autenticar WebSocket via JWT no handshake — resolvido na Sprint 09 (SET-C: T13)
 
 ---
 
@@ -219,7 +282,7 @@
 - [RN-007 — Ports, Adapters e Services para cache e logs](../business-rules/RN-007-ports-adapters-services-cache-logs.md)
 
 ### Débitos técnicos gerados
-- [ ] Substituir repositórios de auth in-memory por implementações persistentes (PostgreSQL/Drizzle) para produção.
+- [x] Substituir repositórios de auth in-memory por implementações persistentes (PostgreSQL/Drizzle) — resolvido na Sprint 09 (SET-A: T01-T03)
 - [ ] Habilitar relatório de cobertura automatizado no Vitest para comprovar a meta de 100% nos use cases de auth/rbac.
 
 ---
