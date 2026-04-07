@@ -66,6 +66,7 @@ export function bootstrapApi(): ApiRuntime {
       getConversation: conversationModule.getConversation,
       chatwootAccess: conversationModule.chatwootAccess,
       connectionManager: conversationModule.connectionManager,
+      authTokenPort: authModule.authTokenPort,
       chatwootWebhookToken: env.chatwootWebhookToken ?? "",
       logger: appLoggerPort,
     },
