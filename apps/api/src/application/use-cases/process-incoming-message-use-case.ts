@@ -9,9 +9,9 @@ import type {
   ConversationRepositoryPort,
   DomainEventPublisherPort,
 } from "../../domain/ports/conversation-ports";
+import type { FlowResolverService } from "../services/flow-resolver-service";
 import type {
   ChatwootPort,
-  FlowRepositoryPort,
   SessionLockPort,
   SessionRepositoryPort,
   WebhookIdempotencyPort,
@@ -34,7 +34,7 @@ type ProcessIncomingMessageDependencies = Readonly<{
   webhookIdempotency: WebhookIdempotencyPort;
   whatsAppSender: WhatsAppSenderPort;
   chatwootPort: ChatwootPort;
-  flowRepository: FlowRepositoryPort;
+  flowResolver: FlowResolverService;
   eventPublisher: DomainEventPublisherPort;
   logger: AppLoggerPort;
 }>;
@@ -154,8 +154,8 @@ export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessage
           return { processed: true, action: "forwarded_to_chatwoot" };
         }
 
-        const flowRecord = await deps.flowRepository.findActiveByTenant(tenantId);
-        if (!flowRecord) {
+        const resolvedFlow = await deps.flowResolver.resolveFlow(tenantId);
+        if (!resolvedFlow) {
           deps.logger.warn("Nenhum fluxo ativo para o tenant.", {
             correlationId,
             tenantId: tenantId as string & { readonly __brand: "TenantId" },
@@ -163,12 +163,12 @@ export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessage
           return { processed: false, reason: "no_active_flow" };
         }
 
-        const flow = flowRecord.definition as unknown as Flow;
+        const flow = resolvedFlow.definition as unknown as Flow;
         const flowSession = mapSessionEntityToFlowSession(session);
         const flowResult = processMessage(flowSession, message.text, flow);
 
         session = applyFlowResultToSession(session, flowResult);
-        session = { ...session, flowId: flowRecord.id };
+        session = { ...session, flowId: resolvedFlow.id };
         await deps.sessionRepository.save(session);
 
         await sendOutgoingMessages(

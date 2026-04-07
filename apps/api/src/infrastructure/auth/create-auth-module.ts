@@ -51,6 +51,7 @@ type AuthModule = Readonly<{
   getCurrentUserUseCase: GetCurrentUserUseCase;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
   authTokenPort: AuthTokenPort;
+  tenantRepository: TenantRepositoryPort;
 }>;
 
 type CreateAuthModuleInput = Readonly<{
@@ -253,6 +254,7 @@ export function createAuthModule(input: CreateAuthModuleInput): AuthModule {
     getCurrentUserUseCase: container.resolve(authContainerTokens.getCurrentUserUseCase),
     verifyAccessTokenUseCase: container.resolve(authContainerTokens.verifyAccessTokenUseCase),
     authTokenPort: container.resolve(authContainerTokens.authTokenPort),
+    tenantRepository: container.resolve(authContainerTokens.tenantRepository),
   };
 }
 
