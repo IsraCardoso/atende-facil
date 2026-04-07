@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-
+import type { FlowEntity, FlowId } from "../../domain/flow-types";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
 import type { ConversationRepositoryPort } from "../../domain/ports/conversation-ports";
 import type {
@@ -9,8 +9,6 @@ import type {
   WebhookIdempotencyPort,
   WhatsAppSenderPort,
 } from "../../domain/ports/whatsapp-ports";
-import type { FlowEntity, FlowId } from "../../domain/flow-types";
-import type { FlowResolverService } from "../services/flow-resolver-service";
 import type {
   CanonicalInboundMessage,
   SessionEntity,
@@ -19,6 +17,7 @@ import type {
 import { createPhone, createWhatsAppMessageId } from "../../domain/whatsapp-types";
 import { createInMemoryEventPublisher } from "../../infrastructure/events/in-memory-event-publisher";
 import { createInMemoryConversationRepository } from "../../infrastructure/repositories/in-memory-conversation-repository";
+import type { FlowResolverService } from "../services/flow-resolver-service";
 import { createProcessIncomingMessageUseCase } from "./process-incoming-message-use-case";
 
 function createFakeLogger(): AppLoggerPort {
@@ -117,7 +116,9 @@ function createFakeFlowResolver(flow: FlowEntity | null = null): FlowResolverSer
     async resolveFlow() {
       return flow === undefined ? null : (flow ?? defaultFlow);
     },
-    async invalidateCache() {},
+    async invalidateCache() {
+      /* noop for test */
+    },
   };
 }
 
@@ -126,7 +127,9 @@ function createNoFlowResolver(): FlowResolverService {
     async resolveFlow() {
       return null;
     },
-    async invalidateCache() {},
+    async invalidateCache() {
+      /* noop for test */
+    },
   };
 }
 

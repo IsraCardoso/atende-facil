@@ -1,9 +1,10 @@
 /** Resolve qual flow usar para um tenant no momento atual com base em schedules e timezone (RN-027, RN-028). */
-import type { TenantRepositoryPort, CachePort } from "../../domain/ports/auth-ports";
+
+import type { TenantId } from "../../domain/auth-types";
+import type { FlowEntity, FlowId } from "../../domain/flow-types";
+import type { CachePort, TenantRepositoryPort } from "../../domain/ports/auth-ports";
 import type { FlowRepositoryPort } from "../../domain/ports/flow-ports";
 import type { FlowScheduleRepositoryPort } from "../../domain/ports/schedule-ports";
-import type { FlowEntity, FlowId } from "../../domain/flow-types";
-import type { TenantId } from "../../domain/auth-types";
 import type { DayOfWeek } from "../../domain/schedule-types";
 
 const CACHE_TTL_SECONDS = 60;
@@ -44,15 +45,15 @@ function toLocalTime(date: Date, timezone: string): { dayOfWeek: DayOfWeek; time
   const timeStr = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
 
   const weekdayMap: Record<string, DayOfWeek> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
+    sun: 0,
+    mon: 1,
+    tue: 2,
+    wed: 3,
+    thu: 4,
+    fri: 5,
+    sat: 6,
   };
-  const dayOfWeek = weekdayMap[weekdayPart?.value ?? "Sun"] ?? 0;
+  const dayOfWeek = weekdayMap[(weekdayPart?.value ?? "Sun").toLowerCase()] ?? 0;
 
   return { dayOfWeek, timeStr };
 }
@@ -62,25 +63,31 @@ export function createFlowResolverService(deps: FlowResolverDependencies): FlowR
     async resolveFlow(tenantId: string, now?: Date | undefined): Promise<FlowEntity | null> {
       if (deps.cache) {
         const cached = await deps.cache.get<FlowEntity>(buildCacheKey(tenantId));
-        if (cached) return cached;
+        if (cached) {
+          return cached;
+        }
       }
 
       const tenant = await deps.tenantRepository.findById(tenantId as TenantId);
-      if (!tenant) return null;
+      if (!tenant) {
+        return null;
+      }
 
       const currentDate = now ?? new Date();
       const { dayOfWeek, timeStr } = toLocalTime(currentDate, tenant.timezone);
 
       const activeSchedules = await deps.scheduleRepository.findActiveByTenant(tenantId);
       const matchingSchedule = activeSchedules.find(
-        (s) =>
-          s.daysOfWeek.includes(dayOfWeek) && s.startTime <= timeStr && timeStr < s.endTime,
+        (s) => s.daysOfWeek.includes(dayOfWeek) && s.startTime <= timeStr && timeStr < s.endTime,
       );
 
       let resolvedFlow: FlowEntity | null = null;
 
       if (matchingSchedule) {
-        resolvedFlow = await deps.flowRepository.findById(tenantId, matchingSchedule.flowId as FlowId);
+        resolvedFlow = await deps.flowRepository.findById(
+          tenantId,
+          matchingSchedule.flowId as FlowId,
+        );
       }
 
       if (!resolvedFlow) {
@@ -106,5 +113,5 @@ export function createFlowResolverService(deps: FlowResolverDependencies): FlowR
   };
 }
 
-export { toLocalTime };
 export type { FlowResolverDependencies, FlowResolverService };
+export { toLocalTime };

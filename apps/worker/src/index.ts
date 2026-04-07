@@ -1,5 +1,5 @@
 /** Bootstrap do worker. Conecta ao Valkey via BullMQ, registra consumers e shutdown gracioso. */
-import { Queue, Worker as BullMQWorker } from "bullmq";
+import { Worker as BullMQWorker, Queue } from "bullmq";
 
 import { loadWorkerEnvironment } from "./config/env";
 import { createHealthCheckConsumer } from "./consumers/health-check-consumer";
@@ -27,7 +27,9 @@ export function bootstrapWorker() {
   });
 
   const noopInvalidator = {
-    invalidateFlowResolver: async (_tenantId: string) => {},
+    invalidateFlowResolver: async (_tenantId: string) => {
+      /* noop — replaced with real implementation when DB is connected */
+    },
   };
   const noopScheduleStore = {
     findTenantIdsWithActiveSchedules: async () => [] as readonly string[],
@@ -50,10 +52,14 @@ export function bootstrapWorker() {
   });
 
   const scheduleQueue = new Queue(scheduleConfig.queueName, { connection: connectionOpts });
-  scheduleQueue.upsertJobScheduler("schedule-cron", { every: 60_000 }, {
-    name: "evaluate-schedules",
-    data: { triggeredAt: Date.now() },
-  });
+  scheduleQueue.upsertJobScheduler(
+    "schedule-cron",
+    { every: 60_000 },
+    {
+      name: "evaluate-schedules",
+      data: { triggeredAt: Date.now() },
+    },
+  );
 
   function gracefulShutdown(_signal: string) {
     Promise.all([healthWorker.close(), scheduleWorker.close(), scheduleQueue.close()])

@@ -32,10 +32,11 @@ export function createScheduleEvaluatorConsumer(
       const tenantIds = await deps.scheduleStore.findTenantIdsWithActiveSchedules();
       let invalidated = 0;
 
-      for (const tenantId of tenantIds) {
-        await deps.cacheInvalidator.invalidateFlowResolver(tenantId);
-        invalidated++;
-      }
+      const invalidationPromises = tenantIds.map((tenantId) =>
+        deps.cacheInvalidator.invalidateFlowResolver(tenantId),
+      );
+      await Promise.all(invalidationPromises);
+      invalidated = tenantIds.length;
 
       return `evaluated ${tenantIds.length} tenants, invalidated ${invalidated} caches`;
     },

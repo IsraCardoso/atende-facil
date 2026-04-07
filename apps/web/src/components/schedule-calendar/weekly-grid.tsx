@@ -35,10 +35,7 @@ function getColorForFlow(flowId: string, flowIds: readonly string[]): string {
 }
 
 export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: WeeklyGridProps) {
-  const uniqueFlowIds = useMemo(
-    () => [...new Set(schedules.map((s) => s.flowId))],
-    [schedules],
-  );
+  const uniqueFlowIds = useMemo(() => [...new Set(schedules.map((s) => s.flowId))], [schedules]);
 
   const getSchedulesForDay = useCallback(
     (day: number) => schedules.filter((s) => s.daysOfWeek.includes(day)),
@@ -65,7 +62,7 @@ export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: 
             <div className="flex items-start justify-end border-b border-r border-gray-200 bg-gray-50 p-1 pr-2 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
               {String(hour).padStart(2, "0")}:00
             </div>
-            {DAYS.map((_, dayIndex) => {
+            {DAYS.map((dayLabel, dayIndex) => {
               const daySchedules = getSchedulesForDay(dayIndex);
               const blocksInHour = daySchedules.filter((s) => {
                 const startH = parseTime(s.startTime);
@@ -75,22 +72,26 @@ export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: 
 
               return (
                 <div
-                  key={`${dayIndex}-${hour}`}
+                  key={`${dayLabel}-${hour}`}
                   className="relative min-h-[40px] border-b border-r border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50"
                   onClick={() => onClickSlot(dayIndex, hour)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") onClickSlot(dayIndex, hour);
+                    if (e.key === "Enter" || e.key === " ") {
+                      onClickSlot(dayIndex, hour);
+                    }
                   }}
                 >
                   {blocksInHour.map((schedule) => {
                     const startH = parseTime(schedule.startTime);
                     const endH = parseTime(schedule.endTime);
                     const isFirstHour = Math.floor(startH) === hour;
-                    if (!isFirstHour) return null;
+                    if (!isFirstHour) {
+                      return null;
+                    }
 
-                    const heightPercent = ((endH - startH) / totalHours) * 100;
+                    const _heightPercent = ((endH - startH) / totalHours) * 100;
                     const topOffset = (startH - Math.floor(startH)) * 40;
 
                     return (

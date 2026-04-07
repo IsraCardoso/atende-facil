@@ -159,7 +159,11 @@ describe("FlowResolverService", () => {
   });
 
   it("should respect tenant timezone for schedule evaluation", async () => {
-    const schedule = createTestSchedule({ daysOfWeek: [1, 2, 3, 4, 5], startTime: "08:00", endTime: "18:00" });
+    const schedule = createTestSchedule({
+      daysOfWeek: [1, 2, 3, 4, 5],
+      startTime: "08:00",
+      endTime: "18:00",
+    });
     const scheduleRepo = createInMemoryFlowScheduleRepository();
     await scheduleRepo.save(schedule);
 

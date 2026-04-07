@@ -76,7 +76,9 @@ function createNoopFlowResolver(): FlowResolverService {
     async resolveFlow() {
       return null;
     },
-    async invalidateCache() {},
+    async invalidateCache() {
+      /* noop — no cache in in-memory mode */
+    },
   };
 }
 
@@ -109,8 +111,9 @@ export function createWhatsAppModule(input: CreateWhatsAppModuleInput): WhatsApp
     createInMemoryWebhookIdempotencyAdapter(),
   );
   container.registerSingleton(whatsappTokens.chatwootPort, () => createInMemoryChatwootAdapter());
-  container.registerSingleton(whatsappTokens.flowResolver, () =>
-    externalFlowResolver ?? createNoopFlowResolver(),
+  container.registerSingleton(
+    whatsappTokens.flowResolver,
+    () => externalFlowResolver ?? createNoopFlowResolver(),
   );
   container.registerSingleton(whatsappTokens.eventPublisher, () => createInMemoryEventPublisher());
   container.registerTransient(whatsappTokens.processIncomingMessage, (resolver) =>
