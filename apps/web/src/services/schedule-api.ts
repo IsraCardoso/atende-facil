@@ -36,7 +36,9 @@ export function createScheduleApi(getToken: () => string | null) {
       return client.get("/flows/schedules");
     },
 
-    createSchedule(payload: CreateSchedulePayload): Promise<ApiResponse<{ schedule: ScheduleDto }>> {
+    createSchedule(
+      payload: CreateSchedulePayload,
+    ): Promise<ApiResponse<{ schedule: ScheduleDto }>> {
       return client.post("/flows/schedules", payload);
     },
 
@@ -46,7 +48,9 @@ export function createScheduleApi(getToken: () => string | null) {
     ): Promise<ApiResponse<{ schedule: ScheduleDto }>> {
       const token = getToken();
       const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       const response = await fetch(`/api/flows/schedules/${id}`, {
         method: "PUT",
@@ -60,7 +64,9 @@ export function createScheduleApi(getToken: () => string | null) {
     async deleteSchedule(id: string): Promise<ApiResponse<{ success: boolean }>> {
       const token = getToken();
       const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       const response = await fetch(`/api/flows/schedules/${id}`, { method: "DELETE", headers });
       const data = (await response.json()) as { success: boolean };
@@ -70,7 +76,9 @@ export function createScheduleApi(getToken: () => string | null) {
     async updateTenantTimezone(timezone: string): Promise<ApiResponse<{ success: boolean }>> {
       const token = getToken();
       const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       const response = await fetch("/api/tenants/me/timezone", {
         method: "PATCH",

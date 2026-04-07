@@ -1,5 +1,5 @@
 /** Pagina de configuracoes do tenant. Timezone selecionavel (RN-028). */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { AppShell } from "../components/app-shell";
 import { useAuth } from "../hooks/use-auth";
@@ -57,9 +57,7 @@ export function SettingsPage() {
   return (
     <AppShell>
       <div className="p-6">
-        <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">
-          Configuracoes
-        </h1>
+        <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">Configuracoes</h1>
 
         <div className="max-w-md rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
@@ -71,7 +69,10 @@ export function SettingsPage() {
           </p>
 
           <div className="mb-4">
-            <label htmlFor="timezone-select" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="timezone-select"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Timezone
             </label>
             <select
@@ -98,9 +99,7 @@ export function SettingsPage() {
               {saving ? "Salvando..." : "Salvar"}
             </button>
             {saved && (
-              <span className="text-sm text-green-600 dark:text-green-400">
-                Salvo com sucesso
-              </span>
+              <span className="text-sm text-green-600 dark:text-green-400">Salvo com sucesso</span>
             )}
           </div>
         </div>

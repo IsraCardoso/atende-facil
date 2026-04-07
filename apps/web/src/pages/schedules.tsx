@@ -2,7 +2,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "../components/app-shell";
-import { ScheduleModal, type ScheduleFormData } from "../components/schedule-calendar/schedule-modal";
+import {
+  type ScheduleFormData,
+  ScheduleModal,
+} from "../components/schedule-calendar/schedule-modal";
 import { WeeklyGrid } from "../components/schedule-calendar/weekly-grid";
 import { useAuth } from "../hooks/use-auth";
 import { createFlowApi, type FlowDto } from "../services/flow-api";
@@ -30,7 +33,9 @@ export function SchedulesPage() {
       flowApi.listFlows({ status: "published" }),
     ]);
 
-    if (schedRes.ok) setSchedules(schedRes.data.schedules);
+    if (schedRes.ok) {
+      setSchedules(schedRes.data.schedules);
+    }
 
     if (flowRes.ok) {
       setPublishedFlows(flowRes.data.data);
@@ -85,7 +90,7 @@ export function SchedulesPage() {
     [editingSchedule, scheduleApi, handleCloseModal, loadData],
   );
 
-  const handleDelete = useCallback(
+  const _handleDelete = useCallback(
     async (schedule: ScheduleDto) => {
       await scheduleApi.deleteSchedule(schedule.id);
       loadData();
@@ -97,9 +102,7 @@ export function SchedulesPage() {
     <AppShell>
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Agendamentos
-          </h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Agendamentos</h1>
           <button
             type="button"
             onClick={() => handleClickSlot(1, 8)}

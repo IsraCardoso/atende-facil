@@ -31,9 +31,13 @@ function hasOverlap(
   excludeId?: string,
 ): boolean {
   return existing.some((s) => {
-    if (excludeId && s.id === excludeId) return false;
+    if (excludeId && s.id === excludeId) {
+      return false;
+    }
     const hasCommonDay = s.daysOfWeek.some((d) => candidate.daysOfWeek.includes(d));
-    if (!hasCommonDay) return false;
+    if (!hasCommonDay) {
+      return false;
+    }
     return s.startTime < candidate.endTime && candidate.startTime < s.endTime;
   });
 }
@@ -65,8 +69,12 @@ export function ScheduleModal({
     } else {
       setFlowId(publishedFlows[0]?.id ?? "");
       setDaysOfWeek(defaultDay !== undefined ? [defaultDay] : [1, 2, 3, 4, 5]);
-      setStartTime(defaultHour !== undefined ? `${String(defaultHour).padStart(2, "0")}:00` : "08:00");
-      setEndTime(defaultHour !== undefined ? `${String(defaultHour + 1).padStart(2, "0")}:00` : "18:00");
+      setStartTime(
+        defaultHour !== undefined ? `${String(defaultHour).padStart(2, "0")}:00` : "08:00",
+      );
+      setEndTime(
+        defaultHour !== undefined ? `${String(defaultHour + 1).padStart(2, "0")}:00` : "18:00",
+      );
       setActive(true);
     }
   }, [existingSchedule, publishedFlows, defaultDay, defaultHour]);
@@ -87,11 +95,15 @@ export function ScheduleModal({
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!flowId || daysOfWeek.length === 0) return;
+    if (!flowId || daysOfWeek.length === 0) {
+      return;
+    }
     onSave({ flowId, daysOfWeek, startTime, endTime, active });
   }, [flowId, daysOfWeek, startTime, endTime, active, onSave]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -102,7 +114,10 @@ export function ScheduleModal({
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="schedule-flow" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="schedule-flow"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Fluxo
             </label>
             <select
@@ -143,7 +158,10 @@ export function ScheduleModal({
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label htmlFor="schedule-start" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="schedule-start"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Inicio
               </label>
               <input
@@ -155,7 +173,10 @@ export function ScheduleModal({
               />
             </div>
             <div className="flex-1">
-              <label htmlFor="schedule-end" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="schedule-end"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Fim
               </label>
               <input
