@@ -18,6 +18,8 @@
     "redis": "^5.11.0"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^11.13.0",
+    "testcontainers": "^11.13.0",
     "vitest": "^4.1.2"
   }
 }
