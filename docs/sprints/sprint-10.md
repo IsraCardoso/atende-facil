@@ -1,6 +1,6 @@
 # Sprint 10 — Agendamento e Automacoes por Horario
 
-> **Periodo:** 07/04 ate 21/04 | **Status:** `Em andamento`
+> **Periodo:** 07/04 ate 21/04 | **Status:** `Concluida`
 
 ---
 

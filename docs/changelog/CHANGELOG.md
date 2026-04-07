@@ -21,6 +21,62 @@
 
 ---
 
+## [sprint-10] — 2026-04-07
+
+> **Objetivo:** Permitir que o admin do tenant configure quais fluxos ficam ativos em quais horários e dias da semana, com troca automática baseada no horário local do tenant.
+
+### Adicionado
+- Schema `flow_schedules` com migration versionada: `id` (UUID PK), `tenant_id` (FK tenants), `flow_id` (FK flows), `days_of_week` (integer[]), `start_time`/`end_time` (varchar HH:MM), `active` (boolean), timestamps. Índices em `tenant_id` e `(tenant_id, active)`.
+- Coluna `timezone` (`varchar(50)`, default `'America/Sao_Paulo'`) na tabela `tenants` com migration versionada.
+- Tipos de domínio: `FlowScheduleId` (branded type), `DayOfWeek` (union 0-6), `FlowScheduleEntity`, factory `createDaysOfWeek`, helper puro `hmTimeRangesOverlap`.
+- Port `FlowScheduleRepositoryPort` com métodos: `findActiveByTenant`, `findById`, `save`, `delete`, `findOverlapping`.
+- `DrizzleFlowScheduleRepository` com tenant isolation, ordenação determinística (`startTime`, `id`) e detecção de overlap.
+- `InMemoryFlowScheduleRepository` para testes.
+- `FlowResolverService`: resolve qual flow usar para um tenant com base em schedules ativos, timezone local e fallback para flow ativo. Suporta cache Valkey com TTL 60s.
+- `ScheduleOverlapValidator`: validação pura de sobreposição de dia+horário entre schedules.
+- Use cases CRUD de schedule: `CreateScheduleUseCase` (com validação de flowId por tenant), `UpdateScheduleUseCase`, `DeleteScheduleUseCase`, `ListSchedulesUseCase` — todos com RBAC centralizado via `assertScheduleWriteRole`.
+- Rotas HTTP: `POST/GET /flows/schedules`, `PUT/DELETE /flows/schedules/:id` com TypeBox validation, JWT auth e tratamento de erros unificado via `tryMapScheduleUseCaseError`.
+- Rotas HTTP: `GET/PATCH /tenants/me/timezone` com validação IANA via `Intl.DateTimeFormat`, RBAC admin/manager.
+- `ScheduleEvaluatorConsumer` no worker BullMQ: job cron a cada 60s para invalidar cache de FlowResolver em tenants com transição de schedule. Invalidação paralela via `Promise.all`.
+- Frontend: `schedule-api.ts` com CRUD + `getTenantTimezone`/`updateTenantTimezone` via `createApiClient`.
+- Frontend: `WeeklyGrid` — calendário semanal visual com blocos coloridos por fluxo, click para edição/criação.
+- Frontend: `ScheduleModal` — modal de criação/edição com seleção de flow, dias, horários e warning de overlap client-side.
+- Frontend: `SchedulesPage` — página principal com CRUD integrado (grid + modal + API).
+- Frontend: `SettingsPage` — configuração de timezone do tenant com hydration do valor salvo via API.
+- Navegação: rotas `/schedules` e `/settings` no router, links "Agendamentos" e "Configuracoes" no AppShell.
+- Testes unitários: FlowResolverService (5 cenários), ScheduleOverlapValidator (4 cenários), schedule CRUD use cases (11 cenários).
+
+### Alterado
+- `ProcessIncomingMessageUseCase` usa `FlowResolverService` em vez de `FlowRepository.findActiveByTenant` diretamente.
+- `createWhatsAppModule` aceita `FlowResolverService` como dependência, removendo adapter de `FlowRepositoryPort`.
+- `createAuthModule` expõe `tenantRepository` para injeção no `FlowResolverService`.
+- Removido unique index `flows_one_active_per_tenant` do banco — regra de 1 flow ativo mantida na application layer.
+- `packages/db` expandido com re-export de `asc` do drizzle-orm.
+- `api-client.ts` expandido com métodos `put`, `patch`, `delete` genéricos.
+
+### Corrigido
+- Nenhum bug pré-existente corrigido.
+
+### Decisões técnicas registradas
+- Nenhuma decisão nova em `docs/decisions/` nesta sprint.
+
+### Regras de negócio implementadas
+- [RN-027 — Agendamento de fluxos por horário](../business-rules/RN-027-agendamento-fluxos-por-horario.md)
+- [RN-028 — Timezone por tenant](../business-rules/RN-028-timezone-por-tenant.md)
+
+### Débitos técnicos gerados
+- [ ] Wire completo de cache Valkey no `FlowResolver` + invalidação nas mutations de schedule + worker com store e invalidador reais (em vez de noop)
+- [ ] Paginação na listagem de schedules (`GET /flows/schedules`)
+- [ ] DTOs HTTP dedicados para schedule em vez de expor entidade de domínio diretamente
+- [ ] Duplicação da lógica de overlap entre frontend (`schedule-modal.tsx`) e backend (`schedule-overlap-validator.ts`)
+- [ ] `FlowScheduleEntity` usa `tenantId`/`flowId` como `string` — migrar para branded types
+- [ ] Padronizar naming de testes de schedule para `should [resultado] when [condição]`
+
+### Débitos técnicos resolvidos (de sprints anteriores)
+- [x] Adicionar suporte PUT/DELETE ao `createApiClient` genérico — resolvido nesta sprint via expansão de `api-client.ts` (Sprint 08 débito)
+
+---
+
 ## [sprint-09] — 2026-04-07
 
 > **Objetivo:** Resolver todos os débitos técnicos de Categorias 1 (Crítico), 2 (Alto) e 3 (Médio) acumulados das Sprints 01 a 08, preparando o sistema para deploy real.
@@ -76,7 +132,7 @@
 
 ### Débitos técnicos pendentes (não resolvidos nesta sprint)
 - [ ] Extrair `flow-editor.tsx` (~430 linhas) em hooks menores: `useUndoRedo`, `useAutoSave`, `useFlowLoader` (Sprint 08)
-- [ ] Adicionar suporte PUT/DELETE ao `createApiClient` genérico (Sprint 08)
+- [x] Adicionar suporte PUT/DELETE ao `createApiClient` genérico — resolvido na Sprint 10 (Sprint 08)
 - [ ] Adicionar testes unitários para `useFlowSimulation` hook (Sprint 08)
 - [ ] Habilitar relatório de cobertura automatizado no package `flow` (Sprint 03)
 - [ ] Habilitar relatório de cobertura automatizado no Vitest para auth/rbac (Sprint 02)
@@ -120,7 +176,7 @@
 
 ### Débitos técnicos gerados
 - [ ] Extrair `flow-editor.tsx` (~430 linhas) em hooks menores: `useUndoRedo`, `useAutoSave`, `useFlowLoader`
-- [ ] Adicionar suporte PUT/DELETE ao `createApiClient` genérico (eliminar `putRequest`/`deleteRequest` manuais em `flow-api.ts`)
+- [x] Adicionar suporte PUT/DELETE ao `createApiClient` genérico — resolvido na Sprint 10 via expansão de `api-client.ts` com `put`, `patch`, `delete`
 - [ ] Adicionar testes unitários para `useFlowSimulation` hook (requer setup de testing-library/react-hooks)
 
 ---
