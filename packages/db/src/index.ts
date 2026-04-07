@@ -1,3 +1,5 @@
+export { and, count, eq, isNull, sql } from "drizzle-orm";
+export type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 export {
   createDatabaseUrl,
   createValkeyUrl,
@@ -12,6 +14,7 @@ export {
 } from "./database";
 export {
   conversationsTable,
+  flowsTable,
   schema,
   sessionsTable,
   tenantMembershipsTable,

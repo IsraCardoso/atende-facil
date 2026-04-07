@@ -21,6 +21,86 @@
 
 ---
 
+## [sprint-08] — 2026-04-07
+
+> **Objetivo:** Entregar o editor visual de fluxos com React Flow, custom nodes, serialização bidirecional, save manual/auto-save, validação client-side, simulação local e undo/redo.
+
+### Adicionado
+- Página de listagem de flows (`/flows`) com filtro por status, badges coloridos, ações de lifecycle (publicar, ativar, desativar, arquivar) e dialog de criação.
+- Editor visual de fluxos (`/flows/:id/edit`) com React Flow: canvas com zoom, pan, minimap, toolbar com nome editável e indicador de unsaved changes.
+- 5 custom node components visuais: MessageNode, OptionNode (com handles por opção), InputNode, TransferNode e EndNode, com cores e ícones distintos.
+- Sidebar de propriedades: edição dinâmica por tipo de nó (texto, prompt, opções, fieldKey, motivo, mensagem de resumo) com adição/remoção de opções.
+- Paleta de nós drag-and-drop: arrastar novos nós do sidebar para o canvas com posição precisa via `screenToFlowPosition`.
+- Serialização bidirecional (`backendToReactFlow` / `reactFlowToBackend`) preservando posições, dados e edges com testes de roundtrip.
+- Save manual via PUT API + auto-save em localStorage com debounce de 2 segundos e recuperação ao reabrir.
+- Validação client-side via POST /flows/:id/validate com highlight visual de nós com erro (borda vermelha).
+- Undo/redo com stack de estados (máximo 50 entradas), atalhos Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z e botões na toolbar.
+- Simulação local importando `packages/flow` no browser: painel de chat, processamento de mensagens sem rede, reset e highlight do nó atual.
+- API service tipado (`flow-api.ts`) para todas as operações de flow (CRUD, lifecycle, validação).
+- Nav link "Fluxos" no AppShell com active state.
+
+### Alterado
+- `main.tsx` expandido com rotas `/flows` e `/flows/:id/edit`.
+- `app-shell.tsx` refatorado para sidebar opcional e navegação com items configuráveis.
+
+### Corrigido
+- Bug crítico: `createFlowApi()` era recriado a cada render causando loop infinito de re-renders — corrigido com `useMemo`.
+- Compatibilidade com `exactOptionalPropertyTypes` no serializer e na listagem de flows.
+- API do `processMessage` alinhada com a assinatura real do packages/flow (ordem de argumentos e nomes de propriedades).
+
+### Decisões técnicas registradas
+- Nenhuma decisão nova em `docs/decisions/` nesta sprint.
+
+### Regras de negócio implementadas
+- [RN-022 — Editor visual de fluxos](../business-rules/RN-022-editor-visual-fluxos.md)
+- [RN-023 — Simulação local de fluxos](../business-rules/RN-023-simulacao-local-fluxos.md)
+
+### Débitos técnicos gerados
+- [ ] Extrair `flow-editor.tsx` (~430 linhas) em hooks menores: `useUndoRedo`, `useAutoSave`, `useFlowLoader`
+- [ ] Adicionar suporte PUT/DELETE ao `createApiClient` genérico (eliminar `putRequest`/`deleteRequest` manuais em `flow-api.ts`)
+- [ ] Adicionar testes unitários para `useFlowSimulation` hook (requer setup de testing-library/react-hooks)
+
+---
+
+## [sprint-07] — 2026-04-07
+
+> **Objetivo:** Entregar CRUD completo de flows via API com persistência Drizzle, ciclo de vida (draft → published → active → archived), validação para publicação e isolamento multi-tenant.
+
+### Adicionado
+- Schema Drizzle `flows` com migration versionada: `id`, `tenant_id`, `name`, `description`, `definition` (JSONB), `status`, `version`, `created_at`, `updated_at`, `deleted_at`.
+- Unique index parcial `flows_one_active_per_tenant` garantindo máximo 1 flow ativo por tenant no banco.
+- Tipos de domínio `FlowId` (branded type), `FlowStatus` enum e `FlowEntity` com `isValidFlowTransition`.
+- Port `FlowRepositoryPort` com métodos de domínio: `findById`, `findActiveByTenant`, `findByTenantPaginated`, `save`, `updateStatus`, `softDelete`.
+- Repositório `DrizzleFlowRepository` com isolamento de tenant e soft delete em todas as queries.
+- Repositório `InMemoryFlowRepository` para testes unitários.
+- 10 use cases de flow: Create, Update Definition, Get, List (paginado), Delete (soft), Publish, Activate, Deactivate, Archive, Validate.
+- Rotas HTTP completas: GET/POST /flows, GET/PUT/DELETE /flows/:id, POST /flows/:id/{publish,activate,deactivate,archive,validate}.
+- Módulo DI `createFlowModule` com registro de repositório e todos os use cases.
+- Suite de testes unitários com 100% de cobertura para todos os use cases e entidades de flow.
+
+### Alterado
+- `packages/db` expandido com re-export de funções Drizzle (`and`, `count`, `eq`, `isNull`, `sql`) para centralizar instância e evitar conflito de tipos.
+- `AppErrorCode` expandido com `FLOW_NOT_FOUND`, `FLOW_INVALID_TRANSITION`, `FLOW_VALIDATION_FAILED`.
+- `createApiServer` aceita dependência `flow` para registrar rotas de flow.
+- `apps/api/src/index.ts` atualizado para bootstrap do módulo flow.
+
+### Corrigido
+- Conflito de tipos Drizzle ORM entre `apps/api` e `packages/db` resolvido centralizando imports no package `db`.
+
+### Decisões técnicas registradas
+- Nenhuma decisão nova em `docs/decisions/` nesta sprint.
+
+### Regras de negócio implementadas
+- [RN-020 — CRUD e ciclo de vida de flows](../business-rules/RN-020-crud-ciclo-vida-flows.md)
+- [RN-021 — Persistência de flows com Drizzle](../business-rules/RN-021-persistencia-flows-drizzle.md)
+
+### Débitos técnicos gerados
+- [ ] Implementar testes de integração com Testcontainers para `DrizzleFlowRepository`
+- [ ] Adicionar rate limiting nas rotas de flow
+- [ ] Implementar cache de flow ativo em Valkey com invalidação ao ativar/desativar
+
+---
+
 ## [sprint-05] — 2026-04-06
 
 > **Objetivo:** Entregar hand-off humano com entidade Conversation, eventos de domínio via Valkey Pub/Sub, integração reversa com Chatwoot e notificações WebSocket em tempo real.
