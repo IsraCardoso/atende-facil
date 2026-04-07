@@ -21,6 +21,7 @@ export type {
 } from "./conversation-ports";
 export type { FlowFilters, FlowRepositoryPort as FlowCrudRepositoryPort } from "./flow-ports";
 export type { TenantIntegrationRepositoryPort } from "./integration-ports";
+export type { FlowScheduleRepositoryPort } from "./schedule-ports";
 export type {
   ChatwootCreateConversationInput,
   ChatwootPort,
