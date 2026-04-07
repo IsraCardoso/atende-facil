@@ -15,6 +15,7 @@ export {
 } from "./database";
 export {
   conversationsTable,
+  flowSchedulesTable,
   flowsTable,
   schema,
   sessionsTable,
