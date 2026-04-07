@@ -6,7 +6,7 @@
 
 ## O que é este projeto
 
-Plataforma SaaS de automação de atendimento via WhatsApp. Permite que empresas (retailers) configurem fluxos de atendimento determinísticos — com menus, coleta de dados e triagem automática — sem depender de um desenvolvedor. Possui um editor visual de fluxos (estilo n8n), painel de atendimento humano (inbox), suporte a multi-tenant, agendamento de fluxos por horário e roadmap de integração com IA (RAG por cliente).
+Plataforma SaaS de automação de atendimento via WhatsApp. Permite que empresas (retailers) configurem fluxos de atendimento determinísticos — com menus, coleta de dados e triagem automática — sem depender de um desenvolvedor. Possui um editor visual de fluxos (estilo n8n), painel de atendimento humano (inbox), suporte a multi-tenant, agendamento de fluxos por horário e roadmap de integração com IA (RAG por cliente e de FAQS, informações gerais e etc).
 
 O produto é genérico e pode ser usado por qualquer segmento. O caso de uso inicial é uma farmácia de manipulação.
 
