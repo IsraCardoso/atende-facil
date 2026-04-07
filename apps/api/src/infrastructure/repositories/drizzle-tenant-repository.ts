@@ -12,6 +12,7 @@ function mapRowToEntity(row: TenantRow): TenantEntity {
     id: row.id as TenantId,
     name: row.name,
     slug: row.slug,
+    timezone: row.timezone,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -28,6 +29,7 @@ export function createDrizzleTenantRepository(
           id: tenant.id,
           name: tenant.name,
           slug: tenant.slug,
+          timezone: tenant.timezone,
           createdAt: tenant.createdAt,
           updatedAt: tenant.updatedAt,
         })
