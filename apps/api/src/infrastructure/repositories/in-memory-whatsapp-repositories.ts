@@ -4,7 +4,6 @@ import type {
   WhatsAppInstanceRepositoryPort,
 } from "../../domain/ports/whatsapp-ports";
 import type {
-  ChatwootConversationId,
   Phone,
   SessionEntity,
   SessionId,
@@ -42,12 +41,7 @@ function createInMemorySessionRepository(): SessionRepositoryPort {
       return session;
     },
 
-    async updateMode(
-      tenantId: string,
-      sessionId: SessionId,
-      mode: SessionMode,
-      chatwootConversationId?: ChatwootConversationId,
-    ): Promise<void> {
+    async updateMode(tenantId: string, sessionId: SessionId, mode: SessionMode): Promise<void> {
       const existing = sessionsById.get(sessionId);
       if (!existing || existing.tenantId !== tenantId) {
         return;
@@ -56,7 +50,6 @@ function createInMemorySessionRepository(): SessionRepositoryPort {
       const updated: SessionEntity = {
         ...existing,
         mode,
-        ...(chatwootConversationId !== undefined ? { chatwootConversationId } : {}),
         updatedAt: new Date(),
       };
       sessionsById.set(sessionId, updated);

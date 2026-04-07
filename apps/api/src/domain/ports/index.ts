@@ -20,6 +20,7 @@ export type {
   PaginatedResult,
 } from "./conversation-ports";
 export type { FlowFilters, FlowRepositoryPort as FlowCrudRepositoryPort } from "./flow-ports";
+export type { TenantIntegrationRepositoryPort } from "./integration-ports";
 export type {
   ChatwootCreateConversationInput,
   ChatwootPort,

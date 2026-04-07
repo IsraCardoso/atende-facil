@@ -1,5 +1,6 @@
 export { and, count, eq, isNull, sql } from "drizzle-orm";
 export type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+export { migrate as runDrizzleMigrations } from "drizzle-orm/postgres-js/migrator";
 export {
   createDatabaseUrl,
   createValkeyUrl,
@@ -17,6 +18,7 @@ export {
   flowsTable,
   schema,
   sessionsTable,
+  tenantIntegrationsTable,
   tenantMembershipsTable,
   tenantsTable,
   usersTable,

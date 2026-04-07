@@ -15,7 +15,6 @@ export const sessionsTable = pgTable(
     mode: varchar("mode", { length: 32 }).default("bot").notNull(),
     data: jsonb("data").default({}).notNull(),
     flowId: uuid("flow_id"),
-    chatwootConversationId: varchar("chatwoot_conversation_id", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

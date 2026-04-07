@@ -24,7 +24,9 @@ import type { ListFlowsUseCase } from "../../application/use-cases/flows/list-fl
 import type { PublishFlowUseCase } from "../../application/use-cases/flows/publish-flow-use-case";
 import type { UpdateFlowDefinitionUseCase } from "../../application/use-cases/flows/update-flow-definition-use-case";
 import type { ValidateFlowUseCase } from "../../application/use-cases/flows/validate-flow-use-case";
+import type { CachePort } from "../../domain/ports/auth-ports";
 import type { FlowRepositoryPort } from "../../domain/ports/flow-ports";
+import { createCachedFlowRepository } from "../repositories/cached-flow-repository";
 import { createDrizzleFlowRepository } from "../repositories/drizzle-flow-repository";
 import { createInMemoryFlowRepository } from "../repositories/in-memory-flow-repository";
 
@@ -44,6 +46,7 @@ type FlowModule = Readonly<{
 
 type CreateFlowModuleInput = Readonly<{
   db?: PostgresJsDatabase<typeof schema>;
+  cachePort?: CachePort;
 }>;
 
 type FlowContainerTokenMap = Readonly<{
@@ -79,9 +82,12 @@ const flowTokens: Readonly<{
 export function createFlowModule(input: CreateFlowModuleInput): FlowModule {
   const container = createContainer();
 
-  container.registerSingleton(flowTokens.flowRepository, () =>
-    input.db ? createDrizzleFlowRepository(input.db) : createInMemoryFlowRepository(),
-  );
+  container.registerSingleton(flowTokens.flowRepository, () => {
+    const baseRepo = input.db
+      ? createDrizzleFlowRepository(input.db)
+      : createInMemoryFlowRepository();
+    return input.cachePort ? createCachedFlowRepository(baseRepo, input.cachePort) : baseRepo;
+  });
 
   container.registerTransient(flowTokens.createFlow, (resolver) =>
     createCreateFlowUseCase({

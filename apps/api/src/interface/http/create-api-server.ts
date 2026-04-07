@@ -30,7 +30,7 @@ import type {
 } from "../../application/use-cases/process-incoming-message-use-case";
 import type { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
 import type { createSyncChatwootStatusUseCase } from "../../application/use-cases/sync-chatwoot-status-use-case";
-import type { AppLoggerPort } from "../../domain/ports/auth-ports";
+import type { AppLoggerPort, AuthTokenPort } from "../../domain/ports/auth-ports";
 import type { WhatsAppInstanceRepositoryPort } from "../../domain/ports/whatsapp-ports";
 import type { ApiEnvironment } from "../../infrastructure/config/env";
 import type { StructuredLogger } from "../../infrastructure/logger/json-logger";
@@ -41,6 +41,7 @@ import { createChatwootWebhookRoutes } from "./chatwoot-webhook-routes";
 import { createConversationRoutes } from "./conversation-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
 import { createFlowRoutes } from "./flow-routes";
+import { rateLimitPlugin } from "./rate-limit-middleware";
 import { createWebhookRoutes } from "./webhook-routes";
 
 type CreateApiServerAuthDependencies = Readonly<{
@@ -66,6 +67,7 @@ type CreateApiServerConversationDependencies = Readonly<{
   getConversation: ReturnType<typeof createGetConversationUseCase>;
   chatwootAccess: ReturnType<typeof createChatwootAccessService>;
   connectionManager: ConnectionManager;
+  authTokenPort: AuthTokenPort;
   chatwootWebhookToken: string;
   logger: AppLoggerPort;
 }>;
@@ -108,6 +110,7 @@ export function createApiServer(input: CreateApiServerInput) {
   const { environment, logger, auth, whatsapp, conversation, flow } = input;
 
   const app = new Elysia()
+    .use(rateLimitPlugin())
     .onError(({ request, error, set }) => {
       const correlationId = resolveCorrelationId(request);
       set.headers[correlationIdHeaderName] = correlationId;
@@ -193,7 +196,12 @@ export function createApiServer(input: CreateApiServerInput) {
           verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
         }),
       )
-      .use(createConversationWs({ connectionManager: conversation.connectionManager }));
+      .use(
+        createConversationWs({
+          connectionManager: conversation.connectionManager,
+          authTokenPort: conversation.authTokenPort,
+        }),
+      );
   }
 
   if (flow) {

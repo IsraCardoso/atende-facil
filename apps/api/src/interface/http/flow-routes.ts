@@ -1,5 +1,5 @@
-/** Rotas HTTP de flows. CRUD e lifecycle com tenant isolation obrigatorio (RN-020). */
-import { Elysia } from "elysia";
+/** Rotas HTTP de flows. CRUD e lifecycle com tenant isolation obrigatorio e input validation (RN-020, RN-025). */
+import { Elysia, t } from "elysia";
 
 import type { VerifyAccessTokenUseCase } from "../../application/use-cases";
 import type {
@@ -53,21 +53,23 @@ export function createFlowRoutes(input: CreateFlowRoutesInput) {
       const correlationId = resolveCorrelationId(request);
       return { authClaims, correlationId };
     })
-    .post("/", async ({ authClaims, body, set }) => {
-      const payload = body as Readonly<{ name?: string; description?: string }>;
-
-      if (!payload.name?.trim()) {
-        set.status = 400;
-        return { error: "Nome do flow e obrigatorio.", code: "REQUEST_VALIDATION_ERROR" };
-      }
-
-      set.status = 201;
-      return createFlow.execute({
-        tenantId: authClaims.tenantId,
-        name: payload.name,
-        description: payload.description,
-      });
-    })
+    .post(
+      "/",
+      async ({ authClaims, body, set }) => {
+        set.status = 201;
+        return createFlow.execute({
+          tenantId: authClaims.tenantId,
+          name: body.name,
+          description: body.description ?? undefined,
+        });
+      },
+      {
+        body: t.Object({
+          name: t.String({ minLength: 1 }),
+          description: t.Optional(t.Union([t.String(), t.Null()])),
+        }),
+      },
+    )
     .get("/", async ({ authClaims, query }) =>
       listFlows.execute({
         tenantId: authClaims.tenantId,
@@ -82,21 +84,29 @@ export function createFlowRoutes(input: CreateFlowRoutesInput) {
         flowId: createFlowId(params.id),
       }),
     )
-    .put("/:id", async ({ authClaims, params, body }) => {
-      const payload = body as Readonly<{
-        name?: string;
-        description?: string;
-        definition?: Readonly<Record<string, unknown>>;
-      }>;
-
-      return updateFlowDefinition.execute({
-        tenantId: authClaims.tenantId,
-        flowId: createFlowId(params.id),
-        name: payload.name,
-        description: payload.description,
-        definition: payload.definition,
-      });
-    })
+    .put(
+      "/:id",
+      async ({ authClaims, params, body }) =>
+        updateFlowDefinition.execute({
+          tenantId: authClaims.tenantId,
+          flowId: createFlowId(params.id),
+          name: body.name,
+          description: body.description ?? undefined,
+          definition: body.definition,
+        }),
+      {
+        body: t.Object({
+          name: t.Optional(t.String({ minLength: 1 })),
+          description: t.Optional(t.Union([t.String(), t.Null()])),
+          definition: t.Optional(
+            t.Object({
+              nodes: t.Array(t.Any()),
+              edges: t.Array(t.Any()),
+            }),
+          ),
+        }),
+      },
+    )
     .delete("/:id", async ({ authClaims, params }) => {
       await deleteFlow.execute({
         tenantId: authClaims.tenantId,

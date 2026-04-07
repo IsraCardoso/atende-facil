@@ -85,7 +85,6 @@ type SessionEntity = Readonly<{
   mode: SessionMode;
   data: Readonly<Record<string, unknown>>;
   flowId: string | null;
-  chatwootConversationId: ChatwootConversationId | null;
   createdAt: Date;
   updatedAt: Date;
 }>;

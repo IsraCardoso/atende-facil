@@ -69,7 +69,6 @@ export function createCloseConversationUseCase(deps: CloseConversationDependenci
           mode: "bot" as const,
           data: {},
           flowId: null,
-          chatwootConversationId: null,
           updatedAt: new Date(),
         };
         await deps.sessionRepository.save(resetSession);

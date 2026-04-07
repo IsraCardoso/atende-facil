@@ -1,3 +1,5 @@
+import { createDatabaseConnection, createDatabaseUrl } from "db";
+
 import { createAuthModule } from "./infrastructure/auth";
 import { loadApiEnvironment } from "./infrastructure/config/env";
 import { createConversationModule } from "./infrastructure/conversation";
@@ -20,12 +22,20 @@ export function bootstrapApi(): ApiRuntime {
     minimumLevel: env.logLevel,
   });
   const appLoggerPort = createStructuredAppLoggerAdapter(logger);
+
+  const { db } = createDatabaseConnection(createDatabaseUrl(env.databaseUrl));
+
   const authModule = createAuthModule({
     environment: env,
     logger,
+    db,
   });
+  const flowModule = createFlowModule({ db });
+
   const whatsappModule = createWhatsAppModule({
     logger: appLoggerPort,
+    db,
+    flowRepository: flowModule.flowRepository,
   });
 
   const conversationModule = createConversationModule({
@@ -37,9 +47,8 @@ export function bootstrapApi(): ApiRuntime {
       chatwootSsoSecret: env.chatwootSsoSecret,
       chatwootAccountId: env.chatwootAccountId ?? "1",
     },
+    db,
   });
-
-  const flowModule = createFlowModule({});
 
   const app = createApiServer({
     environment: env,
@@ -57,6 +66,7 @@ export function bootstrapApi(): ApiRuntime {
       getConversation: conversationModule.getConversation,
       chatwootAccess: conversationModule.chatwootAccess,
       connectionManager: conversationModule.connectionManager,
+      authTokenPort: authModule.authTokenPort,
       chatwootWebhookToken: env.chatwootWebhookToken ?? "",
       logger: appLoggerPort,
     },

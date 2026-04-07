@@ -1,6 +1,6 @@
 /** Módulo DI de autenticação. Registra repositórios, hashers, tokens e use cases no container de injeção de dependência. */
 import { createContainer, createToken } from "container";
-
+import type { PostgresJsDatabase, schema } from "db";
 import {
   createIdentityCacheService,
   createRbacPolicyService,
@@ -30,10 +30,17 @@ import type {
   TenantRepositoryPort,
   UserRepositoryPort,
 } from "../../domain/ports";
+
 import { createInMemoryCacheAdapter, createValkeyCacheAdapterFromUrl } from "../cache";
 import type { ApiEnvironment } from "../config/env";
 import { createStructuredAppLoggerAdapter, type StructuredLogger } from "../logger";
-import { createInMemoryAuthRepositories, type InMemoryAuthRepositories } from "../repositories";
+import {
+  createDrizzleMembershipRepository,
+  createDrizzleTenantRepository,
+  createDrizzleUserRepository,
+  createInMemoryAuthRepositories,
+  type InMemoryAuthRepositories,
+} from "../repositories";
 import { createBetterAuthJwtTokenAdapter } from "./better-auth-jwt-token-adapter";
 import { createBetterAuthPasswordHasherAdapter } from "./better-auth-password-hasher-adapter";
 
@@ -43,11 +50,13 @@ type AuthModule = Readonly<{
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
+  authTokenPort: AuthTokenPort;
 }>;
 
 type CreateAuthModuleInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
+  db?: PostgresJsDatabase<typeof schema>;
 }>;
 
 type AuthContainerTokenMap = Readonly<{
@@ -117,23 +126,35 @@ function isProductionLikeNodeEnvironment(environment: ApiEnvironment): boolean {
 
 function registerAuthContainer(input: CreateAuthModuleInput): ReturnType<typeof createContainer> {
   const container = createContainer();
-  const { environment, logger } = input;
+  const { environment, logger, db } = input;
 
-  container.registerSingleton(authContainerTokens.repositories, () =>
-    createInMemoryAuthRepositories(),
-  );
-  container.registerSingleton(
-    authContainerTokens.userRepository,
-    (resolver) => resolver.resolve(authContainerTokens.repositories).userRepository,
-  );
-  container.registerSingleton(
-    authContainerTokens.tenantRepository,
-    (resolver) => resolver.resolve(authContainerTokens.repositories).tenantRepository,
-  );
-  container.registerSingleton(
-    authContainerTokens.membershipRepository,
-    (resolver) => resolver.resolve(authContainerTokens.repositories).membershipRepository,
-  );
+  if (db) {
+    container.registerSingleton(authContainerTokens.userRepository, () =>
+      createDrizzleUserRepository(db),
+    );
+    container.registerSingleton(authContainerTokens.tenantRepository, () =>
+      createDrizzleTenantRepository(db),
+    );
+    container.registerSingleton(authContainerTokens.membershipRepository, () =>
+      createDrizzleMembershipRepository(db),
+    );
+  } else {
+    container.registerSingleton(authContainerTokens.repositories, () =>
+      createInMemoryAuthRepositories(),
+    );
+    container.registerSingleton(
+      authContainerTokens.userRepository,
+      (resolver) => resolver.resolve(authContainerTokens.repositories).userRepository,
+    );
+    container.registerSingleton(
+      authContainerTokens.tenantRepository,
+      (resolver) => resolver.resolve(authContainerTokens.repositories).tenantRepository,
+    );
+    container.registerSingleton(
+      authContainerTokens.membershipRepository,
+      (resolver) => resolver.resolve(authContainerTokens.repositories).membershipRepository,
+    );
+  }
   container.registerSingleton(authContainerTokens.tenantMode, () => resolveTenantMode(environment));
   container.registerSingleton(authContainerTokens.passwordHasher, () =>
     createBetterAuthPasswordHasherAdapter(),
@@ -231,6 +252,7 @@ export function createAuthModule(input: CreateAuthModuleInput): AuthModule {
     loginUseCase: container.resolve(authContainerTokens.loginUseCase),
     getCurrentUserUseCase: container.resolve(authContainerTokens.getCurrentUserUseCase),
     verifyAccessTokenUseCase: container.resolve(authContainerTokens.verifyAccessTokenUseCase),
+    authTokenPort: container.resolve(authContainerTokens.authTokenPort),
   };
 }
 

@@ -1,6 +1,7 @@
 import { conversationsTable } from "./conversations";
 import { flowsTable } from "./flows";
 import { sessionsTable } from "./sessions";
+import { tenantIntegrationsTable } from "./tenant-integrations";
 import { tenantMembershipsTable } from "./tenant-memberships";
 import { tenantsTable } from "./tenants";
 import { usersTable } from "./users";
@@ -10,6 +11,7 @@ const schema = {
   conversationsTable,
   flowsTable,
   sessionsTable,
+  tenantIntegrationsTable,
   tenantMembershipsTable,
   tenantsTable,
   usersTable,
@@ -21,6 +23,7 @@ export {
   flowsTable,
   schema,
   sessionsTable,
+  tenantIntegrationsTable,
   tenantMembershipsTable,
   tenantsTable,
   usersTable,
