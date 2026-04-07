@@ -1,6 +1,7 @@
 import { createAuthModule } from "./infrastructure/auth";
 import { loadApiEnvironment } from "./infrastructure/config/env";
 import { createConversationModule } from "./infrastructure/conversation";
+import { createFlowModule } from "./infrastructure/flow";
 import { createStructuredAppLoggerAdapter } from "./infrastructure/logger";
 import { createJsonLogger, type StructuredLogger } from "./infrastructure/logger/json-logger";
 import { createWhatsAppModule } from "./infrastructure/whatsapp";
@@ -38,6 +39,8 @@ export function bootstrapApi(): ApiRuntime {
     },
   });
 
+  const flowModule = createFlowModule({});
+
   const app = createApiServer({
     environment: env,
     logger,
@@ -56,6 +59,18 @@ export function bootstrapApi(): ApiRuntime {
       connectionManager: conversationModule.connectionManager,
       chatwootWebhookToken: env.chatwootWebhookToken ?? "",
       logger: appLoggerPort,
+    },
+    flow: {
+      createFlow: flowModule.createFlow,
+      updateFlowDefinition: flowModule.updateFlowDefinition,
+      getFlow: flowModule.getFlow,
+      listFlows: flowModule.listFlows,
+      deleteFlow: flowModule.deleteFlow,
+      publishFlow: flowModule.publishFlow,
+      activateFlow: flowModule.activateFlow,
+      deactivateFlow: flowModule.deactivateFlow,
+      archiveFlow: flowModule.archiveFlow,
+      validateFlow: flowModule.validateFlow,
     },
   });
 

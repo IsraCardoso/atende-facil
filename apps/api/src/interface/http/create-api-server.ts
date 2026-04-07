@@ -10,6 +10,18 @@ import type {
   RegisterTenantUseCase,
   VerifyAccessTokenUseCase,
 } from "../../application/use-cases";
+import type {
+  ActivateFlowUseCase,
+  ArchiveFlowUseCase,
+  CreateFlowUseCase,
+  DeactivateFlowUseCase,
+  DeleteFlowUseCase,
+  GetFlowUseCase,
+  ListFlowsUseCase,
+  PublishFlowUseCase,
+  UpdateFlowDefinitionUseCase,
+  ValidateFlowUseCase,
+} from "../../application/use-cases/flows";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
 import type {
@@ -28,6 +40,7 @@ import { createAuthRoutes } from "./auth-routes";
 import { createChatwootWebhookRoutes } from "./chatwoot-webhook-routes";
 import { createConversationRoutes } from "./conversation-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
+import { createFlowRoutes } from "./flow-routes";
 import { createWebhookRoutes } from "./webhook-routes";
 
 type CreateApiServerAuthDependencies = Readonly<{
@@ -57,12 +70,26 @@ type CreateApiServerConversationDependencies = Readonly<{
   logger: AppLoggerPort;
 }>;
 
+type CreateApiServerFlowDependencies = Readonly<{
+  createFlow: CreateFlowUseCase;
+  updateFlowDefinition: UpdateFlowDefinitionUseCase;
+  getFlow: GetFlowUseCase;
+  listFlows: ListFlowsUseCase;
+  deleteFlow: DeleteFlowUseCase;
+  publishFlow: PublishFlowUseCase;
+  activateFlow: ActivateFlowUseCase;
+  deactivateFlow: DeactivateFlowUseCase;
+  archiveFlow: ArchiveFlowUseCase;
+  validateFlow: ValidateFlowUseCase;
+}>;
+
 type CreateApiServerInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
   auth: CreateApiServerAuthDependencies;
   whatsapp?: CreateApiServerWhatsAppDependencies;
   conversation?: CreateApiServerConversationDependencies;
+  flow?: CreateApiServerFlowDependencies;
 }>;
 
 type HealthResponse = Readonly<{
@@ -78,7 +105,7 @@ function createHealthResponse(environment: ApiEnvironment["nodeEnv"]): HealthRes
 }
 
 export function createApiServer(input: CreateApiServerInput) {
-  const { environment, logger, auth, whatsapp, conversation } = input;
+  const { environment, logger, auth, whatsapp, conversation, flow } = input;
 
   const app = new Elysia()
     .onError(({ request, error, set }) => {
@@ -167,6 +194,15 @@ export function createApiServer(input: CreateApiServerInput) {
         }),
       )
       .use(createConversationWs({ connectionManager: conversation.connectionManager }));
+  }
+
+  if (flow) {
+    app.use(
+      createFlowRoutes({
+        ...flow,
+        verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+      }),
+    );
   }
 
   return app;
