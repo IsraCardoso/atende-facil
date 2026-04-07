@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import "./styles.css";
+import { FlowEditorPage } from "./pages/flow-editor";
+import { FlowsPage } from "./pages/flows";
 import { InboxPage } from "./pages/inbox";
 import { LoginPage } from "./pages/login";
 
@@ -12,6 +14,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/inbox" replace={true} />} />
         <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/flows" element={<FlowsPage />} />
+        <Route path="/flows/:id/edit" element={<FlowEditorPage />} />
         <Route path="/login" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
