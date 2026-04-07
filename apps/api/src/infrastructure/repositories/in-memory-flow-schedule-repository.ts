@@ -1,6 +1,11 @@
 /** Repositorio in-memory de flow schedules para testes e dev sem banco (RN-027). */
 import type { FlowScheduleRepositoryPort } from "../../domain/ports/schedule-ports";
-import type { DayOfWeek, FlowScheduleEntity, FlowScheduleId } from "../../domain/schedule-types";
+import {
+  type DayOfWeek,
+  type FlowScheduleEntity,
+  type FlowScheduleId,
+  hmTimeRangesOverlap,
+} from "../../domain/schedule-types";
 
 export function createInMemoryFlowScheduleRepository(): FlowScheduleRepositoryPort {
   const store = new Map<string, FlowScheduleEntity>();
@@ -51,7 +56,7 @@ export function createInMemoryFlowScheduleRepository(): FlowScheduleRepositoryPo
         if (!hasCommonDay) {
           return false;
         }
-        return schedule.startTime < endTime && startTime < schedule.endTime;
+        return hmTimeRangesOverlap(schedule.startTime, schedule.endTime, startTime, endTime);
       });
     },
   };

@@ -2,6 +2,7 @@
 import type { UserRole } from "../../../domain/auth-types";
 import type { FlowScheduleRepositoryPort } from "../../../domain/ports/schedule-ports";
 import { createFlowScheduleId } from "../../../domain/schedule-types";
+import { assertScheduleWriteRole } from "./assert-schedule-write-role";
 
 type DeleteScheduleInput = Readonly<{
   tenantId: string;
@@ -18,9 +19,7 @@ export function createDeleteScheduleUseCase(deps: {
 }): DeleteScheduleUseCase {
   return {
     async execute(input: DeleteScheduleInput): Promise<void> {
-      if (input.role !== "admin" && input.role !== "manager") {
-        throw new Error("SCHEDULE_FORBIDDEN: apenas admin ou manager podem deletar schedules.");
-      }
+      assertScheduleWriteRole(input.role, "deletar");
 
       const scheduleId = createFlowScheduleId(input.scheduleId);
       const existing = await deps.scheduleRepository.findById(input.tenantId, scheduleId);

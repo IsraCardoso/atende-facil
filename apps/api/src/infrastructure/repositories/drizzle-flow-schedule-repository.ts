@@ -7,6 +7,7 @@ import {
   type DayOfWeek,
   type FlowScheduleEntity,
   type FlowScheduleId,
+  hmTimeRangesOverlap,
 } from "../../domain/schedule-types";
 
 function mapRowToEntity(row: typeof flowSchedulesTable.$inferSelect): FlowScheduleEntity {
@@ -132,7 +133,7 @@ export function createDrizzleFlowScheduleRepository(
         if (!hasCommonDay) {
           return false;
         }
-        return schedule.startTime < endTime && startTime < schedule.endTime;
+        return hmTimeRangesOverlap(schedule.startTime, schedule.endTime, startTime, endTime);
       });
     },
   };

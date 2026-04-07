@@ -25,6 +25,16 @@ function buildCacheKey(tenantId: string): string {
   return `flow-resolver:${tenantId}`;
 }
 
+const WEEKDAY_SHORT_TO_INDEX: Readonly<Record<string, DayOfWeek>> = {
+  sun: 0,
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+  sat: 6,
+};
+
 /** Converte um Date UTC para hora/dia local de um timezone IANA. */
 function toLocalTime(date: Date, timezone: string): { dayOfWeek: DayOfWeek; timeStr: string } {
   const formatter = new Intl.DateTimeFormat("en-US", {
@@ -44,16 +54,7 @@ function toLocalTime(date: Date, timezone: string): { dayOfWeek: DayOfWeek; time
   const minute = minutePart?.value ?? "00";
   const timeStr = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
 
-  const weekdayMap: Record<string, DayOfWeek> = {
-    sun: 0,
-    mon: 1,
-    tue: 2,
-    wed: 3,
-    thu: 4,
-    fri: 5,
-    sat: 6,
-  };
-  const dayOfWeek = weekdayMap[(weekdayPart?.value ?? "Sun").toLowerCase()] ?? 0;
+  const dayOfWeek = WEEKDAY_SHORT_TO_INDEX[(weekdayPart?.value ?? "Sun").toLowerCase()] ?? 0;
 
   return { dayOfWeek, timeStr };
 }

@@ -4,10 +4,10 @@ import type { FlowScheduleRepositoryPort } from "../../../domain/ports/schedule-
 import {
   createDaysOfWeek,
   createFlowScheduleId,
-  type DayOfWeek,
   type FlowScheduleEntity,
 } from "../../../domain/schedule-types";
 import { validateScheduleOverlap } from "../../services/schedule-overlap-validator";
+import { assertScheduleWriteRole } from "./assert-schedule-write-role";
 
 type UpdateScheduleInput = Readonly<{
   tenantId: string;
@@ -31,9 +31,7 @@ export function createUpdateScheduleUseCase(deps: {
 }): UpdateScheduleUseCase {
   return {
     async execute(input: UpdateScheduleInput): Promise<UpdateScheduleOutput> {
-      if (input.role !== "admin" && input.role !== "manager") {
-        throw new Error("SCHEDULE_FORBIDDEN: apenas admin ou manager podem editar schedules.");
-      }
+      assertScheduleWriteRole(input.role, "editar");
 
       const scheduleId = createFlowScheduleId(input.scheduleId);
       const existing = await deps.scheduleRepository.findById(input.tenantId, scheduleId);
@@ -48,9 +46,9 @@ export function createUpdateScheduleUseCase(deps: {
       const updatedEndTime = input.endTime ?? existing.endTime;
 
       const allSchedules = await deps.scheduleRepository.findActiveByTenant(input.tenantId);
-      const overlapResult = validateScheduleOverlap([...allSchedules], {
+      const overlapResult = validateScheduleOverlap(allSchedules, {
         id: scheduleId,
-        daysOfWeek: updatedDays as readonly DayOfWeek[],
+        daysOfWeek: updatedDays,
         startTime: updatedStartTime,
         endTime: updatedEndTime,
       });

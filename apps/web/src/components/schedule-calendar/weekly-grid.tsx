@@ -42,8 +42,6 @@ export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: 
     [schedules],
   );
 
-  const totalHours = END_HOUR - START_HOUR;
-
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
       <div className="grid min-w-[700px]" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>
@@ -91,7 +89,6 @@ export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: 
                       return null;
                     }
 
-                    const _heightPercent = ((endH - startH) / totalHours) * 100;
                     const topOffset = (startH - Math.floor(startH)) * 40;
 
                     return (

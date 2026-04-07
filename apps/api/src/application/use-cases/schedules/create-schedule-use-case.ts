@@ -4,10 +4,10 @@ import type { FlowScheduleRepositoryPort } from "../../../domain/ports/schedule-
 import {
   createDaysOfWeek,
   createFlowScheduleId,
-  type DayOfWeek,
   type FlowScheduleEntity,
 } from "../../../domain/schedule-types";
 import { validateScheduleOverlap } from "../../services/schedule-overlap-validator";
+import { assertScheduleWriteRole } from "./assert-schedule-write-role";
 
 type CreateScheduleInput = Readonly<{
   tenantId: string;
@@ -36,14 +36,12 @@ export function createCreateScheduleUseCase(
 
   return {
     async execute(input: CreateScheduleInput): Promise<CreateScheduleOutput> {
-      if (input.role !== "admin" && input.role !== "manager") {
-        throw new Error("SCHEDULE_FORBIDDEN: apenas admin ou manager podem criar schedules.");
-      }
+      assertScheduleWriteRole(input.role, "criar");
 
       const days = createDaysOfWeek(input.daysOfWeek);
       const existing = await scheduleRepository.findActiveByTenant(input.tenantId);
-      const overlapResult = validateScheduleOverlap([...existing], {
-        daysOfWeek: days as readonly DayOfWeek[],
+      const overlapResult = validateScheduleOverlap(existing, {
+        daysOfWeek: days,
         startTime: input.startTime,
         endTime: input.endTime,
       });

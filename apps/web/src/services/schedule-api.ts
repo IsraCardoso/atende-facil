@@ -42,51 +42,19 @@ export function createScheduleApi(getToken: () => string | null) {
       return client.post("/flows/schedules", payload);
     },
 
-    async updateSchedule(
+    updateSchedule(
       id: string,
       payload: UpdateSchedulePayload,
     ): Promise<ApiResponse<{ schedule: ScheduleDto }>> {
-      const token = getToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`/api/flows/schedules/${id}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(payload),
-      });
-      const data = (await response.json()) as { schedule: ScheduleDto };
-      return { ok: response.ok, status: response.status, data };
+      return client.put(`/flows/schedules/${id}`, payload);
     },
 
-    async deleteSchedule(id: string): Promise<ApiResponse<{ success: boolean }>> {
-      const token = getToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`/api/flows/schedules/${id}`, { method: "DELETE", headers });
-      const data = (await response.json()) as { success: boolean };
-      return { ok: response.ok, status: response.status, data };
+    deleteSchedule(id: string): Promise<ApiResponse<{ success: boolean }>> {
+      return client.delete(`/flows/schedules/${id}`);
     },
 
-    async updateTenantTimezone(timezone: string): Promise<ApiResponse<{ success: boolean }>> {
-      const token = getToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch("/api/tenants/me/timezone", {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({ timezone }),
-      });
-      const data = (await response.json()) as { success: boolean };
-      return { ok: response.ok, status: response.status, data };
+    updateTenantTimezone(timezone: string): Promise<ApiResponse<{ success: boolean }>> {
+      return client.patch("/tenants/me/timezone", { timezone });
     },
   };
 }

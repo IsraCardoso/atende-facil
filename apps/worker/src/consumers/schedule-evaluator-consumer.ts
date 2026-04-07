@@ -30,15 +30,12 @@ export function createScheduleEvaluatorConsumer(
 
     async processJob(_job: Job<ScheduleEvaluatorPayload>): Promise<string> {
       const tenantIds = await deps.scheduleStore.findTenantIdsWithActiveSchedules();
-      let invalidated = 0;
 
-      const invalidationPromises = tenantIds.map((tenantId) =>
-        deps.cacheInvalidator.invalidateFlowResolver(tenantId),
+      await Promise.all(
+        tenantIds.map((tenantId) => deps.cacheInvalidator.invalidateFlowResolver(tenantId)),
       );
-      await Promise.all(invalidationPromises);
-      invalidated = tenantIds.length;
 
-      return `evaluated ${tenantIds.length} tenants, invalidated ${invalidated} caches`;
+      return `evaluated ${tenantIds.length} tenants, invalidated ${tenantIds.length} caches`;
     },
 
     onFailed(_job, _error) {

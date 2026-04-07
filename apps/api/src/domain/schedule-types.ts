@@ -44,5 +44,16 @@ function createDaysOfWeek(rawValues: readonly number[]): readonly DayOfWeek[] {
   return validated;
 }
 
+/** Intervalos no formato HH:mm comparaveis lexicograficamente (00-23). */
+function hmTimeRangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  return bStart < aEnd && aStart < bEnd;
+}
+
 export type { DayOfWeek, FlowScheduleEntity, FlowScheduleId };
-export { createDaysOfWeek, createFlowScheduleId, isDayOfWeek, validDaysOfWeek };
+export {
+  createDaysOfWeek,
+  createFlowScheduleId,
+  hmTimeRangesOverlap,
+  isDayOfWeek,
+  validDaysOfWeek,
+};

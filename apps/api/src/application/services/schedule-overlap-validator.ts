@@ -1,5 +1,10 @@
 /** Valida sobreposicao de schedules para um mesmo tenant. Impede conflitos de horario/dia (RN-027 R3). */
-import type { DayOfWeek, FlowScheduleEntity, FlowScheduleId } from "../../domain/schedule-types";
+import {
+  type DayOfWeek,
+  type FlowScheduleEntity,
+  type FlowScheduleId,
+  hmTimeRangesOverlap,
+} from "../../domain/schedule-types";
 
 type OverlapConflict = Readonly<{
   scheduleId: FlowScheduleId;
@@ -19,15 +24,6 @@ type ScheduleCandidate = Readonly<{
   endTime: string;
 }>;
 
-function hasTimeOverlap(
-  existingStart: string,
-  existingEnd: string,
-  newStart: string,
-  newEnd: string,
-): boolean {
-  return newStart < existingEnd && existingStart < newEnd;
-}
-
 export function validateScheduleOverlap(
   existingSchedules: readonly FlowScheduleEntity[],
   candidate: ScheduleCandidate,
@@ -45,7 +41,12 @@ export function validateScheduleOverlap(
       }
 
       if (
-        hasTimeOverlap(existing.startTime, existing.endTime, candidate.startTime, candidate.endTime)
+        hmTimeRangesOverlap(
+          existing.startTime,
+          existing.endTime,
+          candidate.startTime,
+          candidate.endTime,
+        )
       ) {
         conflicts.push({
           scheduleId: existing.id,

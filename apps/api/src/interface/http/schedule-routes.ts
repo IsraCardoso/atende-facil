@@ -33,6 +33,33 @@ const updateBodySchema = t.Object({
   active: t.Optional(t.Boolean()),
 });
 
+/** Subconjunto mutavel do `set` do Elysia para mapear erros de use case. */
+type ScheduleRouteSet = { status?: number | string | undefined };
+
+type ScheduleErrorResponse = Readonly<{ error: string }>;
+
+function tryMapScheduleUseCaseError(
+  error: unknown,
+  set: ScheduleRouteSet,
+): ScheduleErrorResponse | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+  if (error.message.startsWith("SCHEDULE_OVERLAP")) {
+    set.status = 409;
+    return { error: error.message };
+  }
+  if (error.message.startsWith("SCHEDULE_FORBIDDEN")) {
+    set.status = 403;
+    return { error: error.message };
+  }
+  if (error.message.startsWith("SCHEDULE_NOT_FOUND")) {
+    set.status = 404;
+    return { error: error.message };
+  }
+  return null;
+}
+
 export function createScheduleRoutes(input: CreateScheduleRoutesInput) {
   const {
     createSchedule,
@@ -61,13 +88,9 @@ export function createScheduleRoutes(input: CreateScheduleRoutesInput) {
             endTime: body.endTime,
           });
         } catch (error: unknown) {
-          if (error instanceof Error && error.message.startsWith("SCHEDULE_OVERLAP")) {
-            set.status = 409;
-            return { error: error.message };
-          }
-          if (error instanceof Error && error.message.startsWith("SCHEDULE_FORBIDDEN")) {
-            set.status = 403;
-            return { error: error.message };
+          const mapped = tryMapScheduleUseCaseError(error, set);
+          if (mapped) {
+            return mapped;
           }
           throw error;
         }
@@ -90,17 +113,9 @@ export function createScheduleRoutes(input: CreateScheduleRoutesInput) {
             active: body.active ?? undefined,
           });
         } catch (error: unknown) {
-          if (error instanceof Error && error.message.startsWith("SCHEDULE_OVERLAP")) {
-            set.status = 409;
-            return { error: error.message };
-          }
-          if (error instanceof Error && error.message.startsWith("SCHEDULE_FORBIDDEN")) {
-            set.status = 403;
-            return { error: error.message };
-          }
-          if (error instanceof Error && error.message.startsWith("SCHEDULE_NOT_FOUND")) {
-            set.status = 404;
-            return { error: error.message };
+          const mapped = tryMapScheduleUseCaseError(error, set);
+          if (mapped) {
+            return mapped;
           }
           throw error;
         }
@@ -116,13 +131,9 @@ export function createScheduleRoutes(input: CreateScheduleRoutesInput) {
         });
         return { success: true };
       } catch (error: unknown) {
-        if (error instanceof Error && error.message.startsWith("SCHEDULE_FORBIDDEN")) {
-          set.status = 403;
-          return { error: error.message };
-        }
-        if (error instanceof Error && error.message.startsWith("SCHEDULE_NOT_FOUND")) {
-          set.status = 404;
-          return { error: error.message };
+        const mapped = tryMapScheduleUseCaseError(error, set);
+        if (mapped) {
+          return mapped;
         }
         throw error;
       }
