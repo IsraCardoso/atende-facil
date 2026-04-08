@@ -12,6 +12,8 @@ type AppShellProps = Readonly<{
 const NAV_ITEMS = [
   { path: "/inbox", label: "Inbox" },
   { path: "/flows", label: "Fluxos" },
+  { path: "/schedules", label: "Agendamentos" },
+  { path: "/settings", label: "Configuracoes" },
 ];
 
 export function AppShell({ sidebar, children }: AppShellProps) {

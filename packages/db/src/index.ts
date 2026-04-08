@@ -1,4 +1,4 @@
-export { and, count, eq, isNull, sql } from "drizzle-orm";
+export { and, asc, count, eq, isNull, sql } from "drizzle-orm";
 export type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 export { migrate as runDrizzleMigrations } from "drizzle-orm/postgres-js/migrator";
 export {
@@ -15,6 +15,7 @@ export {
 } from "./database";
 export {
   conversationsTable,
+  flowSchedulesTable,
   flowsTable,
   schema,
   sessionsTable,

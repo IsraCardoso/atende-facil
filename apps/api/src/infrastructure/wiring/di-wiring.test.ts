@@ -65,10 +65,8 @@ describe("DI Wiring Verification", () => {
   });
 
   it("should create whatsapp module without db (in-memory fallback)", () => {
-    const flowModule = createFlowModule({});
     const whatsappModule = createWhatsAppModule({
       logger: appLogger,
-      flowRepository: flowModule.flowRepository,
     });
 
     expect(whatsappModule.processIncomingMessage).toBeDefined();

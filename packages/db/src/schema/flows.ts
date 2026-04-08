@@ -1,6 +1,5 @@
 /** Schema Drizzle da tabela flows. Armazena definicoes de fluxo conversacional com ciclo de vida por tenant (RN-021). */
 
-import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -8,7 +7,6 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -34,9 +32,6 @@ export const flowsTable = pgTable(
   (table) => [
     index("flows_tenant_id_idx").on(table.tenantId),
     index("flows_tenant_status_idx").on(table.tenantId, table.status),
-    uniqueIndex("flows_one_active_per_tenant")
-      .on(table.tenantId)
-      .where(sql`status = 'active' AND deleted_at IS NULL`),
   ],
 );
 

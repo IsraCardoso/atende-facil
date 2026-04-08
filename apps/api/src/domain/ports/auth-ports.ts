@@ -30,6 +30,7 @@ type TenantRepositoryPort = Readonly<{
   create: (tenant: TenantEntity) => Promise<TenantEntity>;
   findById: (tenantId: TenantId) => Promise<TenantEntity | null>;
   findBySlug: (slug: TenantSlug) => Promise<TenantEntity | null>;
+  updateTimezone: (tenantId: TenantId, timezone: string) => Promise<void>;
 }>;
 
 type MembershipRepositoryPort = Readonly<{

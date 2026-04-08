@@ -1,11 +1,20 @@
 import { createDatabaseConnection, createDatabaseUrl } from "db";
 
+import { createFlowResolverService } from "./application/services/flow-resolver-service";
+import {
+  createCreateScheduleUseCase,
+  createDeleteScheduleUseCase,
+  createListSchedulesUseCase,
+  createUpdateScheduleUseCase,
+} from "./application/use-cases/schedules";
 import { createAuthModule } from "./infrastructure/auth";
 import { loadApiEnvironment } from "./infrastructure/config/env";
 import { createConversationModule } from "./infrastructure/conversation";
 import { createFlowModule } from "./infrastructure/flow";
 import { createStructuredAppLoggerAdapter } from "./infrastructure/logger";
 import { createJsonLogger, type StructuredLogger } from "./infrastructure/logger/json-logger";
+import { createDrizzleFlowScheduleRepository } from "./infrastructure/repositories/drizzle-flow-schedule-repository";
+import { createInMemoryFlowScheduleRepository } from "./infrastructure/repositories/in-memory-flow-schedule-repository";
 import { createWhatsAppModule } from "./infrastructure/whatsapp";
 import { createApiServer } from "./interface/http/create-api-server";
 import { startApiServer } from "./interface/http/start-api-server";
@@ -32,10 +41,20 @@ export function bootstrapApi(): ApiRuntime {
   });
   const flowModule = createFlowModule({ db });
 
+  const scheduleRepository = db
+    ? createDrizzleFlowScheduleRepository(db)
+    : createInMemoryFlowScheduleRepository();
+
+  const flowResolver = createFlowResolverService({
+    scheduleRepository,
+    flowRepository: flowModule.flowRepository,
+    tenantRepository: authModule.tenantRepository,
+  });
+
   const whatsappModule = createWhatsAppModule({
     logger: appLoggerPort,
     db,
-    flowRepository: flowModule.flowRepository,
+    flowResolver,
   });
 
   const conversationModule = createConversationModule({
@@ -49,6 +68,14 @@ export function bootstrapApi(): ApiRuntime {
     },
     db,
   });
+
+  const createSchedule = createCreateScheduleUseCase({
+    scheduleRepository,
+    flowRepository: flowModule.flowRepository,
+  });
+  const listSchedules = createListSchedulesUseCase({ scheduleRepository });
+  const updateSchedule = createUpdateScheduleUseCase({ scheduleRepository });
+  const deleteSchedule = createDeleteScheduleUseCase({ scheduleRepository });
 
   const app = createApiServer({
     environment: env,
@@ -81,6 +108,15 @@ export function bootstrapApi(): ApiRuntime {
       deactivateFlow: flowModule.deactivateFlow,
       archiveFlow: flowModule.archiveFlow,
       validateFlow: flowModule.validateFlow,
+    },
+    schedule: {
+      createSchedule,
+      listSchedules,
+      updateSchedule,
+      deleteSchedule,
+    },
+    tenant: {
+      tenantRepository: authModule.tenantRepository,
     },
   });
 

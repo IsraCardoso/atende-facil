@@ -404,7 +404,17 @@ Este é o diferencial de produto. A UX do editor determina o sucesso comercial. 
 
 ---
 
-## Sprint 09 — Agendamento e Automações por Horário
+---
+
+## Sprint 09 — Débitos técnicos acumulados
+
+```
+Resolver todos os débitos técnicos acumulados
+```
+
+---
+
+## Sprint 10 — Agendamento e Automações por Horário
 
 ```
 Use a skill sprint-definition-rn-flow.
@@ -429,7 +439,7 @@ Esta feature é muito valorizada por clientes com horário comercial definido (f
 
 ---
 
-## Sprint 10 — Design System + Temas + Polish de UI
+## Sprint 11 — Design System + Temas + Polish de UI
 
 ```
 Use a skill sprint-definition-rn-flow.
@@ -457,7 +467,7 @@ Esta sprint transforma o produto de funcional para polido. A consistência visua
 
 ---
 
-## Sprint 11 — Fundação de IA + RAG
+## Sprint 12 — Fundação de IA + RAG
 
 ```
 Use a skill sprint-definition-rn-flow.

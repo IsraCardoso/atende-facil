@@ -28,6 +28,12 @@ import type {
   ProcessIncomingMessageInput,
   ProcessIncomingMessageResult,
 } from "../../application/use-cases/process-incoming-message-use-case";
+import type {
+  CreateScheduleUseCase,
+  DeleteScheduleUseCase,
+  ListSchedulesUseCase,
+  UpdateScheduleUseCase,
+} from "../../application/use-cases/schedules";
 import type { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
 import type { createSyncChatwootStatusUseCase } from "../../application/use-cases/sync-chatwoot-status-use-case";
 import type { AppLoggerPort, AuthTokenPort } from "../../domain/ports/auth-ports";
@@ -42,6 +48,8 @@ import { createConversationRoutes } from "./conversation-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
 import { createFlowRoutes } from "./flow-routes";
 import { rateLimitPlugin } from "./rate-limit-middleware";
+import { createScheduleRoutes } from "./schedule-routes";
+import { createTenantRoutes } from "./tenant-routes";
 import { createWebhookRoutes } from "./webhook-routes";
 
 type CreateApiServerAuthDependencies = Readonly<{
@@ -85,6 +93,17 @@ type CreateApiServerFlowDependencies = Readonly<{
   validateFlow: ValidateFlowUseCase;
 }>;
 
+type CreateApiServerScheduleDependencies = Readonly<{
+  createSchedule: CreateScheduleUseCase;
+  listSchedules: ListSchedulesUseCase;
+  updateSchedule: UpdateScheduleUseCase;
+  deleteSchedule: DeleteScheduleUseCase;
+}>;
+
+type CreateApiServerTenantDependencies = Readonly<{
+  tenantRepository: import("../../domain/ports/auth-ports").TenantRepositoryPort;
+}>;
+
 type CreateApiServerInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
@@ -92,6 +111,8 @@ type CreateApiServerInput = Readonly<{
   whatsapp?: CreateApiServerWhatsAppDependencies;
   conversation?: CreateApiServerConversationDependencies;
   flow?: CreateApiServerFlowDependencies;
+  schedule?: CreateApiServerScheduleDependencies;
+  tenant?: CreateApiServerTenantDependencies;
 }>;
 
 type HealthResponse = Readonly<{
@@ -107,7 +128,7 @@ function createHealthResponse(environment: ApiEnvironment["nodeEnv"]): HealthRes
 }
 
 export function createApiServer(input: CreateApiServerInput) {
-  const { environment, logger, auth, whatsapp, conversation, flow } = input;
+  const { environment, logger, auth, whatsapp, conversation, flow, schedule, tenant } = input;
 
   const app = new Elysia()
     .use(rateLimitPlugin())
@@ -208,6 +229,24 @@ export function createApiServer(input: CreateApiServerInput) {
     app.use(
       createFlowRoutes({
         ...flow,
+        verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+      }),
+    );
+  }
+
+  if (schedule) {
+    app.use(
+      createScheduleRoutes({
+        ...schedule,
+        verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+      }),
+    );
+  }
+
+  if (tenant) {
+    app.use(
+      createTenantRoutes({
+        tenantRepository: tenant.tenantRepository,
         verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
       }),
     );

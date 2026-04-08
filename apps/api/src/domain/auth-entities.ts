@@ -27,6 +27,7 @@ type TenantEntity = Readonly<{
   id: TenantId;
   name: string;
   slug: TenantSlug;
+  timezone: string;
   createdAt: Date;
   updatedAt: Date;
 }>;
@@ -62,6 +63,7 @@ type CreateTenantEntityInput = Readonly<{
   id: TenantId;
   name: string;
   slug: string;
+  timezone?: string | undefined;
   createdAt?: Date;
   updatedAt?: Date;
 }>;
@@ -96,6 +98,7 @@ function createTenantEntity(input: CreateTenantEntityInput): TenantEntity {
     id: input.id,
     name: requireNonEmptyString(input.name, "Tenant.name"),
     slug: createTenantSlug(input.slug),
+    timezone: input.timezone ?? "America/Sao_Paulo",
     createdAt: resolveEntityDate(input.createdAt),
     updatedAt: resolveEntityDate(input.updatedAt),
   };
