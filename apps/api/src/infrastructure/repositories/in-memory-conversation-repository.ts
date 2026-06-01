@@ -5,6 +5,7 @@ import type {
   ConversationStatus,
 } from "../../domain/conversation-types";
 import type {
+  ChatwootConversationScope,
   ConversationFilters,
   ConversationRepositoryPort,
   PaginatedResult,
@@ -46,11 +47,19 @@ export function createInMemoryConversationRepository(): InMemoryConversationRepo
 
     async findByChatwootConversationId(
       chatwootConversationId: ChatwootConversationId,
+      scope?: ChatwootConversationScope,
     ): Promise<ConversationEntity | null> {
       for (const conversation of store.values()) {
-        if (conversation.chatwootConversationId === chatwootConversationId) {
-          return conversation;
+        if (conversation.chatwootConversationId !== chatwootConversationId) {
+          continue;
         }
+        if (scope?.tenantId && conversation.tenantId !== scope.tenantId) {
+          continue;
+        }
+        if (scope?.phone && conversation.phone !== scope.phone) {
+          continue;
+        }
+        return conversation;
       }
       return null;
     },

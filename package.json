@@ -7,6 +7,10 @@
     "apps/*",
     "packages/*"
   ],
+  "overrides": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -18,7 +22,8 @@
     "valkey:check": "bun run --cwd packages/db valkey:check",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down",
-    "infra:ps": "docker compose -f infra/docker-compose.yml ps"
+    "infra:ps": "docker compose -f infra/docker-compose.yml ps",
+    "ai:sync": "bun run scripts/sync-ai-rules.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",

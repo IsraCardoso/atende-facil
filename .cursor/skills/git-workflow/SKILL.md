@@ -1,3 +1,10 @@
+---
+name: git-workflow
+description: Garante consistência no versionamento e qualidade dos commits e PRs.
+---
+
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Skill: Git Workflow
 
 ## Objetivo

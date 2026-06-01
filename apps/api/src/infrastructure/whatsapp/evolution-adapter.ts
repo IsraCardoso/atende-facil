@@ -57,6 +57,19 @@ function resolveTimestamp(data: Readonly<Record<string, unknown>>): number {
   return Date.now();
 }
 
+function resolveReceivedApiKey(input: WebhookVerificationInput): string | null {
+  const fromHeader = input.headers.apikey ?? input.headers.Apikey ?? input.headers.APIKEY;
+  if (typeof fromHeader === "string" && fromHeader.length > 0) {
+    return fromHeader;
+  }
+
+  if (isRecord(input.body) && typeof input.body.apikey === "string" && input.body.apikey.length > 0) {
+    return input.body.apikey;
+  }
+
+  return null;
+}
+
 function createEvolutionNormalizer(): InboundNormalizer {
   return {
     normalize(rawPayload: unknown): CanonicalInboundMessage | null {
@@ -70,6 +83,10 @@ function createEvolutionNormalizer(): InboundNormalizer {
       }
 
       const key = isRecord(data.key) ? data.key : null;
+      if (key?.fromMe === true) {
+        return null;
+      }
+
       const remoteJid = typeof key?.remoteJid === "string" ? key.remoteJid : null;
       const messageId = typeof key?.id === "string" ? key.id : null;
       const message = isRecord(data.message) ? data.message : null;
@@ -98,10 +115,10 @@ function createEvolutionVerifier(): WebhookVerifier {
   return {
     verify(input: WebhookVerificationInput): WebhookVerificationResult {
       const config = extractEvolutionConfig(input.instanceConfig);
-      const receivedApiKey = input.headers.apikey ?? input.headers.Apikey ?? input.headers.APIKEY;
+      const receivedApiKey = resolveReceivedApiKey(input);
 
       if (!receivedApiKey || receivedApiKey !== config.apiKey) {
-        return { valid: false, reason: "Header apikey ausente ou inválido." };
+        return { valid: false, reason: "Header ou body apikey ausente ou inválido." };
       }
 
       return { valid: true };

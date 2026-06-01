@@ -9,6 +9,7 @@ import { createInMemoryChatwootAdapter } from "./in-memory-chatwoot-adapter";
 type ChatwootPortFactoryDeps = Readonly<{
   integrationRepository: TenantIntegrationRepositoryPort;
   globalFallbackConfig?: ChatwootHttpConfig;
+  allowInMemoryFallback?: boolean;
 }>;
 
 type ChatwootPortFactory = (tenantId: string) => Promise<ChatwootPort>;
@@ -23,16 +24,19 @@ export function createChatwootPortFactory(deps: ChatwootPortFactoryDeps): Chatwo
       return cached;
     }
 
-    const integration = await deps.integrationRepository.findByTenantAndProvider(
-      tenantId,
-      "chatwoot",
-    );
+    let integration = null;
+    try {
+      integration = await deps.integrationRepository.findByTenantAndProvider(tenantId, "chatwoot");
+    } catch {
+      integration = null;
+    }
 
     if (integration && isChatwootConfig(integration.config)) {
       const port = createChatwootHttpAdapter({
         apiUrl: integration.config.apiUrl,
         apiToken: integration.config.apiToken,
         accountId: integration.config.accountId,
+        inboxId: integration.config.inboxId,
       });
       cache.set(tenantId, port);
       return port;
@@ -44,9 +48,15 @@ export function createChatwootPortFactory(deps: ChatwootPortFactoryDeps): Chatwo
       return port;
     }
 
-    const fallback = createInMemoryChatwootAdapter();
-    cache.set(tenantId, fallback);
-    return fallback;
+    if (deps.allowInMemoryFallback) {
+      const fallback = createInMemoryChatwootAdapter();
+      cache.set(tenantId, fallback);
+      return fallback;
+    }
+
+    throw new Error(
+      `Chatwoot não configurado para o tenant ${tenantId}. Configure tenant_integrations ou variáveis CHATWOOT_*.`,
+    );
   };
 }
 

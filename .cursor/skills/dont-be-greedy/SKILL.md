@@ -3,6 +3,8 @@ name: dont-be-greedy
 description: Controla consumo de contexto em arquivos grandes. Use quando houver logs, CSV/JSON grandes, markdowns extensos ou qualquer arquivo potencialmente custoso em tokens para evitar overflow, lentidão e alucinação.
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Não Seja Guloso com Contexto
 
 ## Objetivo

@@ -39,6 +39,7 @@ type ConversationModule = Readonly<{
   listConversations: ReturnType<typeof createListConversationsUseCase>;
   getConversation: ReturnType<typeof createGetConversationUseCase>;
   chatwootAccess: ReturnType<typeof createChatwootAccessService>;
+  sessionRepository: SessionRepositoryPort;
   conversationRepository: ConversationRepositoryPort;
   eventPublisher: DomainEventPublisherPort;
   eventSubscriber: DomainEventSubscriberPort;
@@ -110,6 +111,7 @@ export function createConversationModule(input: CreateConversationModuleInput): 
     listConversations,
     getConversation,
     chatwootAccess,
+    sessionRepository,
     conversationRepository,
     eventPublisher,
     eventSubscriber,

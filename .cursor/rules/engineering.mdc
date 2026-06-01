@@ -4,6 +4,8 @@ globs: ["docs/sprints/**", "docs/business-rules/**", "docs/decisions/**"]
 alwaysApply: true
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Engineering Rules — Spec Driven Development
 
 ---
@@ -364,7 +366,7 @@ Rodada 3:  [SET-D]               ← só após SET-B e SET-C concluídos
 ```
 
 - Dois sets são paralelos quando não compartilham arquivos e não dependem um do outro
-- Nunca executar sets paralelos na mesma sessão do Cursor
+- Nunca executar sets paralelos na mesma sessão do agente de IA
 
 ---
 
@@ -372,7 +374,7 @@ Rodada 3:  [SET-D]               ← só após SET-B e SET-C concluídos
 
 1. Anuncia o set: `"Iniciando SET-X: [nome] (tasks T0X, T0Y, T0Z)"`
 2. Implementa todas as tasks do set em sequência, sem pausas entre elas
-3. Executa `check-compiler-errors`
+3. Executa verificação de erros de compilação
 4. **Executa automaticamente a skill `code-review` (Modo SET)** — sem aguardar pedido
 5. Verifica se é o último set:
    - **Não é o último:** apresenta checkpoint e aguarda `[A]`, `[C]` ou `[K]`
@@ -579,10 +581,6 @@ Se houver conflito: sinalize, não decida sozinho.
 
 ---
 
----
-
----
-
 ## 24. Dependency Injection (obrigatório)
 
 Toda instanciação deve ser feita via container de injeção de dependência (DI).
@@ -655,12 +653,25 @@ Só implementar se necessário.
 /packages/container
   container.ts
   types.ts
-
-### Estrutura recomendada
-
-```text
-/container
-  container.ts
-  providers.ts
+```
 
 > **Regra de ouro:** quando houver dúvida entre a solução mais esperta e a mais simples, escolha a mais simples. Código é lido muito mais do que escrito.
+
+---
+
+## Skills disponíveis
+
+As skills abaixo implementam workflows completos. Invoque pelo nome quando solicitado:
+
+| Skill | Quando usar |
+|---|---|
+| `sprint-set-execution` | Implementar/continuar/revisar sets de uma sprint |
+| `sprint-definition-rn-flow` | Planejar sprint, definir escopo, organizar RNs |
+| `code-review` | Code review estruturado (chamada automaticamente pelo fluxo) |
+| `refactor-pass` | Passagem de refatoração ao final da sprint (automática) |
+| `git-workflow` | Garantir consistência de versionamento e PRs |
+| `dont-be-greedy` | Controlar consumo de contexto em arquivos grandes |
+| `sprint-to-changelog` | Gerar changelog ao final da sprint (automática) |
+| `text-to-business-rule` | Converter texto livre em RN estruturada |
+
+Definições completas em `docs/ai/skills/`.

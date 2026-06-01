@@ -29,7 +29,7 @@ O produto é genérico e pode ser usado por qualquer segmento. O caso de uso ini
 | Integração WhatsApp | Evolution API | Webhook receptor, envio de mensagens |
 | Vetor (futuro) | pgvector | RAG — embeddings por tenant |
 | Infra local | Docker Compose | PostgreSQL + Valkey + API + Worker |
-| Deploy | Coolify + Docker | Staging e produção em VPS |
+| Deploy | Coolify + Docker | Staging e produção em VPS — ver `docs/guides/deploy-coolify-hostinger.md` |
 | Testes | Vitest + Supertest | Unitários, integração, E2E |
 | Lint / Format | Biome | Estilo Airbnb-like, strict |
 

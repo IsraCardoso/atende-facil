@@ -38,6 +38,20 @@ describe("ChatwootAccessService", () => {
     expect(service.isEmbedAvailable).toBe(false);
   });
 
+  it("should return null URLs when app URL is not configured", () => {
+    const service = createChatwootAccessService({
+      chatwootAppUrl: null,
+      chatwootSsoSecret: "test-secret",
+      chatwootAccountId: "1",
+    });
+
+    const urls = service.generateAccessUrls(asChatwootId("42"));
+
+    expect(urls.embedUrl).toBeNull();
+    expect(urls.deepLink).toBeNull();
+    expect(service.isAppConfigured).toBe(false);
+  });
+
   it("should strip trailing slash from app URL", () => {
     const service = createChatwootAccessService({
       chatwootAppUrl: "https://chatwoot.example.com/",

@@ -5,19 +5,53 @@ import type { createChatwootAccessService } from "../../application/services/cha
 import type { VerifyAccessTokenUseCase } from "../../application/use-cases";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
+import type { ConversationStatus } from "../../domain/conversation-types";
 import { createConversationId } from "../../domain/conversation-types";
+import type { SessionRepositoryPort } from "../../domain/ports/whatsapp-ports";
 import { authenticateRequest } from "./auth-middleware";
 import { resolveCorrelationId } from "./correlation-id";
+
+const CHATWOOT_NOT_CONFIGURED_REASON =
+  "Chatwoot não está configurado neste ambiente. Defina CHATWOOT_APP_URL apontando para uma instância Chatwoot real para abrir o chat embutido.";
+
+type ConversationAccessDevContext = Readonly<{
+  phone: string;
+  status: ConversationStatus;
+  sessionData: Readonly<Record<string, unknown>>;
+}>;
+
+type ConversationAccessResponse = Readonly<{
+  embedUrl: string | null;
+  deepLink: string | null;
+  reason?: string;
+  devContext?: ConversationAccessDevContext;
+}>;
 
 type CreateConversationRoutesInput = Readonly<{
   listConversations: ReturnType<typeof createListConversationsUseCase>;
   getConversation: ReturnType<typeof createGetConversationUseCase>;
   chatwootAccess: ReturnType<typeof createChatwootAccessService>;
+  sessionRepository: SessionRepositoryPort;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
 }>;
 
+async function buildDevContext(
+  sessionRepository: SessionRepositoryPort,
+  tenantId: string,
+  phone: string,
+  status: ConversationStatus,
+): Promise<ConversationAccessDevContext> {
+  const session = await sessionRepository.findByTenantAndPhone(tenantId, phone);
+  return {
+    phone,
+    status,
+    sessionData: session?.data ?? {},
+  };
+}
+
 export function createConversationRoutes(input: CreateConversationRoutesInput) {
-  const { listConversations, getConversation, chatwootAccess, verifyAccessTokenUseCase } = input;
+  const { listConversations, getConversation, chatwootAccess, sessionRepository, verifyAccessTokenUseCase } =
+    input;
 
   return new Elysia({ prefix: "/conversations" })
     .derive(async ({ request }) => {
@@ -44,23 +78,46 @@ export function createConversationRoutes(input: CreateConversationRoutesInput) {
       });
       return conversation;
     })
-    .get("/:id/access", async ({ authClaims, params }) => {
+    .get("/:id/access", async ({ authClaims, params }): Promise<ConversationAccessResponse> => {
       const conversation = await getConversation.execute({
         tenantId: authClaims.tenantId,
         conversationId: createConversationId(params.id),
       });
+
+      if (!chatwootAccess.isAppConfigured) {
+        return {
+          embedUrl: null,
+          deepLink: null,
+          reason: CHATWOOT_NOT_CONFIGURED_REASON,
+          devContext: await buildDevContext(
+            sessionRepository,
+            authClaims.tenantId,
+            conversation.phone,
+            conversation.status,
+          ),
+        };
+      }
 
       if (!conversation.chatwootConversationId) {
         return {
           embedUrl: null,
           deepLink: null,
           reason: "Conversa sem vínculo com Chatwoot.",
+          devContext: await buildDevContext(
+            sessionRepository,
+            authClaims.tenantId,
+            conversation.phone,
+            conversation.status,
+          ),
         };
       }
 
-      const urls = chatwootAccess.generateAccessUrls(conversation.chatwootConversationId);
-      return urls;
+      return chatwootAccess.generateAccessUrls(conversation.chatwootConversationId);
     });
 }
 
-export type { CreateConversationRoutesInput };
+export type {
+  ConversationAccessDevContext,
+  ConversationAccessResponse,
+  CreateConversationRoutesInput,
+};

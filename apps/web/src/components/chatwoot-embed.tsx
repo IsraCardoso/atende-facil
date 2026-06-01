@@ -1,4 +1,4 @@
-/** Iframe do Chatwoot com detecção de falha e fallback via deep-link (RN-017). */
+/** Painel de conversa: iframe Chatwoot quando configurado; fallback com dados da sessão em dev local. */
 import { type RefCallback, useCallback, useEffect, useState } from "react";
 
 import { createApiClient } from "../services/api-client";
@@ -8,11 +8,110 @@ type ChatwootEmbedProps = Readonly<{
   token: string | null;
 }>;
 
+type ConversationAccessDevContext = Readonly<{
+  phone: string;
+  status: "bot" | "waiting_human" | "human_active";
+  sessionData: Readonly<Record<string, unknown>>;
+}>;
+
 type AccessUrls = Readonly<{
   embedUrl: string | null;
   deepLink: string | null;
   reason?: string;
+  devContext?: ConversationAccessDevContext;
 }>;
+
+const STATUS_LABELS: Readonly<Record<ConversationAccessDevContext["status"], string>> = {
+  bot: "Bot",
+  waiting_human: "Aguardando atendente",
+  human_active: "Em atendimento humano",
+};
+
+const SESSION_FIELD_LABELS: Readonly<Record<string, string>> = {
+  customerName: "Nome",
+  addressOrCep: "CEP / Endereço",
+  issueDescription: "Problema relatado",
+  cpf: "CPF",
+  contractNumber: "Nº do contrato",
+  subject: "Assunto",
+};
+
+function formatSessionValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+function ConversationDevPanel({
+  devContext,
+  reason,
+}: Readonly<{
+  devContext: ConversationAccessDevContext;
+  reason?: string;
+}>) {
+  const entries = Object.entries(devContext.sessionData);
+
+  return (
+    <div className="flex flex-1 flex-col overflow-auto bg-gray-50 p-6 dark:bg-gray-950">
+      <div className="mx-auto w-full max-w-lg space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Atendimento humano (modo local)
+          </h2>
+          {reason && (
+            <p className="text-sm text-amber-700 dark:text-amber-300">{reason}</p>
+          )}
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            O hand-off do bot funcionou. Para responder pelo painel embutido, suba uma instância
+            Chatwoot e configure <code className="text-xs">CHATWOOT_APP_URL</code> no{" "}
+            <code className="text-xs">.env</code>.
+          </p>
+        </div>
+
+        <dl className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+          <div className="grid grid-cols-3 gap-4 px-4 py-3">
+            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Telefone</dt>
+            <dd className="col-span-2 text-sm text-gray-900 dark:text-gray-100">{devContext.phone}</dd>
+          </div>
+          <div className="grid grid-cols-3 gap-4 px-4 py-3">
+            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
+            <dd className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
+              {STATUS_LABELS[devContext.status]}
+            </dd>
+          </div>
+        </dl>
+
+        {entries.length > 0 ? (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Dados coletados pelo bot
+            </h3>
+            <dl className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+              {entries.map(([key, value]) => (
+                <div key={key} className="grid grid-cols-3 gap-4 px-4 py-3">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {SESSION_FIELD_LABELS[key] ?? key}
+                  </dt>
+                  <dd className="col-span-2 break-words text-sm text-gray-900 dark:text-gray-100">
+                    {formatSessionValue(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Nenhum dado adicional foi salvo na sessão desta conversa.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function ChatwootEmbed({ conversationId, token }: ChatwootEmbedProps) {
   const [urls, setUrls] = useState<AccessUrls | null>(null);
@@ -54,9 +153,13 @@ export function ChatwootEmbed({ conversationId, token }: ChatwootEmbedProps) {
     );
   }
 
+  if (urls?.devContext && !urls.embedUrl && !urls.deepLink) {
+    return <ConversationDevPanel devContext={urls.devContext} reason={urls.reason} />;
+  }
+
   if (!urls || (!urls.embedUrl && !urls.deepLink)) {
     return (
-      <div className="flex flex-1 items-center justify-center text-gray-500 dark:text-gray-400">
+      <div className="flex flex-1 items-center justify-center px-4 text-center text-gray-500 dark:text-gray-400">
         {urls?.reason ?? "Conversa sem vínculo com Chatwoot."}
       </div>
     );
@@ -64,8 +167,8 @@ export function ChatwootEmbed({ conversationId, token }: ChatwootEmbedProps) {
 
   if (iframeError || !urls.embedUrl) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4">
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
           Não foi possível carregar o Chatwoot embutido.
         </p>
         {urls.deepLink && (

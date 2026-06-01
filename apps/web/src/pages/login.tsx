@@ -1,5 +1,5 @@
 /** Página de login simples para autenticação do atendente. */
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/use-auth";
@@ -11,8 +11,14 @@ type LoginResponse = Readonly<{
 }>;
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/inbox", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [tenantSlug, setTenantSlug] = useState("");
@@ -33,7 +39,7 @@ export function LoginPage() {
     });
 
     if (res.ok) {
-      login(res.data.accessToken, res.data.claims.tenantId);
+      login(res.data.accessToken, res.data.claims.tenantId, tenantSlug.trim() || undefined);
       navigate("/inbox");
     } else {
       setError("Credenciais inválidas. Tente novamente.");

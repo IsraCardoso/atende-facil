@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+.git
+.cursor
+.turbo
+**/.turbo
+**/dist
+**/*.test.ts
+**/*.test.tsx
+.env
+.env.*
+!.env.production.example
+!.env.example
+docs/guides/*.png
+agent-transcripts
+terminals

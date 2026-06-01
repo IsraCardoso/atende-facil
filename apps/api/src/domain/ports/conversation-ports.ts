@@ -6,7 +6,7 @@ import type {
   DomainEvent,
   DomainEventType,
 } from "../conversation-types";
-import type { ChatwootConversationId, SessionId } from "../whatsapp-types";
+import type { ChatwootConversationId, Phone, SessionId } from "../whatsapp-types";
 
 /** Resultado paginado genérico reutilizável em qualquer listagem. */
 type PaginatedResult<T> = Readonly<{
@@ -24,6 +24,11 @@ type ConversationFilters = Readonly<{
   limit: number;
 }>;
 
+type ChatwootConversationScope = Readonly<{
+  tenantId?: string;
+  phone?: Phone;
+}>;
+
 /** Persistência de conversations. Isolamento por tenant_id obrigatório em todas as queries. */
 type ConversationRepositoryPort = Readonly<{
   findById: (
@@ -33,6 +38,7 @@ type ConversationRepositoryPort = Readonly<{
   findBySessionId: (tenantId: string, sessionId: SessionId) => Promise<ConversationEntity | null>;
   findByChatwootConversationId: (
     chatwootConversationId: ChatwootConversationId,
+    scope?: ChatwootConversationScope,
   ) => Promise<ConversationEntity | null>;
   findByTenantAndStatus: (
     tenantId: string,
@@ -63,6 +69,7 @@ type DomainEventSubscriberPort = Readonly<{
 }>;
 
 export type {
+  ChatwootConversationScope,
   ConversationFilters,
   ConversationRepositoryPort,
   DomainEventPublisherPort,

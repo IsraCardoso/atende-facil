@@ -3,6 +3,8 @@ name: text-to-business-rule
 description: Converte descrição em texto livre para documento de Regra de Negócio no padrão do projeto. Use quando o usuário pedir para criar, estruturar, revisar ou refinar uma RN em docs/business-rules.
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Texto para Regra de Negócio
 
 ## Objetivo

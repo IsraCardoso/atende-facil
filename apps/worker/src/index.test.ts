@@ -6,24 +6,31 @@ import { createHealthCheckConsumer } from "./consumers/health-check-consumer";
 
 describe("WorkerEnvironment", () => {
   it("should throw when REDIS_URL is missing", () => {
-    const original = process.env.REDIS_URL;
+    const originalRedis = process.env.REDIS_URL;
+    const originalDatabase = process.env.DATABASE_URL;
     delete process.env.REDIS_URL;
+    process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/spec_driven_dev";
 
     expect(() => loadWorkerEnvironment()).toThrow("REDIS_URL is required");
 
-    process.env.REDIS_URL = original;
+    process.env.REDIS_URL = originalRedis;
+    process.env.DATABASE_URL = originalDatabase;
   });
 
   it("should load environment with defaults", () => {
-    const original = process.env.REDIS_URL;
+    const originalRedis = process.env.REDIS_URL;
+    const originalDatabase = process.env.DATABASE_URL;
     process.env.REDIS_URL = "redis://localhost:6379";
+    process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/spec_driven_dev";
 
     const env = loadWorkerEnvironment();
 
     expect(env.redisUrl).toBe("redis://localhost:6379");
+    expect(env.databaseUrl).toContain("postgresql://");
     expect(env.nodeEnv).toBeDefined();
 
-    process.env.REDIS_URL = original;
+    process.env.REDIS_URL = originalRedis;
+    process.env.DATABASE_URL = originalDatabase;
   });
 });
 

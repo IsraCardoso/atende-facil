@@ -98,6 +98,41 @@ describe("EvolutionAdapter", () => {
       expect(result.valid).toBe(false);
     });
 
+    it("should validate apikey from Evolution webhook body", () => {
+      const result = adapter.verifier.verify({
+        headers: {},
+        query: {},
+        body: { apikey: "my-secret-key", event: "messages.upsert" },
+        instanceConfig: {
+          provider: "evolution",
+          config: {
+            instanceName: "test",
+            apiUrl: "http://localhost",
+            apiKey: "my-secret-key",
+          },
+        },
+      });
+
+      expect(result.valid).toBe(true);
+    });
+
+    it("should ignore outbound messages with fromMe true", () => {
+      const result = adapter.normalizer.normalize({
+        event: "messages.upsert",
+        data: {
+          key: {
+            remoteJid: "5511999999999@s.whatsapp.net",
+            fromMe: true,
+            id: "msg-out",
+          },
+          message: { conversation: "eco do bot" },
+          messageTimestamp: 1700000002,
+        },
+      });
+
+      expect(result).toBeNull();
+    });
+
     it("should reject missing apikey", () => {
       const result = adapter.verifier.verify({
         headers: {},

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --env-file=../../.env.development.example --watch src/index.ts",
+    "dev": "bun --env-file=../../.env.development.example --env-file=../../.env --watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "test": "bun --bun vitest run --dir src",
     "lint": "biome check ."

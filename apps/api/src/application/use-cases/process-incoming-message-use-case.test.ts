@@ -169,7 +169,7 @@ function createFullDeps(overrides?: {
     sessionLock: overrides?.sessionLock ?? createFakeSessionLock(),
     webhookIdempotency: overrides?.webhookIdempotency ?? createFakeIdempotency(),
     whatsAppSender: createFakeSender(),
-    chatwootPort: createFakeChatwoot(),
+    resolveChatwootPort: async () => createFakeChatwoot(),
     flowResolver: overrides?.flowResolver ?? createFakeFlowResolver(),
     eventPublisher: createInMemoryEventPublisher(),
     logger: createFakeLogger(),

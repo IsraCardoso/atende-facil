@@ -112,6 +112,9 @@ type ChatwootSendMessageInput = Readonly<{
   message: string;
 }>;
 
+/** Resolve ChatwootPort per-tenant (integração real ou mock in-memory). */
+type ChatwootPortResolver = (tenantId: string) => Promise<ChatwootPort>;
+
 /** Port para buscar o fluxo conversacional ativo de um tenant. */
 type FlowRepositoryPort = Readonly<{
   findActiveByTenant: (tenantId: string) => Promise<FlowDefinitionRecord | null>;
@@ -126,6 +129,7 @@ type FlowDefinitionRecord = Readonly<{
 export type {
   ChatwootCreateConversationInput,
   ChatwootPort,
+  ChatwootPortResolver,
   ChatwootSendMessageInput,
   FlowDefinitionRecord,
   FlowRepositoryPort,

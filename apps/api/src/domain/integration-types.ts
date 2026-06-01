@@ -9,6 +9,7 @@ type ChatwootIntegrationConfig = Readonly<{
   apiUrl: string;
   apiToken: string;
   accountId: string;
+  inboxId: string;
   appUrl: string;
   ssoSecret: string;
   webhookToken: string;
@@ -38,7 +39,8 @@ function isChatwootConfig(
   return (
     typeof config.apiUrl === "string" &&
     typeof config.apiToken === "string" &&
-    typeof config.accountId === "string"
+    typeof config.accountId === "string" &&
+    typeof config.inboxId === "string"
   );
 }
 

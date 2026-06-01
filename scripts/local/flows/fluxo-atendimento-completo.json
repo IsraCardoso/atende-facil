@@ -1,0 +1,51 @@
+{
+  "startNodeId": "welcome",
+  "nodes": [
+    {
+      "id": "welcome",
+      "type": "message",
+      "text": "[ATENDE] Ola! Bem-vindo ao atendimento automatizado.",
+      "nextNodeId": "menu"
+    },
+    {
+      "id": "menu",
+      "type": "option",
+      "prompt": "Escolha: 1) Informar nome  2) Falar com atendente",
+      "invalidResponseMessage": "Opcao invalida. Digite 1, 2, nome ou suporte.",
+      "options": [
+        {
+          "id": "opt-name",
+          "label": "Informar nome",
+          "aliases": ["1", "nome"],
+          "nextNodeId": "collect-name"
+        },
+        {
+          "id": "opt-human",
+          "label": "Atendente",
+          "aliases": ["2", "humano", "suporte"],
+          "nextNodeId": "handoff"
+        }
+      ]
+    },
+    {
+      "id": "collect-name",
+      "type": "input",
+      "prompt": "Digite seu nome:",
+      "fieldKey": "customerName",
+      "emptyResponseMessage": "Nome obrigatorio.",
+      "nextNodeId": "finish"
+    },
+    {
+      "id": "handoff",
+      "type": "transfer",
+      "reason": "request_human_support",
+      "message": "[ATENDE] Encaminhando voce para um atendente humano. Aguarde."
+    },
+    {
+      "id": "finish",
+      "type": "end",
+      "summaryMessage": "[ATENDE] Obrigado! Registramos seu nome."
+    }
+  ],
+  "edges": []
+}

@@ -1,6 +1,8 @@
 /** Lista paginada de conversations com filtro por status. Consome GET /conversations. */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
+import { useAuth } from "../hooks/use-auth";
 import { createApiClient } from "../services/api-client";
 
 type ConversationItem = Readonly<{
@@ -37,17 +39,21 @@ const STATUS_BADGE: Readonly<Record<string, string>> = {
 };
 
 export function ConversationList({ token, selectedId, onSelect }: ConversationListProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<readonly ConversationItem[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const api = useMemo(() => createApiClient({ baseUrl: "/api", getToken: () => token }), [token]);
 
   const fetchConversations = useCallback(
     async (pageNum: number, append: boolean) => {
       setLoading(true);
+      setFetchError(null);
       const params = new URLSearchParams({ page: String(pageNum), limit: "20" });
       if (statusFilter) {
         params.set("status", statusFilter);
@@ -58,10 +64,18 @@ export function ConversationList({ token, selectedId, onSelect }: ConversationLi
         setItems((prev) => (append ? [...prev, ...res.data.data] : res.data.data));
         setHasMore(res.data.hasMore);
         setPage(pageNum);
+      } else if (res.status === 401) {
+        logout();
+        navigate("/login", { replace: true });
+      } else {
+        setFetchError("Nao foi possivel carregar conversas. Faca logout e entre no tenant correto.");
+        if (!append) {
+          setItems([]);
+        }
       }
       setLoading(false);
     },
-    [statusFilter, api],
+    [statusFilter, api, logout, navigate],
   );
 
   useEffect(() => {
@@ -90,6 +104,12 @@ export function ConversationList({ token, selectedId, onSelect }: ConversationLi
           </option>
         ))}
       </select>
+
+      {fetchError && (
+        <p className="mb-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          {fetchError}
+        </p>
+      )}
 
       {items.map((item) => (
         <button

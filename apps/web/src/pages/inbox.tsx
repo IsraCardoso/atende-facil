@@ -17,8 +17,11 @@ export function InboxPage() {
       {selectedId ? (
         <ChatwootEmbed conversationId={selectedId} token={token} />
       ) : (
-        <div className="flex flex-1 items-center justify-center text-gray-400 dark:text-gray-600">
-          <p className="text-sm">Selecione uma conversa para iniciar o atendimento.</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center text-gray-600 dark:text-gray-300">
+          <p className="text-sm font-medium">Selecione uma conversa para iniciar o atendimento.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Use a lista à esquerda (ou o menu no topo em telas menores).
+          </p>
         </div>
       )}
     </AppShell>
