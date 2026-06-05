@@ -81,8 +81,8 @@ export function createChatwootWebhookRoutes(input: CreateChatwootWebhookRoutesIn
         chatwootConversationId: createChatwootConversationId(context.chatwootConversationId),
         messageContent: content,
         correlationId,
-        tenantId: context.tenantId ?? undefined,
-        contactPhone: context.contactPhone ?? undefined,
+        ...(context.tenantId != null ? { tenantId: context.tenantId } : {}),
+        ...(context.contactPhone != null ? { contactPhone: context.contactPhone } : {}),
       });
 
       set.status = 200;
@@ -119,8 +119,8 @@ export function createChatwootWebhookRoutes(input: CreateChatwootWebhookRoutesIn
         eventType,
         assignedAgentName: assignedAgent,
         correlationId,
-        tenantId: context.tenantId ?? undefined,
-        contactPhone: context.contactPhone ?? undefined,
+        ...(context.tenantId != null ? { tenantId: context.tenantId } : {}),
+        ...(context.contactPhone != null ? { contactPhone: context.contactPhone } : {}),
       });
 
       set.status = 200;

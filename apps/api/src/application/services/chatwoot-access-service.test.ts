@@ -64,6 +64,28 @@ describe("ChatwootAccessService", () => {
     expect(urls.deepLink).toBe("https://chatwoot.example.com/app/accounts/2/conversations/10");
   });
 
+  it("should generate portal URL for account dashboard", () => {
+    const service = createChatwootAccessService({
+      chatwootAppUrl: "https://chatwoot.example.com",
+      chatwootSsoSecret: null,
+      chatwootAccountId: "3",
+    });
+
+    expect(service.generatePortalUrl().portalUrl).toBe(
+      "https://chatwoot.example.com/app/accounts/3/dashboard",
+    );
+  });
+
+  it("should return null portal URL when app URL is not configured", () => {
+    const service = createChatwootAccessService({
+      chatwootAppUrl: null,
+      chatwootSsoSecret: null,
+      chatwootAccountId: "1",
+    });
+
+    expect(service.generatePortalUrl().portalUrl).toBeNull();
+  });
+
   it("should generate different tokens for different conversation IDs", () => {
     const service = createChatwootAccessService({
       chatwootAppUrl: "https://chatwoot.example.com",

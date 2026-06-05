@@ -2,10 +2,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
 import { createAuthModule } from "../auth/create-auth-module";
+import { createInMemoryChatwootAdapter } from "../chatwoot";
 import type { ApiEnvironment } from "../config/env";
 import { createFlowModule } from "../flow/create-flow-module";
 import type { StructuredLogger } from "../logger";
-import { createInMemoryChatwootAdapter } from "../chatwoot";
 import { createWhatsAppModule } from "../whatsapp/create-whatsapp-module";
 
 const noopLog = vi.fn();
@@ -43,6 +43,10 @@ const baseEnvironment: ApiEnvironment = {
   chatwootAppUrl: null,
   chatwootSsoSecret: null,
   devMockWhatsappSend: false,
+  corsOrigins: [],
+  evolutionApiUrl: null,
+  evolutionApiKey: null,
+  publicApiUrl: "http://localhost:3000",
 };
 
 describe("DI Wiring Verification", () => {

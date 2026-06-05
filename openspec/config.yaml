@@ -1,0 +1,63 @@
+schema: spec-driven
+
+context: |
+  # Atende Fácil — Contexto para OpenSpec
+
+  Plataforma SaaS de automação de atendimento via WhatsApp (multi-tenant).
+  Monorepo Turborepo + Bun: apps `api`, `web`, `worker`; packages `types`, `db`, `flow`, `auth`, `ui`.
+
+  ## Arquitetura (obrigatória)
+  - DDD Lightweight + Hexagonal
+  - `domain` → nada | `application` → domain | `infrastructure` → domain | `interface` → application
+  - Package `flow` é PURO — sem DB, HTTP, DI ou env
+  - DI manual via package `container` — sem `new` fora do container
+
+  ## Stack
+  - API: Bun + Elysia | Web: React 18 + Vite + Tailwind + shadcn
+  - DB: PostgreSQL 16 + Drizzle | Cache/Fila: Valkey + BullMQ
+  - Auth: BetterAuth + JWT | WhatsApp: Evolution API | Humano: Chatwoot
+  - Testes: Vitest | Lint: Biome (strict, sem any, sem console.log)
+
+  ## Convenções
+  - TypeScript strict, branded types para IDs de domínio
+  - `tenant_id` sempre do token — nunca do body
+  - Commits: Conventional Commits
+  - Erros: `{ error, code }` com HTTP correto
+  - Logs JSON com correlationId + tenantId
+
+  ## Rastreabilidade legada
+  - 28 RNs migradas para `openspec/specs/` (ver `docs/migration/rn-to-openspec-map.md`)
+  - Sprints 01–10 arquivadas em `openspec/changes/archive/`
+  - Cada requirement inclui `(legacy: RN-XXX)` — preservar ao modificar
+  - Changelog histórico: `docs/changelog/CHANGELOG.md`
+  - Decisões: `docs/decisions/`
+
+  ## Workflow de implementação
+  1. `/opsx:propose "descrição"` — cria change com proposal, specs delta, design, tasks
+  2. `/opsx:apply` — implementa tasks marcando checkboxes
+  3. `/opsx:archive` — sincroniza specs e arquiva change
+  4. Kanban visual: OpenSpec UI (`openspec-ui.json` na raiz)
+
+  ## Prioridade
+  OpenSpec specs > legacy RN > padrão técnico > convenção
+
+rules:
+  proposal:
+    - Sempre incluir seção Non-goals implícita em "What Changes" quando relevante
+    - Referenciar capabilities existentes em openspec/specs/ antes de criar novas
+    - Marcar breaking changes com **BREAKING**
+    - Para mudanças que alteram RN legada, citar o legacy ID (ex: RN-016)
+  specs:
+    - Usar SHALL/MUST em requirements normativos
+    - Cada requirement precisa de pelo menos um #### Scenario com WHEN/THEN
+    - Em MODIFIED, copiar requirement completo antes de editar
+    - Preservar `(legacy: RN-XXX)` ao modificar requirements migrados
+  design:
+    - Seguir camadas hexagonais e Dependency Rule
+    - Documentar decisões com alternativas consideradas
+    - Referenciar ports/adapters para integrações externas (Evolution, Chatwoot)
+  tasks:
+    - Agrupar por camada (domain → application → infrastructure → interface → web)
+    - Tasks verificáveis em uma sessão (~2h máx)
+    - Incluir validação lint + testes ao final de cada grupo
+    - Marcar checkboxes `- [ ]` / `- [x]` — formato obrigatório para /opsx:apply

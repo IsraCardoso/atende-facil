@@ -9,7 +9,7 @@ Guia único para rodar o Atende Fácil na máquina com WhatsApp real (Evolution)
 ## Pré-requisitos
 
 - Git, Bun (>= 1.3), Docker Desktop
-- Portas livres: `3000` (API), `5173` (web), `5432` (Postgres), `6379` (Valkey), `8080` ou `8081` (Evolution)
+- Portas livres: `3000` (API), `5173` (web), `5432` (Postgres), `6379` (Valkey), `8081` (Evolution)
 
 ---
 
@@ -22,12 +22,21 @@ bun run infra:up
 bun run db:migrate
 ```
 
-Copie `.env.example` → `.env` e ajuste:
+Copie `.env.development.example` → `.env` (ou `.env.example`) e confirme:
 
 | Variável | Dev |
 |----------|-----|
 | `DEV_MOCK_WHATSAPP_SEND` | `false` para WhatsApp real |
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/spec_driven` |
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/spec_driven_dev` |
+| `EVOLUTION_API_URL` | `http://localhost:8081` |
+| `EVOLUTION_API_KEY` | `atende-facil-evo-key` (igual ao `infra/docker-compose.yml`) |
+| `PUBLIC_API_URL` | `http://host.docker.internal:3000` (webhooks da Evolution no Docker) |
+
+Valide a Evolution antes de subir a API:
+
+```powershell
+bun run verify:evolution
+```
 
 ```powershell
 bun run dev
@@ -36,31 +45,38 @@ bun run dev
 - API: http://localhost:3000/health  
 - Web: http://localhost:5173  
 
-Evolution já sobe no `infra:up` (host `8081` no compose padrão — ajuste webhook se usar `8080`).
+---
+
+## 2. WhatsApp pela UI (recomendado)
+
+Fluxo completo em **Configurações** (`/settings`), sem scripts:
+
+1. **Ativar integração** — provisiona instância Evolution + webhook.
+2. **Conectar WhatsApp** — escaneie o QR no celular.
+3. Envie mensagem de teste (com fluxo ativo em Fluxos).
+4. **Desconectar** — encerra a sessão Baileys (instância permanece).
+5. **Desativar integração** — remove instância na Evolution e volta ao empty state.
+
+Se aparecer "Evolution API indisponível", confira as três variáveis acima e reinicie a API.
 
 ---
 
-## 2. Tenant, fluxo e instância
+## 3. Scripts legados (opcional)
+
+Para bootstrap rápido de tenant + fluxo:
 
 ```powershell
 .\scripts\local\setup-teste-real-local.ps1 `
   -FreshTenant `
   -TenantPrefix "minha-loja" `
-  -FlowJsonPath ".\scripts\local\flows\fluxo-provedora-netfacil.json" `
-  -EvolutionInstanceApiKey "SUA_APIKEY"
+  -FlowJsonPath ".\scripts\local\flows\fluxo-provedora-netfacil.json"
 ```
 
-O script imprime **tenant slug**, e-mail e senha — guarde localmente (não commitar).
-
-QR WhatsApp:
-
-```powershell
-.\scripts\local\evolution-qr.ps1 -EvolutionApiKey "SUA_APIKEY"
-```
+O pareamento QR pode ser feito pela UI; `evolution-qr.ps1` permanece como alternativa de diagnóstico.
 
 ---
 
-## 3. Chatwoot local (opcional)
+## 4. Chatwoot local (opcional)
 
 ```powershell
 .\scripts\local\setup-chatwoot-local.ps1
@@ -70,7 +86,7 @@ Reinicie a API após o script atualizar `.env`. Painel: http://localhost:3001
 
 ---
 
-## 4. Testes rápidos
+## 5. Testes rápidos
 
 | Teste | Como validar |
 |-------|----------------|
@@ -84,7 +100,7 @@ Reinicie a API após o script atualizar `.env`. Painel: http://localhost:3001
 
 ---
 
-## 5. Postman (opcional)
+## 6. Postman (opcional)
 
 - [atende-facil-api.postman_collection.json](./atende-facil-api.postman_collection.json)
 - [atende-facil-local.postman_environment.json](./atende-facil-local.postman_environment.json)
@@ -95,7 +111,9 @@ Reinicie a API após o script atualizar `.env`. Painel: http://localhost:3001
 
 | Sintoma | Causa provável |
 |---------|----------------|
-| Bot não responde | Evolution desconectada, `DEV_MOCK_WHATSAPP_SEND=true`, ou webhook errado |
+| `WHATSAPP_PLATFORM_UNAVAILABLE` | `EVOLUTION_API_URL` ou `EVOLUTION_API_KEY` ausentes no `.env` |
+| Bot não responde | Evolution desconectada, `DEV_MOCK_WHATSAPP_SEND=true`, ou `PUBLIC_API_URL` errado |
+| Webhook não chega | Evolution no Docker não alcança `localhost:3000` — use `host.docker.internal` |
 | Inbox vazia | Login com tenant errado |
 | Humano não chega no WhatsApp | Chatwoot sem webhook, telefone typo, ou `chatwoot_conversation_id` duplicado |
 

@@ -23,6 +23,7 @@ import type {
   ValidateFlowUseCase,
 } from "../../application/use-cases/flows";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
+import type { GetIntegrationOperationalSummaryUseCase } from "../../application/use-cases/integration";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
 import type {
   ProcessIncomingMessageInput,
@@ -36,6 +37,14 @@ import type {
 } from "../../application/use-cases/schedules";
 import type { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
 import type { createSyncChatwootStatusUseCase } from "../../application/use-cases/sync-chatwoot-status-use-case";
+import type {
+  DeactivateWhatsAppIntegrationUseCase,
+  DisconnectWhatsAppUseCase,
+  GetWhatsAppConnectionStatusUseCase,
+  ListWhatsAppInstancesUseCase,
+  StartWhatsAppPairingUseCase,
+  UpsertWhatsAppInstanceUseCase,
+} from "../../application/use-cases/whatsapp-integration";
 import type { AppLoggerPort, AuthTokenPort } from "../../domain/ports/auth-ports";
 import type {
   SessionRepositoryPort,
@@ -50,6 +59,7 @@ import { createChatwootWebhookRoutes } from "./chatwoot-webhook-routes";
 import { createConversationRoutes } from "./conversation-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
 import { createFlowRoutes } from "./flow-routes";
+import { createIntegrationRoutes } from "./integration-routes";
 import { rateLimitPlugin } from "./rate-limit-middleware";
 import { createScheduleRoutes } from "./schedule-routes";
 import { createTenantRoutes } from "./tenant-routes";
@@ -63,12 +73,23 @@ type CreateApiServerAuthDependencies = Readonly<{
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
 }>;
 
+type CreateApiServerWhatsAppIntegrationDependencies = Readonly<{
+  listInstances: ListWhatsAppInstancesUseCase;
+  upsertInstance: UpsertWhatsAppInstanceUseCase;
+  getConnectionStatus: GetWhatsAppConnectionStatusUseCase;
+  startPairing: StartWhatsAppPairingUseCase;
+  disconnect: DisconnectWhatsAppUseCase;
+  deactivate: DeactivateWhatsAppIntegrationUseCase;
+  getOperationalSummary: GetIntegrationOperationalSummaryUseCase;
+}>;
+
 type CreateApiServerWhatsAppDependencies = Readonly<{
   instanceRepository: WhatsAppInstanceRepositoryPort;
   processIncomingMessage: Readonly<{
     execute: (input: ProcessIncomingMessageInput) => Promise<ProcessIncomingMessageResult>;
   }>;
   logger: AppLoggerPort;
+  integration?: CreateApiServerWhatsAppIntegrationDependencies;
 }>;
 
 type CreateApiServerConversationDependencies = Readonly<{
@@ -267,6 +288,19 @@ export function createApiServer(input: CreateApiServerInput) {
           chatwootAccess: conversation.chatwootAccess,
           sessionRepository: conversation.sessionRepository,
           verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+        }),
+      )
+      .use(
+        createIntegrationRoutes({
+          chatwootAccess: conversation.chatwootAccess,
+          verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+          ...(tenant?.tenantRepository ? { tenantRepository: tenant.tenantRepository } : {}),
+          ...(whatsapp?.integration?.getOperationalSummary
+            ? { getOperationalSummary: whatsapp.integration.getOperationalSummary }
+            : {}),
+          ...(tenant?.tenantRepository && whatsapp?.integration
+            ? { whatsapp: whatsapp.integration }
+            : {}),
         }),
       )
       .use(

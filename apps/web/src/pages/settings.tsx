@@ -1,7 +1,15 @@
-/** Pagina de configuracoes do tenant. Timezone selecionavel (RN-028). */
+/** Página de configurações do tenant. Timezone selecionável (RN-028). */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "ui/card";
+import { Label } from "ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "ui/select";
+import { Skeleton } from "ui/skeleton";
 
 import { AppShell } from "../components/app-shell";
+import { IntegrationOperationalPanel } from "../components/integration-operational-panel/integration-operational-panel";
+import { PageHeader } from "../components/page-header";
+import { WhatsAppIntegration } from "../components/whatsapp-integration/whatsapp-integration";
 import { useAuth } from "../hooks/use-auth";
 import { createScheduleApi } from "../services/schedule-api";
 
@@ -43,6 +51,11 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [integrationRevision, setIntegrationRevision] = useState(0);
+
+  const handleIntegrationChange = useCallback(() => {
+    setIntegrationRevision((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     api.getTenantTimezone().then((res) => {
@@ -66,57 +79,64 @@ export function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="p-6">
-        <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">Configuracoes</h1>
+      <div className="mx-auto max-w-3xl space-y-6">
+        <PageHeader
+          title="Configurações"
+          description="Preferências do tenant para agendamentos e operação."
+        />
 
-        <div className="max-w-md rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
-            Timezone do Tenant
-          </h2>
-
-          <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
-            Fuso horario usado para avaliar agendamentos de fluxo.
-          </p>
-
-          {loading && (
-            <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">Carregando...</p>
-          )}
-
-          <div className="mb-4">
-            <label
-              htmlFor="timezone-select"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Timezone
-            </label>
-            <select
-              id="timezone-select"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            >
-              {COMMON_TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? "Salvando..." : "Salvar"}
-            </button>
-            {saved && (
-              <span className="text-sm text-green-600 dark:text-green-400">Salvo com sucesso</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Fuso horário do tenant</CardTitle>
+            <CardDescription>
+              Fuso horário usado para avaliar agendamentos de fluxo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-full" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="timezone-select">Fuso horário</Label>
+                <Select value={timezone} onValueChange={setTimezone}>
+                  <SelectTrigger id="timezone-select" className="w-full">
+                    <SelectValue placeholder="Selecione o fuso horário" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4} className="max-h-60">
+                    {COMMON_TIMEZONES.map((tz) => (
+                      <SelectItem key={tz} value={tz}>
+                        {tz}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
-          </div>
-        </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-3">
+                <Button type="button" onClick={handleSave} disabled={saving || loading}>
+                  {saving ? "Salvando..." : "Salvar"}
+                </Button>
+                {saved && (
+                  <span className="text-sm text-green-600 dark:text-green-400">
+                    Salvo com sucesso
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <IntegrationOperationalPanel
+          key={`ops-${integrationRevision}`}
+          onReload={handleIntegrationChange}
+        />
+
+        <WhatsAppIntegration onInstanceChange={handleIntegrationChange} />
       </div>
     </AppShell>
   );

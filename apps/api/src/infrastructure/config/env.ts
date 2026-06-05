@@ -22,6 +22,9 @@ type ApiEnvironment = Readonly<{
   chatwootSsoSecret: string | null;
   devMockWhatsappSend: boolean;
   corsOrigins: readonly string[];
+  evolutionApiUrl: string | null;
+  evolutionApiKey: string | null;
+  publicApiUrl: string;
 }>;
 
 type RuntimeEnvMap = Readonly<Record<string, string | undefined>>;
@@ -197,6 +200,10 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
       : nodeEnv === "development";
 
   const corsOrigins = parseCorsOrigins(readOptionalEnvVariable("CORS_ORIGINS", source));
+  const evolutionApiUrl = readOptionalEnvVariable("EVOLUTION_API_URL", source) ?? null;
+  const evolutionApiKey = readOptionalEnvVariable("EVOLUTION_API_KEY", source) ?? null;
+  const publicApiUrl =
+    readOptionalEnvVariable("PUBLIC_API_URL", source) ?? `http://localhost:${apiPort}`;
 
   const environment: ApiEnvironment = {
     nodeEnv,
@@ -218,6 +225,9 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
     chatwootSsoSecret,
     devMockWhatsappSend,
     corsOrigins,
+    evolutionApiUrl,
+    evolutionApiKey,
+    publicApiUrl,
   };
 
   assertProductionRuntimeConstraints(environment);

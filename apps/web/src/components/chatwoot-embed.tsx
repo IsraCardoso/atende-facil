@@ -62,9 +62,7 @@ function ConversationDevPanel({
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Atendimento humano (modo local)
           </h2>
-          {reason && (
-            <p className="text-sm text-amber-700 dark:text-amber-300">{reason}</p>
-          )}
+          {reason && <p className="text-sm text-amber-700 dark:text-amber-300">{reason}</p>}
           <p className="text-sm text-gray-600 dark:text-gray-400">
             O hand-off do bot funcionou. Para responder pelo painel embutido, suba uma instância
             Chatwoot e configure <code className="text-xs">CHATWOOT_APP_URL</code> no{" "}
@@ -75,7 +73,9 @@ function ConversationDevPanel({
         <dl className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
           <div className="grid grid-cols-3 gap-4 px-4 py-3">
             <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Telefone</dt>
-            <dd className="col-span-2 text-sm text-gray-900 dark:text-gray-100">{devContext.phone}</dd>
+            <dd className="col-span-2 text-sm text-gray-900 dark:text-gray-100">
+              {devContext.phone}
+            </dd>
           </div>
           <div className="grid grid-cols-3 gap-4 px-4 py-3">
             <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
@@ -154,7 +154,12 @@ export function ChatwootEmbed({ conversationId, token }: ChatwootEmbedProps) {
   }
 
   if (urls?.devContext && !urls.embedUrl && !urls.deepLink) {
-    return <ConversationDevPanel devContext={urls.devContext} reason={urls.reason} />;
+    return (
+      <ConversationDevPanel
+        devContext={urls.devContext}
+        {...(urls.reason !== undefined ? { reason: urls.reason } : {})}
+      />
+    );
   }
 
   if (!urls || (!urls.embedUrl && !urls.deepLink)) {

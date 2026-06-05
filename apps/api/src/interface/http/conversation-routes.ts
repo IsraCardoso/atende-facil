@@ -8,6 +8,7 @@ import type { createListConversationsUseCase } from "../../application/use-cases
 import type { ConversationStatus } from "../../domain/conversation-types";
 import { createConversationId } from "../../domain/conversation-types";
 import type { SessionRepositoryPort } from "../../domain/ports/whatsapp-ports";
+import { createPhone } from "../../domain/whatsapp-types";
 import { authenticateRequest } from "./auth-middleware";
 import { resolveCorrelationId } from "./correlation-id";
 
@@ -41,7 +42,7 @@ async function buildDevContext(
   phone: string,
   status: ConversationStatus,
 ): Promise<ConversationAccessDevContext> {
-  const session = await sessionRepository.findByTenantAndPhone(tenantId, phone);
+  const session = await sessionRepository.findByTenantAndPhone(tenantId, createPhone(phone));
   return {
     phone,
     status,
@@ -50,8 +51,13 @@ async function buildDevContext(
 }
 
 export function createConversationRoutes(input: CreateConversationRoutesInput) {
-  const { listConversations, getConversation, chatwootAccess, sessionRepository, verifyAccessTokenUseCase } =
-    input;
+  const {
+    listConversations,
+    getConversation,
+    chatwootAccess,
+    sessionRepository,
+    verifyAccessTokenUseCase,
+  } = input;
 
   return new Elysia({ prefix: "/conversations" })
     .derive(async ({ request }) => {

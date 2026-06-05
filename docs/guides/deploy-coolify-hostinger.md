@@ -63,6 +63,15 @@ CREATE DATABASE chatwoot;
 
 Variáveis: copie de [`.env.production.example`](../../.env.production.example).
 
+**Obrigatórias para WhatsApp (serviço API):**
+
+| Variável | Exemplo | Notas |
+|----------|---------|-------|
+| `EVOLUTION_API_URL` | `http://evolution:8080` | URL interna se API e Evolution no mesmo compose |
+| `EVOLUTION_API_KEY` | *(secret)* | Deve ser **igual** a `AUTHENTICATION_API_KEY` do serviço Evolution |
+| `PUBLIC_API_URL` | `https://api.seudominio.com` | URL pública que a Evolution usa para webhooks |
+| `DEV_MOCK_WHATSAPP_SEND` | `false` | Bloqueado em produção no código |
+
 Domínio sugerido: `https://api.seudominio.com`
 
 ### Worker
@@ -96,8 +105,9 @@ Use imagem `atendai/evolution-api:v2.1.1` ou serviço do compose.
 
 - `SERVER_URL=https://evo.seudominio.com`
 - `DATABASE_CONNECTION_URI` → banco `evolution`
-- `AUTHENTICATION_API_KEY` → mesmo valor usado ao cadastrar instância no Atende Fácil
-- Webhook da instância: `https://api.seudominio.com/webhook/evolution/{instanceId}`
+- `AUTHENTICATION_API_KEY` → **mesmo valor** de `EVOLUTION_API_KEY` na API Atende Fácil
+- `EVOLUTION_PUBLIC_URL` → `https://evo.seudominio.com` (`SERVER_URL` do Evolution)
+- Webhook (provisionado automaticamente pela UI): `https://api.seudominio.com/webhook/{tenantId}/whatsapp/{instanceId}`
 
 ---
 

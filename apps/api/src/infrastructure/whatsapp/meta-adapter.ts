@@ -16,6 +16,7 @@ import type {
   WhatsAppInstanceConfig,
 } from "../../domain/whatsapp-types";
 import { createPhone, createWhatsAppMessageId } from "../../domain/whatsapp-types";
+import { createMetaConnectionAdapter } from "./whatsapp-connection-stubs";
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null;
@@ -191,5 +192,6 @@ export function createMetaAdapter() {
     sender: createMetaSender(),
     normalizer: createMetaNormalizer(),
     verifier: createMetaVerifier(),
+    connection: createMetaConnectionAdapter(),
   };
 }

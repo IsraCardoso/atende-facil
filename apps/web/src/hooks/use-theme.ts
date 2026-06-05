@@ -9,6 +9,11 @@ export function useTheme() {
     applyThemeToDocument(theme);
   }, [theme]);
 
+  const setTheme = useCallback((next: Theme) => {
+    persistTheme(next);
+    setThemeState(next);
+  }, []);
+
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       const next = prev === "light" ? "dark" : "light";
@@ -17,5 +22,5 @@ export function useTheme() {
     });
   }, []);
 
-  return { theme, toggleTheme } as const;
+  return { theme, setTheme, toggleTheme } as const;
 }

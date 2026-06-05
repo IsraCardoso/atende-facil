@@ -14,6 +14,7 @@ import type {
   WhatsAppInstanceConfig,
 } from "../../domain/whatsapp-types";
 import { createPhone, createWhatsAppMessageId } from "../../domain/whatsapp-types";
+import { createUazapiConnectionAdapter } from "./whatsapp-connection-stubs";
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null;
@@ -149,11 +150,12 @@ function createUazapiSender(): WhatsAppSenderPort {
   };
 }
 
-/** Cria bundle completo (sender + normalizer + verifier) para Uazapi. */
+/** Cria bundle completo (sender + normalizer + verifier + connection) para Uazapi. */
 export function createUazapiAdapter() {
   return {
     sender: createUazapiSender(),
     normalizer: createUazapiNormalizer(),
     verifier: createUazapiVerifier(),
+    connection: createUazapiConnectionAdapter(),
   };
 }

@@ -237,6 +237,8 @@ OPENAI_API_KEY=
 - **Nunca hardcodar valores de configuração.** Tudo via variáveis de ambiente.
 - **Nunca acessar banco sem `tenant_id` filtrado** (exceto nas queries de autenticação e lookup de tenant).
 - **O flow engine em `packages/flow` é puro** — sem dependências de banco ou HTTP. Toda persistência é responsabilidade da `infrastructure`.
-- **Fluxo documental oficial:** primeiro estrutura e preenche a doc da sprint com perguntas de clarificação; somente após aprovação explícita cria/atualiza RNs em `docs/business-rules/`.
-- **Skills oficiais:** `sprint-definition-rn-flow`, `sprint-set-execution`, `text-to-business-rule`, `sprint-to-changelog`, `dont-be-greedy`, `code-review`, `refactor-pass`.
-- **Prioridade:** RN > padrão técnico > convenção de código. Nunca quebre uma RN para simplificar.
+- **Fluxo documental oficial (OpenSpec):** `/opsx:propose` → `/opsx:apply` → `/opsx:archive`. Guia: `docs/guides/openspec-workflow.md`.
+- **Specs:** `openspec/specs/` (16 capabilities, 28 RNs migradas). Mapa: `docs/migration/rn-to-openspec-map.md`.
+- **Legado:** `docs/business-rules/` e `docs/sprints/` (01–10) somente leitura; arquivos em `openspec/changes/archive/`.
+- **Kanban:** OpenSpec UI via `openspec-ui.json` na raiz (porta 3333).
+- **Prioridade:** `openspec/specs/` > legacy RN > padrão técnico > convenção.

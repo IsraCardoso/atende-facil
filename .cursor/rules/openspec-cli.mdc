@@ -1,0 +1,48 @@
+---
+description: Como invocar o CLI OpenSpec neste monorepo (Windows)
+globs: ["openspec/**", ".cursor/commands/opsx*.md", ".cursor/skills/openspec-*"]
+alwaysApply: false
+---
+
+# OpenSpec CLI — este repositório
+
+O comando `openspec` **não** está no PATH global do Windows. Use sempre a partir da **raiz do monorepo**:
+
+```bash
+bun run openspec -- <subcomando>
+# ou
+npm run openspec -- <subcomando>
+```
+
+Exemplos:
+
+```bash
+bun run openspec -- list
+bun run openspec -- new change "minha-change"
+bun run openspec -- status --change "minha-change" --json
+bun run openspec -- instructions tasks --change "minha-change" --json
+```
+
+## Skills e comandos Cursor
+
+| No chat | O que é |
+|---------|---------|
+| `/opsx-propose` | Comando (`.cursor/commands/`) — cria change |
+| `/opsx-apply` | Implementa tasks |
+| `/opsx-archive` | Arquiva change |
+
+Skills OpenSpec ficam em `.cursor/skills/openspec-*/` (geradas por `bun run openspec:update`).  
+Skills do projeto (code-review, sprint-set-execution) ficam em `.cursor/skills/` via `bun run ai:sync`.
+
+O menu `/` do Cursor lista **comandos**, não skills. Para skill manual: *"use a skill code-review"*.
+
+## Reinstalar sem perder contexto
+
+```bash
+bun run openspec:reinstall
+```
+
+Isso atualiza comandos/skills OpenSpec no Cursor e re-sincroniza skills de `docs/ai/`.  
+**Não apaga** `openspec/changes/` nem `openspec/specs/`.
+
+Depois: **reinicie o Cursor** (ou Reload Window).

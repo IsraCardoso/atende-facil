@@ -5,7 +5,7 @@
  * Edite sempre em docs/ai/ e rode: bun run ai:sync
  */
 
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,6 +19,7 @@ function read(relPath: string): string {
 }
 
 function write(relPath: string, content: string): void {
+  mkdirSync(dirname(join(ROOT, relPath)), { recursive: true })
   writeFileSync(join(ROOT, relPath), content, 'utf-8')
   console.log(`  ✅ ${relPath}`)
 }
@@ -36,7 +37,7 @@ write(
   [
     '---',
     'description: Regras de engenharia para execução de sprints com IA',
-    'globs: ["docs/sprints/**", "docs/business-rules/**", "docs/decisions/**"]',
+    'globs: ["openspec/**", "docs/sprints/**", "docs/business-rules/**", "docs/decisions/**"]',
     'alwaysApply: true',
     '---',
     '',
@@ -91,6 +92,11 @@ const SKILL_META: Record<string, SkillMeta> = {
     name: 'text-to-business-rule',
     description:
       'Converte descrição em texto livre para documento de Regra de Negócio no padrão do projeto. Use quando o usuário pedir para criar, estruturar, revisar ou refinar uma RN em docs/business-rules.',
+  },
+  'openspec-change-to-changelog': {
+    name: 'openspec-change-to-changelog',
+    description:
+      'Atualiza docs/changelog/CHANGELOG.md ao concluir uma change OpenSpec. Use após /opsx:apply ou via /opsx-changelog, antes ou depois de /opsx-archive.',
   },
 }
 

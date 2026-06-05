@@ -23,10 +23,22 @@
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down",
     "infra:ps": "docker compose -f infra/docker-compose.yml ps",
-    "ai:sync": "bun run scripts/sync-ai-rules.ts"
+    "verify:evolution": "powershell -ExecutionPolicy Bypass -File scripts/local/verify-evolution.ps1",
+    "ai:sync": "bun run scripts/sync-ai-rules.ts",
+    "openspec": "node scripts/openspec-run.mjs",
+    "openspec:list": "node scripts/openspec-run.mjs list",
+    "openspec:specs": "node scripts/openspec-run.mjs spec list",
+    "openspec:validate": "node scripts/openspec-run.mjs validate --specs",
+    "openspec:view": "node scripts/openspec-run.mjs view",
+    "openspec:migrate": "node scripts/migrate-to-openspec.mjs",
+    "openspec:update": "node scripts/openspec-run.mjs update",
+    "openspec:reinstall": "node scripts/openspec-run.mjs update --force && bun run ai:sync",
+    "openspec:ui": "powershell -ExecutionPolicy Bypass -File scripts/start-openspec-ui.ps1",
+    "openspec:ui:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-openspec-ui.ps1"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",
+    "@fission-ai/openspec": "1.4.1",
     "turbo": "latest",
     "typescript": "latest",
     "vitest": "latest"

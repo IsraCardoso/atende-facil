@@ -1,6 +1,6 @@
 ---
 description: Regras de engenharia para execução de sprints com IA
-globs: ["docs/sprints/**", "docs/business-rules/**", "docs/decisions/**"]
+globs: ["openspec/**", "docs/sprints/**", "docs/business-rules/**", "docs/decisions/**"]
 alwaysApply: true
 ---
 
@@ -31,32 +31,39 @@ Todo código nasce de uma especificação. Nenhuma feature, refactor ou correç�
 
 ---
 
-## 1. Antes de qualquer implementação
+## 1. Antes de qualquer implementação (OpenSpec)
 
-1. Leia o sprint ativo em `docs/sprints/`
-2. Leia o **Plano de Execução** da sprint — identifique os Sets e a ordem
-3. Leia todas as RNs listadas na sprint em `docs/business-rules/`
+O projeto usa **[OpenSpec](https://github.com/Fission-AI/OpenSpec)** como fluxo SDD principal. Guia completo: `docs/guides/openspec-workflow.md`.
+
+1. Leia `openspec/config.yaml` (contexto injetado automaticamente nas skills `/opsx:*`)
+2. Leia as specs em `openspec/specs/<capability>/spec.md` afetadas pela change
+3. Se houver change ativa em `openspec/changes/<nome>/`, leia `proposal.md`, `design.md` e `tasks.md`
 4. Consulte `docs/context/project.md` para stack e convenções
-5. Consulte `docs/decisions/` para áreas com decisões arquiteturais registradas
-6. Nunca assuma comportamento não documentado — aponte a lacuna antes de prosseguir
-7. Em análise de arquivos grandes, aplique a skill `dont-be-greedy` para leitura incremental
-8. Confirme que o documento da sprint possui a seção `Testes Manuais de Entrega (Passo a Passo Executável)`; se não houver, complete essa seção antes de iniciar execução
+5. Consulte `docs/decisions/` para decisões arquiteturais
+6. Rastreabilidade legada: `docs/migration/rn-to-openspec-map.md` (RN-XXX → capability)
+7. Nunca assuma comportamento não documentado — aponte a lacuna antes de prosseguir
+8. Em arquivos grandes, aplique `dont-be-greedy` para leitura incremental
 
-### 1.1 Seção obrigatória no documento de entrega da sprint
+### 1.1 Workflow OpenSpec (obrigatório para trabalho novo)
 
-Todo documento de sprint deve conter a seção:
+| Fase | Comando Cursor | Artefato |
+|------|----------------|----------|
+| Propor | `/opsx:propose "..."` | `openspec/changes/<nome>/` |
+| Implementar | `/opsx:apply` | código + `tasks.md` com `[x]` |
+| Arquivar | `/opsx:archive` | sync specs + `changes/archive/` |
 
-`## Testes Manuais de Entrega (Passo a Passo Executável)`
+**Regras:**
+- Nova feature/correção **sempre** começa com `/opsx:propose` — não codificar sem change
+- Requirements em delta specs usam `## ADDED/MODIFIED/REMOVED Requirements`
+- Ao modificar RN legada, preserve `(legacy: RN-XXX)` no título do requirement
+- `design.md` deve incluir **Testes Manuais de Entrega** quando a change for entregável ao usuário
 
-Essa seção deve ser prática e executável, contendo no mínimo:
+### 1.2 Documentação legada (sprints 01–10)
 
-- cenário de teste e objetivo;
-- pré-requisitos explícitos;
-- passos numerados com comando/ação exata;
-- resultado esperado em cada passo;
-- critério final de aprovação da entrega.
-
-Sem essa seção preenchida, a sprint não pode ser considerada entregue.
+- `docs/business-rules/` e `docs/sprints/` — **somente leitura**; histórico preservado
+- Sprints arquivadas em `openspec/changes/archive/YYYY-MM-DD-sprint-NN/`
+- Changelog: `docs/changelog/CHANGELOG.md`
+- Skills legadas (`sprint-set-execution`, etc.) aplicam apenas a retrabalho de sprints antigas
 
 ---
 
@@ -564,7 +571,7 @@ Sets: X/X | Tasks: X/X | Débitos: X
 
 ## 22. Prioridade absoluta
 
-RN > padrão técnico > convenção de código. Nunca quebre uma RN para simplificar.
+`openspec/specs/` > legacy RN (`docs/business-rules/`) > padrão técnico > convenção de código. Nunca quebre um requirement para simplificar.
 Se houver conflito: sinalize, não decida sozinho.
 
 ---
@@ -661,17 +668,29 @@ Só implementar se necessário.
 
 ## Skills disponíveis
 
-As skills abaixo implementam workflows completos. Invoque pelo nome quando solicitado:
+### OpenSpec (fluxo principal)
+
+O menu **`/`** do Cursor lista **comandos** em `.cursor/commands/`, não skills. Cada comando carrega a skill correspondente.
+
+| Comando `/` | Quando usar |
+|---|---|
+| `/opsx-propose` | Nova change com proposal, specs, design, tasks |
+| `/opsx-apply` | Implementar tasks da change ativa |
+| `/opsx-archive` | Finalizar change e sincronizar specs |
+| `/opsx-changelog` | Preencher `docs/changelog/CHANGELOG.md` |
+| `/opsx-explore` | Investigar sem criar change |
+| `/opsx-sync` | Sincronizar delta specs manualmente |
+| `/code-review` | Review por severidade antes do fechamento |
+| `/refactor-pass` | Refatoração no escopo da change |
+
+### Legado e suporte
 
 | Skill | Quando usar |
 |---|---|
-| `sprint-set-execution` | Implementar/continuar/revisar sets de uma sprint |
-| `sprint-definition-rn-flow` | Planejar sprint, definir escopo, organizar RNs |
-| `code-review` | Code review estruturado (chamada automaticamente pelo fluxo) |
-| `refactor-pass` | Passagem de refatoração ao final da sprint (automática) |
-| `git-workflow` | Garantir consistência de versionamento e PRs |
 | `dont-be-greedy` | Controlar consumo de contexto em arquivos grandes |
-| `sprint-to-changelog` | Gerar changelog ao final da sprint (automática) |
-| `text-to-business-rule` | Converter texto livre em RN estruturada |
+| `code-review` | Review estruturado pós-implementação |
+| `git-workflow` | Versionamento e PRs |
+| `sprint-set-execution` | **Legado** — apenas sprints 01–10 em `docs/sprints/` |
+| `sprint-definition-rn-flow` | **Legado** — substituído por `/opsx:propose` |
 
-Definições completas em `docs/ai/skills/`.
+Definições em `.cursor/skills/` e `docs/ai/skills/`.

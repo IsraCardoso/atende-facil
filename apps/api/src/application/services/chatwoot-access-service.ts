@@ -12,6 +12,10 @@ type ChatwootAccessUrls = Readonly<{
   deepLink: string | null;
 }>;
 
+type ChatwootPortalUrl = Readonly<{
+  portalUrl: string | null;
+}>;
+
 /** Gera token simples com expiração para SSO. Em produção, substituir por HMAC-SHA256 via Web Crypto API. */
 function generateSsoToken(payload: string, secret: string): string {
   let hash = 5381;
@@ -55,8 +59,17 @@ function createChatwootAccessService(config: ChatwootAccessConfig) {
     get isEmbedAvailable(): boolean {
       return chatwootSsoSecret !== null;
     },
+
+    generatePortalUrl(): ChatwootPortalUrl {
+      if (!baseUrl) {
+        return { portalUrl: null };
+      }
+      return {
+        portalUrl: `${baseUrl}/app/accounts/${chatwootAccountId}/dashboard`,
+      };
+    },
   };
 }
 
-export type { ChatwootAccessConfig, ChatwootAccessUrls };
+export type { ChatwootAccessConfig, ChatwootAccessUrls, ChatwootPortalUrl };
 export { createChatwootAccessService };

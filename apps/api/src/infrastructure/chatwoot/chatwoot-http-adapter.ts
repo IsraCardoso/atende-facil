@@ -111,9 +111,8 @@ export function createChatwootHttpAdapter(config: ChatwootHttpConfig): ChatwootP
       await assertChatwootOk(contactResponse, "createContact");
 
       const contactBody = (await contactResponse.json()) as unknown;
-      const contactPayload = isRecord(contactBody) && isRecord(contactBody.payload)
-        ? contactBody.payload
-        : contactBody;
+      const contactPayload =
+        isRecord(contactBody) && isRecord(contactBody.payload) ? contactBody.payload : contactBody;
 
       const sourceId = extractContactSourceId(contactPayload);
       const contactId = extractContactId(contactPayload);
@@ -197,7 +196,12 @@ export function createChatwootHttpAdapter(config: ChatwootHttpConfig): ChatwootP
       await assertChatwootOk(response, "findConversationBySessionId");
 
       const body = (await response.json()) as Record<string, unknown>;
-      const data = isRecord(body.payload) ? body.payload : isRecord(body.data) ? body.data : null;
+      let data: Readonly<Record<string, unknown>> | null = null;
+      if (isRecord(body.payload)) {
+        data = body.payload;
+      } else if (isRecord(body.data)) {
+        data = body.data;
+      }
       const payload = Array.isArray(data?.payload) ? data.payload : [];
       const first = isRecord(payload[0]) ? payload[0] : null;
 

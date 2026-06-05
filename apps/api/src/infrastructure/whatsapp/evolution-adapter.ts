@@ -14,6 +14,7 @@ import type {
   WhatsAppInstanceConfig,
 } from "../../domain/whatsapp-types";
 import { createPhone, createWhatsAppMessageId } from "../../domain/whatsapp-types";
+import { createEvolutionConnectionAdapter } from "./evolution-connection-adapter";
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null;
@@ -63,7 +64,11 @@ function resolveReceivedApiKey(input: WebhookVerificationInput): string | null {
     return fromHeader;
   }
 
-  if (isRecord(input.body) && typeof input.body.apikey === "string" && input.body.apikey.length > 0) {
+  if (
+    isRecord(input.body) &&
+    typeof input.body.apikey === "string" &&
+    input.body.apikey.length > 0
+  ) {
     return input.body.apikey;
   }
 
@@ -160,11 +165,12 @@ function createEvolutionSender(): WhatsAppSenderPort {
   };
 }
 
-/** Cria bundle completo (sender + normalizer + verifier) para Evolution API. */
+/** Cria bundle completo (sender + normalizer + verifier + connection) para Evolution API. */
 export function createEvolutionAdapter() {
   return {
     sender: createEvolutionSender(),
     normalizer: createEvolutionNormalizer(),
     verifier: createEvolutionVerifier(),
+    connection: createEvolutionConnectionAdapter(),
   };
 }

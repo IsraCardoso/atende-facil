@@ -24,6 +24,9 @@ function createTestEnvironment(overrides: Partial<ApiEnvironment> = {}): ApiEnvi
     chatwootSsoSecret: null,
     devMockWhatsappSend: false,
     corsOrigins: [],
+    evolutionApiUrl: null,
+    evolutionApiKey: null,
+    publicApiUrl: "http://localhost:3000",
     ...overrides,
   };
 }

@@ -1,4 +1,2 @@
-export const uiTokens = {
-  colorBackground: "#ffffff",
-  colorText: "#111827",
-} as const;
+/** Design system package — import subpaths (e.g. `ui/button`) instead of this barrel. */
+export { cn } from "./lib/utils";

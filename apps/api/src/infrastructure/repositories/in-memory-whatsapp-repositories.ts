@@ -60,7 +60,9 @@ function createInMemorySessionRepository(): SessionRepositoryPort {
 function createInMemoryWhatsAppInstanceRepository(): WhatsAppInstanceRepositoryPort {
   const instancesById = new Map<string, WhatsAppInstanceEntity>();
 
-  return {
+  const repository: WhatsAppInstanceRepositoryPort & {
+    seedInstance: (instance: WhatsAppInstanceEntity) => void;
+  } = {
     async findByTenantAndId(
       tenantId: string,
       instanceId: WhatsAppInstanceId,
@@ -82,12 +84,46 @@ function createInMemoryWhatsAppInstanceRepository(): WhatsAppInstanceRepositoryP
       return results;
     },
 
+    async listByTenant(tenantId: string): Promise<readonly WhatsAppInstanceEntity[]> {
+      return [...instancesById.values()].filter((instance) => instance.tenantId === tenantId);
+    },
+
+    async save(instance: WhatsAppInstanceEntity): Promise<WhatsAppInstanceEntity> {
+      const saved: WhatsAppInstanceEntity = {
+        ...instance,
+        updatedAt: new Date(),
+      };
+      instancesById.set(instance.id, saved);
+      return saved;
+    },
+
+    async setPrimary(tenantId: string, instanceId: WhatsAppInstanceId): Promise<void> {
+      for (const [id, instance] of instancesById.entries()) {
+        if (instance.tenantId !== tenantId) {
+          continue;
+        }
+        instancesById.set(id, {
+          ...instance,
+          isPrimary: id === instanceId,
+          active: id === instanceId ? true : instance.active,
+          updatedAt: new Date(),
+        });
+      }
+    },
+
+    async deleteByTenantAndId(tenantId: string, instanceId: WhatsAppInstanceId): Promise<void> {
+      const instance = instancesById.get(instanceId);
+      if (instance?.tenantId === tenantId) {
+        instancesById.delete(instanceId);
+      }
+    },
+
     seedInstance(instance: WhatsAppInstanceEntity): void {
       instancesById.set(instance.id, instance);
     },
-  } as WhatsAppInstanceRepositoryPort & {
-    seedInstance: (instance: WhatsAppInstanceEntity) => void;
   };
+
+  return repository;
 }
 
 /** Cria par de repositórios in-memory (session + instance) para uso em dev/test. */

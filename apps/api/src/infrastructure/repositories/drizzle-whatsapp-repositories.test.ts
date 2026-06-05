@@ -70,8 +70,10 @@ const instanceRow = {
   id: "i-001",
   tenantId: "t-001",
   provider: "evolution",
+  displayName: "WhatsApp",
   config: { instanceName: "test" },
   active: true,
+  isPrimary: true,
   createdAt: now,
   updatedAt: now,
 };

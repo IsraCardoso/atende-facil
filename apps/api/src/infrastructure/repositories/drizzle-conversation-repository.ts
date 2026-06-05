@@ -8,9 +8,9 @@ import type {
 } from "../../domain/conversation-types";
 import { createConversationId } from "../../domain/conversation-types";
 import type {
+  ChatwootConversationScope,
   ConversationFilters,
   ConversationRepositoryPort,
-  ChatwootConversationScope,
   PaginatedResult,
 } from "../../domain/ports/conversation-ports";
 import type { ChatwootConversationId, SessionId } from "../../domain/whatsapp-types";

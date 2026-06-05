@@ -41,8 +41,8 @@ export function createSyncChatwootMessageUseCase(deps: SyncChatwootMessageDepend
       const conversation = await resolveConversationFromChatwootWebhook({
         conversationRepository: deps.conversationRepository,
         chatwootConversationId,
-        tenantId,
-        contactPhone,
+        ...(tenantId !== undefined ? { tenantId } : {}),
+        ...(contactPhone !== undefined ? { contactPhone } : {}),
       });
       if (!conversation) {
         deps.logger.warn("Webhook Chatwoot: conversa não encontrada no sistema.", {
