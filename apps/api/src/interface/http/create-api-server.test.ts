@@ -18,9 +18,15 @@ function createTestEnvironment(overrides: Partial<ApiEnvironment> = {}): ApiEnvi
     chatwootApiUrl: null,
     chatwootApiToken: null,
     chatwootAccountId: null,
+    chatwootInboxId: null,
     chatwootWebhookToken: null,
     chatwootAppUrl: null,
     chatwootSsoSecret: null,
+    devMockWhatsappSend: false,
+    corsOrigins: [],
+    evolutionApiUrl: null,
+    evolutionApiKey: null,
+    publicApiUrl: "http://localhost:3000",
     ...overrides,
   };
 }

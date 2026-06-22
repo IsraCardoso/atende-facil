@@ -1,48 +1,30 @@
 # Infra (`infra`)
 
-Infraestrutura local para desenvolvimento do monorepo.
-
-Atualmente inclui:
-
-- PostgreSQL 16
-- Valkey 8
-- healthchecks para ambos os servicos
-
----
-
-## Arquivos
-
-- `docker-compose.yml` — composicao local dos servicos de dados
-
----
-
-## Comandos recomendados (a partir da raiz)
+## Desenvolvimento local
 
 ```bash
-bun run infra:up
-bun run infra:ps
+bun run infra:up      # Postgres + Valkey + Evolution (dev)
 bun run infra:down
+bun run db:migrate
 ```
 
----
+- [`docker-compose.yml`](docker-compose.yml) — dados e Evolution local
+- [`docker-compose.chatwoot.yml`](docker-compose.chatwoot.yml) — Chatwoot opcional (`-f` extra)
 
-## Portas
+Portas: `POSTGRES_HOST_PORT` (5432), `VALKEY_HOST_PORT` (6379), Evolution `8081`.
 
-- Postgres host port: `POSTGRES_HOST_PORT` (padrao `5432`)
-- Valkey host port: `VALKEY_HOST_PORT` (padrao `6379`)
+## Produção (VPS / Coolify)
 
-Se a porta padrao estiver ocupada, sobrescreva antes de subir:
+- [`docker-compose.production.yml`](docker-compose.production.yml) — stack completa de referência
+- Dockerfiles em [`docker/`](docker/)
+- Guia: [`docs/guides/deploy-coolify-hostinger.md`](../docs/guides/deploy-coolify-hostinger.md)
 
-```bash
-# exemplo (Windows cmd)
-set POSTGRES_HOST_PORT=55432 && set VALKEY_HOST_PORT=56379 && bun run infra:up
-```
+## Arquivos Docker
 
----
-
-## Boas praticas
-
-- Nao adicionar servicos fora do escopo da sprint sem alinhamento.
-- Sempre validar `healthy` antes de executar migracoes.
-- Derrubar ambiente ao final de validacoes locais para evitar conflito de porta.
-
+| Arquivo | Serviço |
+|---------|---------|
+| `docker/Dockerfile.api` | API Bun |
+| `docker/Dockerfile.worker` | Worker BullMQ |
+| `docker/Dockerfile.web` | SPA + nginx |
+| `docker/nginx-web.conf` | Proxy `/api` e `/ws` |
+| `docker/postgres-init.sql` | DBs `evolution` e `chatwoot` |

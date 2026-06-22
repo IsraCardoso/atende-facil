@@ -106,6 +106,25 @@ export function createDrizzleFlowRepository(
     },
 
     async save(flow: FlowEntity): Promise<FlowEntity> {
+      // RN-021: apenas um flow ativo por tenant
+      if (flow.status === "active") {
+        const existing = await db
+          .select({ id: flowsTable.id })
+          .from(flowsTable)
+          .where(
+            and(
+              eq(flowsTable.tenantId, flow.tenantId),
+              eq(flowsTable.status, "active"),
+              isNull(flowsTable.deletedAt),
+            ),
+          )
+          .limit(1);
+
+        if (existing[0] && existing[0].id !== flow.id) {
+          throw new Error("RN-021: já existe um flow ativo para este tenant.");
+        }
+      }
+
       const rows = await db
         .insert(flowsTable)
         .values({

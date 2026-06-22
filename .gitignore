@@ -38,3 +38,7 @@ docker-data
 
 # sensitive files
 *.pem
+
+# OpenSpec UI binary (use scripts/setup-openspec-ui.ps1)
+tools/openspec-ui/bin/
+tools/openspec-ui/*.zip

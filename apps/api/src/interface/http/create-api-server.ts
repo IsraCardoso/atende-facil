@@ -23,6 +23,7 @@ import type {
   ValidateFlowUseCase,
 } from "../../application/use-cases/flows";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
+import type { GetIntegrationOperationalSummaryUseCase } from "../../application/use-cases/integration";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
 import type {
   ProcessIncomingMessageInput,
@@ -36,8 +37,19 @@ import type {
 } from "../../application/use-cases/schedules";
 import type { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
 import type { createSyncChatwootStatusUseCase } from "../../application/use-cases/sync-chatwoot-status-use-case";
+import type {
+  DeactivateWhatsAppIntegrationUseCase,
+  DisconnectWhatsAppUseCase,
+  GetWhatsAppConnectionStatusUseCase,
+  ListWhatsAppInstancesUseCase,
+  StartWhatsAppPairingUseCase,
+  UpsertWhatsAppInstanceUseCase,
+} from "../../application/use-cases/whatsapp-integration";
 import type { AppLoggerPort, AuthTokenPort } from "../../domain/ports/auth-ports";
-import type { WhatsAppInstanceRepositoryPort } from "../../domain/ports/whatsapp-ports";
+import type {
+  SessionRepositoryPort,
+  WhatsAppInstanceRepositoryPort,
+} from "../../domain/ports/whatsapp-ports";
 import type { ApiEnvironment } from "../../infrastructure/config/env";
 import type { StructuredLogger } from "../../infrastructure/logger/json-logger";
 import type { ConnectionManager } from "../ws/connection-manager";
@@ -47,6 +59,7 @@ import { createChatwootWebhookRoutes } from "./chatwoot-webhook-routes";
 import { createConversationRoutes } from "./conversation-routes";
 import { correlationIdHeaderName, resolveCorrelationId } from "./correlation-id";
 import { createFlowRoutes } from "./flow-routes";
+import { createIntegrationRoutes } from "./integration-routes";
 import { rateLimitPlugin } from "./rate-limit-middleware";
 import { createScheduleRoutes } from "./schedule-routes";
 import { createTenantRoutes } from "./tenant-routes";
@@ -60,12 +73,23 @@ type CreateApiServerAuthDependencies = Readonly<{
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
 }>;
 
+type CreateApiServerWhatsAppIntegrationDependencies = Readonly<{
+  listInstances: ListWhatsAppInstancesUseCase;
+  upsertInstance: UpsertWhatsAppInstanceUseCase;
+  getConnectionStatus: GetWhatsAppConnectionStatusUseCase;
+  startPairing: StartWhatsAppPairingUseCase;
+  disconnect: DisconnectWhatsAppUseCase;
+  deactivate: DeactivateWhatsAppIntegrationUseCase;
+  getOperationalSummary: GetIntegrationOperationalSummaryUseCase;
+}>;
+
 type CreateApiServerWhatsAppDependencies = Readonly<{
   instanceRepository: WhatsAppInstanceRepositoryPort;
   processIncomingMessage: Readonly<{
     execute: (input: ProcessIncomingMessageInput) => Promise<ProcessIncomingMessageResult>;
   }>;
   logger: AppLoggerPort;
+  integration?: CreateApiServerWhatsAppIntegrationDependencies;
 }>;
 
 type CreateApiServerConversationDependencies = Readonly<{
@@ -74,6 +98,7 @@ type CreateApiServerConversationDependencies = Readonly<{
   listConversations: ReturnType<typeof createListConversationsUseCase>;
   getConversation: ReturnType<typeof createGetConversationUseCase>;
   chatwootAccess: ReturnType<typeof createChatwootAccessService>;
+  sessionRepository: SessionRepositoryPort;
   connectionManager: ConnectionManager;
   authTokenPort: AuthTokenPort;
   chatwootWebhookToken: string;
@@ -127,10 +152,57 @@ function createHealthResponse(environment: ApiEnvironment["nodeEnv"]): HealthRes
   };
 }
 
+function resolveAllowedOrigin(
+  requestOrigin: string | null,
+  corsOrigins: readonly string[],
+  nodeEnv: ApiEnvironment["nodeEnv"],
+): string | null {
+  if (requestOrigin && corsOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  if (nodeEnv === "development" && corsOrigins.length === 0) {
+    return requestOrigin ?? "*";
+  }
+
+  return null;
+}
+
+function applyCorsHeaders(
+  set: { headers: Record<string, string | number> },
+  allowedOrigin: string | null,
+): void {
+  if (!allowedOrigin) {
+    return;
+  }
+
+  set.headers["Access-Control-Allow-Origin"] = allowedOrigin;
+  set.headers["Access-Control-Allow-Credentials"] = "true";
+  set.headers["Access-Control-Allow-Headers"] =
+    "Content-Type, Authorization, x-correlation-id, x-chatwoot-webhook-token";
+  set.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
+}
+
 export function createApiServer(input: CreateApiServerInput) {
   const { environment, logger, auth, whatsapp, conversation, flow, schedule, tenant } = input;
 
   const app = new Elysia()
+    .onBeforeHandle(({ request, set }) => {
+      const requestOrigin = request.headers.get("origin");
+      const allowedOrigin = resolveAllowedOrigin(
+        requestOrigin,
+        environment.corsOrigins,
+        environment.nodeEnv,
+      );
+      applyCorsHeaders(set, allowedOrigin);
+
+      if (request.method === "OPTIONS") {
+        set.status = 204;
+        return "";
+      }
+
+      return undefined;
+    })
     .use(rateLimitPlugin())
     .onError(({ request, error, set }) => {
       const correlationId = resolveCorrelationId(request);
@@ -214,7 +286,21 @@ export function createApiServer(input: CreateApiServerInput) {
           listConversations: conversation.listConversations,
           getConversation: conversation.getConversation,
           chatwootAccess: conversation.chatwootAccess,
+          sessionRepository: conversation.sessionRepository,
           verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+        }),
+      )
+      .use(
+        createIntegrationRoutes({
+          chatwootAccess: conversation.chatwootAccess,
+          verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+          ...(tenant?.tenantRepository ? { tenantRepository: tenant.tenantRepository } : {}),
+          ...(whatsapp?.integration?.getOperationalSummary
+            ? { getOperationalSummary: whatsapp.integration.getOperationalSummary }
+            : {}),
+          ...(tenant?.tenantRepository && whatsapp?.integration
+            ? { whatsapp: whatsapp.integration }
+            : {}),
         }),
       )
       .use(

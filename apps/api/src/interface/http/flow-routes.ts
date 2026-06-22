@@ -100,8 +100,12 @@ export function createFlowRoutes(input: CreateFlowRoutesInput) {
           description: t.Optional(t.Union([t.String(), t.Null()])),
           definition: t.Optional(
             t.Object({
+              id: t.Optional(t.String()),
+              tenantId: t.Optional(t.String()),
+              startNodeId: t.String({ minLength: 1 }),
               nodes: t.Array(t.Any()),
-              edges: t.Array(t.Any()),
+              edges: t.Optional(t.Array(t.Any())),
+              positions: t.Optional(t.Record(t.String(), t.Any())),
             }),
           ),
         }),

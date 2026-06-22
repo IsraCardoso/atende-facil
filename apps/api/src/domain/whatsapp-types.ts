@@ -89,13 +89,15 @@ type SessionEntity = Readonly<{
   updatedAt: Date;
 }>;
 
-/** Instância WhatsApp configurada por tenant. Contém credenciais do provider em config (JSONB). */
+/** Instância WhatsApp configurada por tenant. Credenciais de plataforma (Evolution) ficam no env; config guarda metadados por instância. */
 type WhatsAppInstanceEntity = Readonly<{
   id: WhatsAppInstanceId;
   tenantId: string;
   provider: WhatsAppProvider;
+  displayName: string | null;
   config: Readonly<Record<string, unknown>>;
   active: boolean;
+  isPrimary: boolean;
   createdAt: Date;
   updatedAt: Date;
 }>;

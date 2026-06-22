@@ -3,6 +3,8 @@ name: sprint-definition-rn-flow
 description: Estrutura e preenche a documentação da próxima sprint a partir do briefing do usuário, faz perguntas de clarificação, aguarda aprovação explícita e só então cria/atualiza as regras de negócio. Use quando o usuário pedir para planejar sprint, montar sprint, definir escopo, ou organizar RNs da sprint.
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Definição de Sprint e Fluxo de RN
 
 ## Objetivo
@@ -13,7 +15,7 @@ Padronizar o fluxo de documentação da sprint com gate de aprovação antes de 
 
 1. Ler `docs/sprints/_template.md` e usar como base para a nova sprint.
 2. Receber briefing inicial do usuário (descrição, objetivo, escopo, restrições).
-3. Fazer de 4 a no máximo 16 perguntas de clarificação objetivas com breve explicação das opçoes e trade-offs,antes de preencher a sprint.
+3. Fazer de 4 a no máximo 16 perguntas de clarificação objetivas com breve explicação das opções e trade-offs, antes de preencher a sprint.
 4. Preencher a doc da sprint com:
    - objetivo, entregáveis, fora do escopo, métricas;
    - plano de execução com sets, dependências e paralelismo;
@@ -71,7 +73,7 @@ Quando o briefing vier amplo ou ambíguo, executar com gates:
 - [ ] Gating de contexto aplicado quando necessário
 - [ ] Contratos de saída curtos utilizados por etapa
 
-## Prompt-base sugerido (uso do usuário)
+## Prompt-base sugerido
 
 ```text
 Use a skill sprint-definition-rn-flow.

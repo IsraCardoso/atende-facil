@@ -38,6 +38,20 @@ describe("ChatwootAccessService", () => {
     expect(service.isEmbedAvailable).toBe(false);
   });
 
+  it("should return null URLs when app URL is not configured", () => {
+    const service = createChatwootAccessService({
+      chatwootAppUrl: null,
+      chatwootSsoSecret: "test-secret",
+      chatwootAccountId: "1",
+    });
+
+    const urls = service.generateAccessUrls(asChatwootId("42"));
+
+    expect(urls.embedUrl).toBeNull();
+    expect(urls.deepLink).toBeNull();
+    expect(service.isAppConfigured).toBe(false);
+  });
+
   it("should strip trailing slash from app URL", () => {
     const service = createChatwootAccessService({
       chatwootAppUrl: "https://chatwoot.example.com/",
@@ -48,6 +62,28 @@ describe("ChatwootAccessService", () => {
     const urls = service.generateAccessUrls(asChatwootId("10"));
 
     expect(urls.deepLink).toBe("https://chatwoot.example.com/app/accounts/2/conversations/10");
+  });
+
+  it("should generate portal URL for account dashboard", () => {
+    const service = createChatwootAccessService({
+      chatwootAppUrl: "https://chatwoot.example.com",
+      chatwootSsoSecret: null,
+      chatwootAccountId: "3",
+    });
+
+    expect(service.generatePortalUrl().portalUrl).toBe(
+      "https://chatwoot.example.com/app/accounts/3/dashboard",
+    );
+  });
+
+  it("should return null portal URL when app URL is not configured", () => {
+    const service = createChatwootAccessService({
+      chatwootAppUrl: null,
+      chatwootSsoSecret: null,
+      chatwootAccountId: "1",
+    });
+
+    expect(service.generatePortalUrl().portalUrl).toBeNull();
   });
 
   it("should generate different tokens for different conversation IDs", () => {

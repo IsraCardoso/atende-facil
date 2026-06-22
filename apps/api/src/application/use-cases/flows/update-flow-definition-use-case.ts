@@ -47,12 +47,21 @@ export function createUpdateFlowDefinitionUseCase(
         throw createAppError("FLOW_INVALID_TRANSITION", "Nao e possivel editar um flow arquivado.");
       }
 
+      const definition =
+        input.definition !== undefined
+          ? {
+              ...input.definition,
+              id: input.definition.id ?? existing.id,
+              tenantId: input.definition.tenantId ?? existing.tenantId,
+            }
+          : existing.definition;
+
       const updated: FlowEntity = {
         ...existing,
         name: input.name?.trim() ?? existing.name,
         description:
           input.description !== undefined ? input.description.trim() || null : existing.description,
-        definition: input.definition ?? existing.definition,
+        definition,
         version: existing.version + 1,
         status: "draft",
         updatedAt: new Date(),

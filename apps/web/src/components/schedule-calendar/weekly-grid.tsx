@@ -43,13 +43,13 @@ export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: 
   );
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="overflow-x-auto rounded-lg border">
       <div className="grid min-w-[700px]" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>
-        <div className="border-b border-r border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-900" />
+        <div className="bg-muted/50 border-b border-r p-2" />
         {DAYS.map((day) => (
           <div
             key={day}
-            className="border-b border-r border-gray-200 bg-gray-50 p-2 text-center text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+            className="bg-muted/50 text-muted-foreground border-b border-r p-2 text-center text-xs font-semibold"
           >
             {day}
           </div>
@@ -57,7 +57,7 @@ export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: 
 
         {HOURS.map((hour) => (
           <div key={`row-${hour}`} className="contents">
-            <div className="flex items-start justify-end border-b border-r border-gray-200 bg-gray-50 p-1 pr-2 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            <div className="bg-muted/50 text-muted-foreground flex items-start justify-end border-b border-r p-1 pr-2 text-xs">
               {String(hour).padStart(2, "0")}:00
             </div>
             {DAYS.map((dayLabel, dayIndex) => {
@@ -71,7 +71,7 @@ export function WeeklyGrid({ schedules, flowNames, onClickBlock, onClickSlot }: 
               return (
                 <div
                   key={`${dayLabel}-${hour}`}
-                  className="relative min-h-[40px] border-b border-r border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50"
+                  className="hover:bg-muted/40 relative min-h-[40px] cursor-pointer border-b border-r"
                   onClick={() => onClickSlot(dayIndex, hour)}
                   role="button"
                   tabIndex={0}

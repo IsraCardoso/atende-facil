@@ -16,9 +16,15 @@ type ApiEnvironment = Readonly<{
   chatwootApiUrl: string | null;
   chatwootApiToken: string | null;
   chatwootAccountId: string | null;
+  chatwootInboxId: string | null;
   chatwootWebhookToken: string | null;
   chatwootAppUrl: string | null;
   chatwootSsoSecret: string | null;
+  devMockWhatsappSend: boolean;
+  corsOrigins: readonly string[];
+  evolutionApiUrl: string | null;
+  evolutionApiKey: string | null;
+  publicApiUrl: string;
 }>;
 
 type RuntimeEnvMap = Readonly<Record<string, string | undefined>>;
@@ -126,6 +132,27 @@ function parseBooleanValue(rawValue: string, variableName: string): boolean {
   throw new Error(`${variableName} inválido: ${rawValue}. Valores aceitos: true, false.`);
 }
 
+function parseCorsOrigins(rawValue: string | undefined): readonly string[] {
+  if (!rawValue) {
+    return [];
+  }
+
+  return rawValue
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+}
+
+function assertProductionRuntimeConstraints(environment: ApiEnvironment): void {
+  if (environment.nodeEnv === "development") {
+    return;
+  }
+
+  if (environment.devMockWhatsappSend) {
+    throw new Error("DEV_MOCK_WHATSAPP_SEND=true não é permitido em staging/production.");
+  }
+}
+
 function parseAuthTokenTtlSeconds(rawValue: string): number {
   const parsedValue = Number(rawValue);
 
@@ -162,11 +189,23 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
   const chatwootApiUrl = readOptionalEnvVariable("CHATWOOT_API_URL", source) ?? null;
   const chatwootApiToken = readOptionalEnvVariable("CHATWOOT_API_TOKEN", source) ?? null;
   const chatwootAccountId = readOptionalEnvVariable("CHATWOOT_ACCOUNT_ID", source) ?? null;
+  const chatwootInboxId = readOptionalEnvVariable("CHATWOOT_INBOX_ID", source) ?? null;
   const chatwootWebhookToken = readOptionalEnvVariable("CHATWOOT_WEBHOOK_TOKEN", source) ?? null;
   const chatwootAppUrl = readOptionalEnvVariable("CHATWOOT_APP_URL", source) ?? null;
   const chatwootSsoSecret = readOptionalEnvVariable("CHATWOOT_SSO_SECRET", source) ?? null;
+  const devMockWhatsappSendRaw = readOptionalEnvVariable("DEV_MOCK_WHATSAPP_SEND", source);
+  const devMockWhatsappSend =
+    devMockWhatsappSendRaw !== undefined
+      ? parseBooleanValue(devMockWhatsappSendRaw, "DEV_MOCK_WHATSAPP_SEND")
+      : nodeEnv === "development";
 
-  return {
+  const corsOrigins = parseCorsOrigins(readOptionalEnvVariable("CORS_ORIGINS", source));
+  const evolutionApiUrl = readOptionalEnvVariable("EVOLUTION_API_URL", source) ?? null;
+  const evolutionApiKey = readOptionalEnvVariable("EVOLUTION_API_KEY", source) ?? null;
+  const publicApiUrl =
+    readOptionalEnvVariable("PUBLIC_API_URL", source) ?? `http://localhost:${apiPort}`;
+
+  const environment: ApiEnvironment = {
     nodeEnv,
     apiHost,
     apiPort,
@@ -180,10 +219,20 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
     chatwootApiUrl,
     chatwootApiToken,
     chatwootAccountId,
+    chatwootInboxId,
     chatwootWebhookToken,
     chatwootAppUrl,
     chatwootSsoSecret,
+    devMockWhatsappSend,
+    corsOrigins,
+    evolutionApiUrl,
+    evolutionApiKey,
+    publicApiUrl,
   };
+
+  assertProductionRuntimeConstraints(environment);
+
+  return environment;
 }
 
 export type { ApiEnvironment, LoggerLevel, RuntimeEnvironment };

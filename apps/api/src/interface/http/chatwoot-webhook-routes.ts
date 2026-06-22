@@ -1,5 +1,10 @@
 /** Rotas de webhook Chatwoot. Recebe eventos de mensagem do agente e mudança de status, roteia para use cases (RN-016). */
 import { Elysia } from "elysia";
+
+import {
+  isOutgoingAgentMessage,
+  parseChatwootWebhookContext,
+} from "../../application/services/chatwoot-webhook-context";
 import type { createSyncChatwootMessageUseCase } from "../../application/use-cases/sync-chatwoot-message-use-case";
 import type {
   ChatwootEventType,
@@ -20,22 +25,6 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null;
 }
 
-function extractConversationId(body: unknown): string | null {
-  if (!isRecord(body)) {
-    return null;
-  }
-
-  if (isRecord(body.conversation) && typeof body.conversation.id === "number") {
-    return String(body.conversation.id);
-  }
-
-  if (typeof body.id === "number") {
-    return String(body.id);
-  }
-
-  return null;
-}
-
 function mapChatwootStatusToEventType(status: string): ChatwootEventType | null {
   if (status === "open") {
     return "conversation_assigned";
@@ -54,9 +43,11 @@ export function createChatwootWebhookRoutes(input: CreateChatwootWebhookRoutesIn
     const correlationId = resolveCorrelationId(request);
 
     const authToken =
-      request.headers.get("x-chatwoot-webhook-token") ?? request.headers.get("authorization");
+      request.headers.get("x-chatwoot-webhook-token") ??
+      request.headers.get("authorization") ??
+      new URL(request.url).searchParams.get("token");
 
-    if (authToken !== webhookToken) {
+    if (webhookToken && authToken !== webhookToken) {
       set.status = 401;
       return { error: "Unauthorized" };
     }
@@ -72,24 +63,26 @@ export function createChatwootWebhookRoutes(input: CreateChatwootWebhookRoutesIn
       return { status: "ignored" };
     }
 
+    const context = parseChatwootWebhookContext(body);
+
     if (event === "message_created") {
-      const messageType = typeof body.message_type === "string" ? body.message_type : null;
-      if (messageType !== "outgoing") {
+      if (!isOutgoingAgentMessage(body)) {
         set.status = 200;
         return { status: "ignored" };
       }
 
-      const conversationIdRaw = extractConversationId(body);
       const content = typeof body.content === "string" ? body.content : null;
-      if (!conversationIdRaw || !content) {
+      if (!context || !content) {
         set.status = 200;
         return { status: "ignored" };
       }
 
       await syncMessage.execute({
-        chatwootConversationId: createChatwootConversationId(conversationIdRaw),
+        chatwootConversationId: createChatwootConversationId(context.chatwootConversationId),
         messageContent: content,
         correlationId,
+        ...(context.tenantId != null ? { tenantId: context.tenantId } : {}),
+        ...(context.contactPhone != null ? { contactPhone: context.contactPhone } : {}),
       });
 
       set.status = 200;
@@ -98,7 +91,7 @@ export function createChatwootWebhookRoutes(input: CreateChatwootWebhookRoutesIn
 
     if (event === "conversation_status_changed") {
       const status = typeof body.status === "string" ? body.status : null;
-      if (!status) {
+      if (!status || !context) {
         set.status = 200;
         return { status: "ignored" };
       }
@@ -114,12 +107,6 @@ export function createChatwootWebhookRoutes(input: CreateChatwootWebhookRoutesIn
         return { status: "ignored" };
       }
 
-      const conversationIdRaw = extractConversationId(body);
-      if (!conversationIdRaw) {
-        set.status = 200;
-        return { status: "ignored" };
-      }
-
       const assignedAgent =
         isRecord(body.meta) &&
         isRecord(body.meta.assignee) &&
@@ -128,10 +115,12 @@ export function createChatwootWebhookRoutes(input: CreateChatwootWebhookRoutesIn
           : null;
 
       await syncStatus.execute({
-        chatwootConversationId: createChatwootConversationId(conversationIdRaw),
+        chatwootConversationId: createChatwootConversationId(context.chatwootConversationId),
         eventType,
         assignedAgentName: assignedAgent,
         correlationId,
+        ...(context.tenantId != null ? { tenantId: context.tenantId } : {}),
+        ...(context.contactPhone != null ? { contactPhone: context.contactPhone } : {}),
       });
 
       set.status = 200;

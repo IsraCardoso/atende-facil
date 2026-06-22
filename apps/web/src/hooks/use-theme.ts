@@ -1,24 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
-
-const STORAGE_KEY = "atende-facil-theme";
-
-function getInitialTheme(): Theme {
-  const stored = globalThis.localStorage?.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-  return globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-function applyThemeToDocument(theme: Theme): void {
-  const root = globalThis.document?.documentElement;
-  if (!root) {
-    return;
-  }
-  root.classList.toggle("dark", theme === "dark");
-}
+import { applyThemeToDocument, getInitialTheme, persistTheme, type Theme } from "../lib/theme";
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
@@ -27,13 +9,18 @@ export function useTheme() {
     applyThemeToDocument(theme);
   }, [theme]);
 
+  const setTheme = useCallback((next: Theme) => {
+    persistTheme(next);
+    setThemeState(next);
+  }, []);
+
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       const next = prev === "light" ? "dark" : "light";
-      globalThis.localStorage?.setItem(STORAGE_KEY, next);
+      persistTheme(next);
       return next;
     });
   }, []);
 
-  return { theme, toggleTheme } as const;
+  return { theme, setTheme, toggleTheme } as const;
 }

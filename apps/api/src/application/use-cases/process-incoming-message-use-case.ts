@@ -11,6 +11,7 @@ import type {
 } from "../../domain/ports/conversation-ports";
 import type {
   ChatwootPort,
+  ChatwootPortResolver,
   SessionLockPort,
   SessionRepositoryPort,
   WebhookIdempotencyPort,
@@ -33,7 +34,7 @@ type ProcessIncomingMessageDependencies = Readonly<{
   sessionLock: SessionLockPort;
   webhookIdempotency: WebhookIdempotencyPort;
   whatsAppSender: WhatsAppSenderPort;
-  chatwootPort: ChatwootPort;
+  resolveChatwootPort: ChatwootPortResolver;
   flowResolver: FlowResolverService;
   eventPublisher: DomainEventPublisherPort;
   logger: AppLoggerPort;
@@ -137,6 +138,8 @@ export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessage
           IDEMPOTENCY_TTL_SECONDS,
         );
 
+        const chatwootPort = await deps.resolveChatwootPort(tenantId);
+
         let session =
           (await deps.sessionRepository.findByTenantAndPhone(tenantId, message.from)) ??
           createNewSession(tenantId, message);
@@ -150,7 +153,14 @@ export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessage
         }
 
         if (conversation.status !== "bot") {
-          await handleNonBotMessage(deps, session, conversation, message, correlationId);
+          await handleNonBotMessage(
+            deps,
+            chatwootPort,
+            session,
+            conversation,
+            message,
+            correlationId,
+          );
           return { processed: true, action: "forwarded_to_chatwoot" };
         }
 
@@ -179,7 +189,7 @@ export function createProcessIncomingMessageUseCase(deps: ProcessIncomingMessage
         );
 
         if (flowResult.action.kind === "transferred_to_human") {
-          await handleHandoff(deps, session, conversation, flowResult, correlationId);
+          await handleHandoff(deps, chatwootPort, session, conversation, flowResult, correlationId);
           return { processed: true, action: "transferred_to_human" };
         }
 
@@ -211,13 +221,14 @@ async function sendOutgoingMessages(
 
 async function handleNonBotMessage(
   deps: ProcessIncomingMessageDependencies,
+  chatwootPort: ChatwootPort,
   session: SessionEntity,
   conversation: ConversationEntity,
   message: CanonicalInboundMessage,
   correlationId: string,
 ): Promise<void> {
   if (conversation.chatwootConversationId) {
-    await deps.chatwootPort.sendMessage({
+    await chatwootPort.sendMessage({
       conversationId: conversation.chatwootConversationId,
       message: message.text,
     });
@@ -231,13 +242,14 @@ async function handleNonBotMessage(
 
 async function handleHandoff(
   deps: ProcessIncomingMessageDependencies,
+  chatwootPort: ChatwootPort,
   session: SessionEntity,
   conversation: ConversationEntity,
   flowResult: ProcessResult,
   correlationId: string,
 ): Promise<void> {
   try {
-    const chatwootConversationId = await deps.chatwootPort.createConversation({
+    const chatwootConversationId = await chatwootPort.createConversation({
       tenantId: session.tenantId,
       phone: session.phone,
       sessionId: session.id,

@@ -4,6 +4,8 @@ import { Worker as BullMQWorker, Queue } from "bullmq";
 import { loadWorkerEnvironment } from "./config/env";
 import { createHealthCheckConsumer } from "./consumers/health-check-consumer";
 import { createScheduleEvaluatorConsumer } from "./consumers/schedule-evaluator-consumer";
+import { createFlowResolverCacheInvalidator } from "./infrastructure/flow-resolver-cache-invalidator";
+import { createScheduleStore } from "./infrastructure/schedule-store";
 
 export function bootstrapWorker() {
   const env = loadWorkerEnvironment();
@@ -26,18 +28,9 @@ export function bootstrapWorker() {
     /* startup signal — logged by BullMQ internally */
   });
 
-  const noopInvalidator = {
-    invalidateFlowResolver: async (_tenantId: string) => {
-      /* noop — replaced with real implementation when DB is connected */
-    },
-  };
-  const noopScheduleStore = {
-    findTenantIdsWithActiveSchedules: async () => [] as readonly string[],
-  };
-
   const scheduleConsumer = createScheduleEvaluatorConsumer({
-    cacheInvalidator: noopInvalidator,
-    scheduleStore: noopScheduleStore,
+    cacheInvalidator: createFlowResolverCacheInvalidator(env.redisUrl),
+    scheduleStore: createScheduleStore(env.databaseUrl),
   });
   const scheduleConfig = scheduleConsumer.getConfig();
 

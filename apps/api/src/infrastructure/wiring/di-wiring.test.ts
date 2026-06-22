@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
 import { createAuthModule } from "../auth/create-auth-module";
+import { createInMemoryChatwootAdapter } from "../chatwoot";
 import type { ApiEnvironment } from "../config/env";
 import { createFlowModule } from "../flow/create-flow-module";
 import type { StructuredLogger } from "../logger";
@@ -37,9 +38,15 @@ const baseEnvironment: ApiEnvironment = {
   chatwootApiUrl: null,
   chatwootApiToken: null,
   chatwootAccountId: null,
+  chatwootInboxId: null,
   chatwootWebhookToken: null,
   chatwootAppUrl: null,
   chatwootSsoSecret: null,
+  devMockWhatsappSend: false,
+  corsOrigins: [],
+  evolutionApiUrl: null,
+  evolutionApiKey: null,
+  publicApiUrl: "http://localhost:3000",
 };
 
 describe("DI Wiring Verification", () => {
@@ -67,6 +74,7 @@ describe("DI Wiring Verification", () => {
   it("should create whatsapp module without db (in-memory fallback)", () => {
     const whatsappModule = createWhatsAppModule({
       logger: appLogger,
+      resolveChatwootPort: async () => createInMemoryChatwootAdapter(),
     });
 
     expect(whatsappModule.processIncomingMessage).toBeDefined();

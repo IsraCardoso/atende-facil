@@ -90,6 +90,11 @@
       }
     }
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "overrides": [
     {
       "includes": ["apps/web/**/*.{js,jsx,ts,tsx}"],
@@ -328,6 +333,16 @@
             "useGetterReturn": "error",
             "useGuardForIn": "error",
             "useIterableCallbackReturn": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/components/flow-editor/flow-editor-layout.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": "off"
           }
         }
       }

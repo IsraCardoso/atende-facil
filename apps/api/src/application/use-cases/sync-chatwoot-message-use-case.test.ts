@@ -13,8 +13,10 @@ const mockInstance: WhatsAppInstanceEntity = {
   id: createWhatsAppInstanceId("inst-1"),
   tenantId: "tenant-1",
   provider: "evolution",
+  displayName: "WhatsApp",
   config: { instanceName: "test" },
   active: true,
+  isPrimary: true,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -37,6 +39,10 @@ function createDeps() {
     instanceRepository: {
       findActiveByTenant: vi.fn().mockResolvedValue([mockInstance]),
       findByTenantAndId: vi.fn(),
+      listByTenant: vi.fn().mockResolvedValue([mockInstance]),
+      save: vi.fn(),
+      setPrimary: vi.fn(),
+      deleteByTenantAndId: vi.fn(),
     },
     senderResolver: vi.fn().mockReturnValue({
       sendText: vi.fn().mockResolvedValue({

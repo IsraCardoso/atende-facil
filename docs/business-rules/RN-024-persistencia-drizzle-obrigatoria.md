@@ -1,6 +1,6 @@
 # RN-024 — Persistencia Drizzle obrigatoria para repositorios
 
-> **Sprint:** 09 | **Status:** Em implementacao
+> **Sprint:** 09 | **Status:** Ativa
 > **Categoria:** Infraestrutura — Persistencia
 
 ---

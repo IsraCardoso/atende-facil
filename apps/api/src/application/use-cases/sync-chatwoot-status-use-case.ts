@@ -1,7 +1,8 @@
 /** Sincroniza mudança de status do Chatwoot → use cases de transição internos (RN-016). Orquestrador sem lógica de transição própria. */
 import type { AppLoggerPort } from "../../domain/ports/auth-ports";
 import type { ConversationRepositoryPort } from "../../domain/ports/conversation-ports";
-import type { ChatwootConversationId } from "../../domain/whatsapp-types";
+import type { ChatwootConversationId, Phone } from "../../domain/whatsapp-types";
+import { resolveConversationFromChatwootWebhook } from "../services/resolve-conversation-from-chatwoot-webhook";
 import type { createAssignConversationUseCase } from "./assign-conversation-use-case";
 import type { createCloseConversationUseCase } from "./close-conversation-use-case";
 
@@ -19,6 +20,8 @@ type SyncChatwootStatusInput = Readonly<{
   eventType: ChatwootEventType;
   assignedAgentName: string | null;
   correlationId: string;
+  tenantId?: string;
+  contactPhone?: Phone;
 }>;
 
 type SyncChatwootStatusResult =
@@ -28,10 +31,21 @@ type SyncChatwootStatusResult =
 export function createSyncChatwootStatusUseCase(deps: SyncChatwootStatusDependencies) {
   return {
     async execute(input: SyncChatwootStatusInput): Promise<SyncChatwootStatusResult> {
-      const { chatwootConversationId, eventType, assignedAgentName, correlationId } = input;
+      const {
+        chatwootConversationId,
+        eventType,
+        assignedAgentName,
+        correlationId,
+        tenantId,
+        contactPhone,
+      } = input;
 
-      const conversation =
-        await deps.conversationRepository.findByChatwootConversationId(chatwootConversationId);
+      const conversation = await resolveConversationFromChatwootWebhook({
+        conversationRepository: deps.conversationRepository,
+        chatwootConversationId,
+        ...(tenantId !== undefined ? { tenantId } : {}),
+        ...(contactPhone !== undefined ? { contactPhone } : {}),
+      });
       if (!conversation) {
         deps.logger.warn("Webhook Chatwoot status: conversa não encontrada.", {
           correlationId,

@@ -1,7 +1,11 @@
-/** Pagina de agendamentos. Integra calendario semanal com modal e API (RN-027). */
+/** Página de agendamentos. Integra calendário semanal com modal e API (RN-027). */
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "ui/button";
+import { Skeleton } from "ui/skeleton";
 
 import { AppShell } from "../components/app-shell";
+import { PageHeader } from "../components/page-header";
 import {
   type ScheduleFormData,
   ScheduleModal,
@@ -53,6 +57,13 @@ export function SchedulesPage() {
     loadData();
   }, [loadData]);
 
+  const openCreateModal = useCallback((day?: number, hour?: number) => {
+    setEditingSchedule(undefined);
+    setDefaultDay(day);
+    setDefaultHour(hour);
+    setModalOpen(true);
+  }, []);
+
   const handleClickBlock = useCallback((schedule: ScheduleDto) => {
     setEditingSchedule(schedule);
     setDefaultDay(undefined);
@@ -60,12 +71,12 @@ export function SchedulesPage() {
     setModalOpen(true);
   }, []);
 
-  const handleClickSlot = useCallback((day: number, hour: number) => {
-    setEditingSchedule(undefined);
-    setDefaultDay(day);
-    setDefaultHour(hour);
-    setModalOpen(true);
-  }, []);
+  const handleClickSlot = useCallback(
+    (day: number, hour: number) => {
+      openCreateModal(day, hour);
+    },
+    [openCreateModal],
+  );
 
   const handleCloseModal = useCallback(() => {
     setModalOpen(false);
@@ -90,32 +101,22 @@ export function SchedulesPage() {
     [editingSchedule, scheduleApi, handleCloseModal, loadData],
   );
 
-  const _handleDelete = useCallback(
-    async (schedule: ScheduleDto) => {
-      await scheduleApi.deleteSchedule(schedule.id);
-      loadData();
-    },
-    [scheduleApi, loadData],
-  );
-
   return (
     <AppShell>
-      <div className="p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Agendamentos</h1>
-          <button
-            type="button"
-            onClick={() => handleClickSlot(1, 8)}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Novo Agendamento
-          </button>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="Agendamentos"
+          description="Defina quando cada fluxo publicado deve ficar ativo."
+          actions={
+            <Button type="button" className="gap-2" onClick={() => openCreateModal(1, 8)}>
+              <Plus className="size-4" />
+              Novo agendamento
+            </Button>
+          }
+        />
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          </div>
+          <Skeleton className="h-[480px] w-full rounded-lg" />
         ) : (
           <WeeklyGrid
             schedules={schedules}

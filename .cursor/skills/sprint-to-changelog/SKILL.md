@@ -3,6 +3,8 @@ name: sprint-to-changelog
 description: Gera a entrada de changelog ao final da sprint e registra decisões técnicas quando necessário. Normalmente chamada automaticamente como Passo 3 da Cadeia de Fechamento, após code-review sem críticos — não precisa ser invocada manualmente.
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Sprint para Changelog
 
 ## Objetivo

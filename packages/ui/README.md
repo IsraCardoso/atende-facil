@@ -1,24 +1,16 @@
-# UI (`packages/ui`)
+# ui — Design system (shadcn v4)
 
-Base do design system compartilhado.
+Import components by subpath (tree-shake friendly):
 
-Nesta sprint, o pacote contem tokens iniciais e infraestrutura para evolucao de componentes reutilizaveis.
+```tsx
+import { Button } from 'ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from 'ui/card';
+```
 
----
+Global styles in `apps/web`:
 
-## Scripts
+```css
+@import 'ui/globals.css';
+```
 
-| Script | Descricao |
-|---|---|
-| `bun run build --filter=ui` (na raiz) | Build/typecheck |
-| `bun run test --filter=ui` (na raiz) | Testes unitarios |
-| `bun run lint --filter=ui` (na raiz) | Lint/format check |
-
----
-
-## Diretrizes
-
-- Centralizar tokens e componentes compartilhados.
-- Evitar dependencias de negocio neste pacote.
-- Priorizar API de componentes clara e tipada.
-
+Ported from OmniChat `backoffice-app` (new-york, OKLCH tokens).

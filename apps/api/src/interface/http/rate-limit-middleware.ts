@@ -47,6 +47,7 @@ const RATE_LIMITS: Readonly<Record<string, RateLimitConfig>> = {
   login: { windowMs: 60_000, maxRequests: 5 },
   webhook: { windowMs: 60_000, maxRequests: 100 },
   flow: { windowMs: 60_000, maxRequests: 30 },
+  whatsapp: { windowMs: 60_000, maxRequests: 10 },
 };
 
 export function resolveRateLimitCategory(path: string, method: string): string | null {
@@ -58,6 +59,12 @@ export function resolveRateLimitCategory(path: string, method: string): string |
   }
   if (path.includes("/flows")) {
     return "flow";
+  }
+  if (
+    path.includes("/integrations/whatsapp/instances") &&
+    (path.endsWith("/pair") || path.endsWith("/status"))
+  ) {
+    return "whatsapp";
   }
   return null;
 }

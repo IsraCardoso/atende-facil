@@ -8,6 +8,7 @@ import type {
 } from "../../domain/conversation-types";
 import { createConversationId } from "../../domain/conversation-types";
 import type {
+  ChatwootConversationScope,
   ConversationFilters,
   ConversationRepositoryPort,
   PaginatedResult,
@@ -78,11 +79,22 @@ export function createDrizzleConversationRepository(
 
     async findByChatwootConversationId(
       chatwootConversationId: ChatwootConversationId,
+      scope?: ChatwootConversationScope,
     ): Promise<ConversationEntity | null> {
+      const conditions = [eq(conversationsTable.chatwootConversationId, chatwootConversationId)];
+
+      if (scope?.tenantId) {
+        conditions.push(eq(conversationsTable.tenantId, scope.tenantId));
+      }
+
+      if (scope?.phone) {
+        conditions.push(eq(conversationsTable.phone, scope.phone));
+      }
+
       const rows = await db
         .select()
         .from(conversationsTable)
-        .where(eq(conversationsTable.chatwootConversationId, chatwootConversationId))
+        .where(and(...conditions))
         .limit(1);
 
       const row = rows[0];

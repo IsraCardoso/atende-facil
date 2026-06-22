@@ -11,8 +11,10 @@ export const whatsappInstancesTable = pgTable(
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     provider: varchar("provider", { length: 32 }).notNull(),
+    displayName: varchar("display_name", { length: 128 }),
     config: jsonb("config").default({}).notNull(),
     active: boolean("active").default(true).notNull(),
+    isPrimary: boolean("is_primary").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

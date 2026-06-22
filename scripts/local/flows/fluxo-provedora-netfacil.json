@@ -1,0 +1,117 @@
+{
+  "startNodeId": "welcome",
+  "nodes": [
+    {
+      "id": "welcome",
+      "type": "message",
+      "text": "[NetFacil] Ola! Bem-vindo a NetFacil Internet. Vou te ajudar com fatura, suporte tecnico ou atendimento humano.",
+      "nextNodeId": "main-menu"
+    },
+    {
+      "id": "main-menu",
+      "type": "option",
+      "prompt": "[NetFacil] Escolha uma opcao:\n1) 2a via de fatura\n2) Suporte tecnico\n3) Falar com atendente",
+      "invalidResponseMessage": "[NetFacil] Opcao invalida. Digite 1, 2, 3, fatura, suporte ou atendente.",
+      "options": [
+        {
+          "id": "opt-billing",
+          "label": "2a via de fatura",
+          "aliases": ["1", "fatura", "boleto", "conta"],
+          "nextNodeId": "collect-cpf"
+        },
+        {
+          "id": "opt-tech",
+          "label": "Suporte tecnico",
+          "aliases": ["2", "suporte", "tecnico", "internet", "lento"],
+          "nextNodeId": "collect-tech-name"
+        },
+        {
+          "id": "opt-human",
+          "label": "Falar com atendente",
+          "aliases": ["3", "atendente", "humano", "pessoa"],
+          "nextNodeId": "collect-human-name"
+        }
+      ]
+    },
+    {
+      "id": "collect-cpf",
+      "type": "input",
+      "prompt": "[NetFacil] Informe seu CPF (somente numeros):",
+      "fieldKey": "cpf",
+      "emptyResponseMessage": "[NetFacil] CPF obrigatorio. Digite apenas numeros.",
+      "nextNodeId": "collect-contract"
+    },
+    {
+      "id": "collect-contract",
+      "type": "input",
+      "prompt": "[NetFacil] Informe o numero do seu contrato:",
+      "fieldKey": "contractNumber",
+      "emptyResponseMessage": "[NetFacil] Numero do contrato obrigatorio.",
+      "nextNodeId": "billing-confirm"
+    },
+    {
+      "id": "billing-confirm",
+      "type": "message",
+      "text": "[NetFacil] Solicitacao registrada! Em ate 24h enviaremos a 2a via da fatura para o e-mail cadastrado no contrato.",
+      "nextNodeId": "billing-end"
+    },
+    {
+      "id": "billing-end",
+      "type": "end",
+      "summaryMessage": "[NetFacil] Obrigado por usar a NetFacil. Se precisar de mais alguma coisa, envie oi novamente."
+    },
+    {
+      "id": "collect-tech-name",
+      "type": "input",
+      "prompt": "[NetFacil] Suporte tecnico. Qual seu nome completo?",
+      "fieldKey": "customerName",
+      "emptyResponseMessage": "[NetFacil] Nome obrigatorio.",
+      "nextNodeId": "collect-cep"
+    },
+    {
+      "id": "collect-cep",
+      "type": "input",
+      "prompt": "[NetFacil] Informe seu CEP ou endereco completo:",
+      "fieldKey": "addressOrCep",
+      "emptyResponseMessage": "[NetFacil] CEP ou endereco obrigatorio.",
+      "nextNodeId": "collect-issue"
+    },
+    {
+      "id": "collect-issue",
+      "type": "input",
+      "prompt": "[NetFacil] Descreva o problema (ex: internet caiu, lenta, sem sinal):",
+      "fieldKey": "issueDescription",
+      "emptyResponseMessage": "[NetFacil] Descricao do problema obrigatoria.",
+      "nextNodeId": "tech-handoff"
+    },
+    {
+      "id": "tech-handoff",
+      "type": "transfer",
+      "reason": "technical_support",
+      "message": "[NetFacil] Encaminhando voce para nossa equipe tecnica. Um atendente ira continuar em breve. Aguarde."
+    },
+    {
+      "id": "collect-human-name",
+      "type": "input",
+      "prompt": "[NetFacil] Atendimento humano. Qual seu nome?",
+      "fieldKey": "customerName",
+      "emptyResponseMessage": "[NetFacil] Nome obrigatorio.",
+      "nextNodeId": "collect-subject"
+    },
+    {
+      "id": "collect-subject",
+      "type": "input",
+      "prompt": "[NetFacil] Sobre o que voce gostaria de falar?",
+      "fieldKey": "subject",
+      "emptyResponseMessage": "[NetFacil] Assunto obrigatorio.",
+      "nextNodeId": "human-handoff"
+    },
+    {
+      "id": "human-handoff",
+      "type": "transfer",
+      "reason": "general_support",
+      "message": "[NetFacil] Transferindo para um atendente. Por favor aguarde."
+    }
+  ],
+  "edges": []
+}

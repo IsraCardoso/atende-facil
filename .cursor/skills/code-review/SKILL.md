@@ -3,6 +3,8 @@ name: code-review
 description: Realiza code review estruturado por severidade após cada set e ao final da sprint (antes do PR). Normalmente chamada automaticamente pela skill sprint-set-execution e pela Cadeia de Fechamento — não precisa ser invocada manualmente pelo usuário.
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Code Review Avançado
 
 ## Objetivo

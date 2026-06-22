@@ -1,3 +1,4 @@
+import type { WhatsAppConnectionState, WhatsAppPairingResult } from "../whatsapp-connection-types";
 import type {
   CanonicalDeliveryStatus,
   CanonicalInboundMessage,
@@ -28,6 +29,23 @@ type WhatsAppInstanceRepositoryPort = Readonly<{
     instanceId: WhatsAppInstanceId,
   ) => Promise<WhatsAppInstanceEntity | null>;
   findActiveByTenant: (tenantId: string) => Promise<readonly WhatsAppInstanceEntity[]>;
+  listByTenant: (tenantId: string) => Promise<readonly WhatsAppInstanceEntity[]>;
+  save: (instance: WhatsAppInstanceEntity) => Promise<WhatsAppInstanceEntity>;
+  setPrimary: (tenantId: string, instanceId: WhatsAppInstanceId) => Promise<void>;
+  deleteByTenantAndId: (tenantId: string, instanceId: WhatsAppInstanceId) => Promise<void>;
+}>;
+
+/** Provisiona instância Evolution e webhook — plataforma gerenciada (RN-029). */
+type WhatsAppInstanceProvisionerPort = Readonly<{
+  ensureEvolutionInstance: (instanceName: string, webhookUrl: string) => Promise<void>;
+  removeEvolutionInstance: (instanceName: string) => Promise<void>;
+}>;
+
+/** Consulta de estado e pareamento WhatsApp por provedor — isolado em infrastructure (RN-029). */
+type WhatsAppConnectionPort = Readonly<{
+  getStatus: (config: WhatsAppInstanceConfig) => Promise<WhatsAppConnectionState>;
+  startPairing: (config: WhatsAppInstanceConfig) => Promise<WhatsAppPairingResult>;
+  disconnect: (config: WhatsAppInstanceConfig) => Promise<void>;
 }>;
 
 /** Lock distribuído para serializar processamento de mensagens do mesmo contato. TTL de 10s previne deadlock (RN-012). */
@@ -91,6 +109,7 @@ type ProviderBundle = Readonly<{
   sender: WhatsAppSenderPort;
   normalizer: InboundNormalizer;
   verifier: WebhookVerifier;
+  connection: WhatsAppConnectionPort;
 }>;
 
 /** Port de integração com Chatwoot para hand-off humano. Desacoplado via adapter (RN-013). */
@@ -112,6 +131,9 @@ type ChatwootSendMessageInput = Readonly<{
   message: string;
 }>;
 
+/** Resolve ChatwootPort per-tenant (integração real ou mock in-memory). */
+type ChatwootPortResolver = (tenantId: string) => Promise<ChatwootPort>;
+
 /** Port para buscar o fluxo conversacional ativo de um tenant. */
 type FlowRepositoryPort = Readonly<{
   findActiveByTenant: (tenantId: string) => Promise<FlowDefinitionRecord | null>;
@@ -126,6 +148,7 @@ type FlowDefinitionRecord = Readonly<{
 export type {
   ChatwootCreateConversationInput,
   ChatwootPort,
+  ChatwootPortResolver,
   ChatwootSendMessageInput,
   FlowDefinitionRecord,
   FlowRepositoryPort,
@@ -139,6 +162,8 @@ export type {
   WebhookVerificationInput,
   WebhookVerificationResult,
   WebhookVerifier,
+  WhatsAppConnectionPort,
+  WhatsAppInstanceProvisionerPort,
   WhatsAppInstanceRepositoryPort,
   WhatsAppSenderPort,
 };

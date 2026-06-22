@@ -1,0 +1,690 @@
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
+# Engineering Rules — Spec Driven Development
+
+---
+
+## 0. Filosofia
+
+Este projeto segue **Spec Driven Development** com execução por IA.
+
+Todo código nasce de uma especificação. Nenhuma feature, refactor ou correção é implementada sem que exista uma spec clara, revisada e aprovada antes da execução.
+
+**Objetivos centrais:**
+- Código determinístico e previsível
+- Arquitetura consistente e rastreável
+- Zero ambiguidade entre spec e implementação
+- Alta testabilidade em todas as camadas
+
+**Princípios guia:**
+- Clareza é mais valiosa que esperteza
+- Convenções reduzem decisões — siga-as
+- Mudanças pequenas e frequentes são mais seguras que grandes e raras
+- A spec é a fonte da verdade — o código é sua consequência
+- Nunca assuma comportamento não documentado — aponte a lacuna antes de prosseguir
+
+---
+
+## 1. Antes de qualquer implementação (OpenSpec)
+
+O projeto usa **[OpenSpec](https://github.com/Fission-AI/OpenSpec)** como fluxo SDD principal. Guia completo: `docs/guides/openspec-workflow.md`.
+
+1. Leia `openspec/config.yaml` (contexto injetado automaticamente nas skills `/opsx:*`)
+2. Leia as specs em `openspec/specs/<capability>/spec.md` afetadas pela change
+3. Se houver change ativa em `openspec/changes/<nome>/`, leia `proposal.md`, `design.md` e `tasks.md`
+4. Consulte `docs/context/project.md` para stack e convenções
+5. Consulte `docs/decisions/` para decisões arquiteturais
+6. Rastreabilidade legada: `docs/migration/rn-to-openspec-map.md` (RN-XXX → capability)
+7. Nunca assuma comportamento não documentado — aponte a lacuna antes de prosseguir
+8. Em arquivos grandes, aplique `dont-be-greedy` para leitura incremental
+
+### 1.1 Workflow OpenSpec (obrigatório para trabalho novo)
+
+| Fase | Comando Cursor | Artefato |
+|------|----------------|----------|
+| Propor | `/opsx:propose "..."` | `openspec/changes/<nome>/` |
+| Implementar | `/opsx:apply` | código + `tasks.md` com `[x]` |
+| Arquivar | `/opsx:archive` | sync specs + `changes/archive/` |
+
+**Regras:**
+- Nova feature/correção **sempre** começa com `/opsx:propose` — não codificar sem change
+- Requirements em delta specs usam `## ADDED/MODIFIED/REMOVED Requirements`
+- Ao modificar RN legada, preserve `(legacy: RN-XXX)` no título do requirement
+- `design.md` deve incluir **Testes Manuais de Entrega** quando a change for entregável ao usuário
+
+### 1.2 Documentação legada (sprints 01–10)
+
+- `docs/business-rules/` e `docs/sprints/` — **somente leitura**; histórico preservado
+- Sprints arquivadas em `openspec/changes/archive/YYYY-MM-DD-sprint-NN/`
+- Changelog: `docs/changelog/CHANGELOG.md`
+- Skills legadas (`sprint-set-execution`, etc.) aplicam apenas a retrabalho de sprints antigas
+
+---
+
+## 2. Arquitetura
+
+### Padrão obrigatório: DDD Lightweight + Arquitetura Hexagonal
+
+```
+apps/
+  api/src/
+    domain/           # Entidades, value objects, interfaces de repositório, eventos de domínio
+    application/      # Use cases, DTOs, serviços de aplicação
+    infrastructure/   # Repositórios concretos, ORM, integrações externas, mensageria
+    interface/        # Controllers HTTP (Elysia), handlers de webhook, guards
+
+  web/src/
+    pages/
+    components/
+    hooks/
+    services/         # Chamadas à API
+
+packages/
+  types/              # Tipos e interfaces compartilhadas entre apps
+  db/                 # Schema, migrations, client do banco
+  flow/               # Engine de fluxo conversacional (lógica de domínio pura)
+  auth/               # RBAC, middleware de autenticação, helpers de sessão
+  ui/                 # Design system (shadcn customizado, tokens, temas)
+```
+
+### Regras de dependência (Dependency Rule)
+
+| Camada | Pode depender de |
+|---|---|
+| `domain` | nada |
+| `application` | `domain` |
+| `infrastructure` | `domain` |
+| `interface` | `application` |
+
+> Nunca importar `infrastructure` ou `interface` dentro de `domain`. Nunca importar `interface` em `application`.
+
+### Boas práticas de arquitetura
+
+- Cada use case tem responsabilidade única e é testável de forma isolada
+- Value objects encapsulam regras de validação — prefira-os a tipos primitivos soltos
+- Entidades de domínio não expõem setters públicos arbitrários; mutações ocorrem via métodos com semântica de negócio
+- Interfaces de repositório pertencem ao `domain`; implementações concretas pertencem à `infrastructure`
+- Nunca expor a entidade de domínio diretamente como DTO de resposta — use mappers explícitos
+
+---
+
+## 3. Unidade de execução: o Set
+
+- A **task** é a unidade de planejamento (atômica, rastreável, com critérios próprios)
+- O **set** é a unidade de execução (um prompt de IA implementa o set inteiro)
+- Um set agrupa tasks correlacionadas que compartilham contexto de implementação
+
+**Tamanho de um set:** ~300–600 linhas de código novo. Se perceber que vai ultrapassar, pare, sinalize e aguarde decisão.
+
+---
+
+## 4. Design Patterns Obrigatórios
+
+| Pattern | Uso principal |
+|---|---|
+| **Repository** | Abstrair acesso a dados — repositórios expõem métodos com linguagem de domínio |
+| **Factory** | Criação de entidades e agregados complexos com invariantes de construção |
+| **Strategy** | Comportamentos intercambiáveis — ex: diferentes tipos de nó no flow engine |
+| **Adapter** | Isolar domínio de SDKs externos — mudança de SDK não afeta use cases |
+| **Event Emitter** | Comunicação desacoplada — hand-off humano, notificações, side effects |
+
+**Regras de uso:**
+- Strategies são injetadas via interface — nunca instanciar implementações concretas no código de negócio
+- Eventos de domínio são publicados após persistência bem-sucedida, nunca antes
+- Adapters isolam completamente: se a Evolution API mudar de versão, apenas o Adapter muda
+
+---
+
+## 5. Tipagem
+
+- **TypeScript strict obrigatório** em todos os workspaces (`"strict": true` no `tsconfig.json`)
+- **Proibido `any`** — sem exceções, inclusive em mocks e testes
+- **Proibido type assertion desnecessário** (`as SomeType` apenas quando inevitável e comentado)
+- **Obrigatório usar tipagem semântica forte** para conceitos de domínio e infraestrutura (ex.: `Email`, `TenantId`, `DatabaseUrl`, `ValkeyUrl`) em vez de `string` genérica quando o significado for relevante
+- **Evitar primitivos sem contexto** em fronteiras entre módulos; preferir branded types, value objects ou aliases explícitos
+
+**Preferir:**
+
+```typescript
+// Generics com constraint
+function findById<T extends Entity>(id: string): Promise<T | null>
+
+// Unions discriminadas
+type Result<T> = { success: true; data: T } | { success: false; error: AppError }
+
+// Unknown para entradas externas
+function parseWebhookPayload(raw: unknown): ParsedPayload
+
+// Readonly para dados imutáveis
+type Config = Readonly<{ apiKey: string; baseUrl: string }>
+
+// Branded types para IDs de domínio
+type TenantId = string & { readonly _brand: 'TenantId' }
+type Phone = string & { readonly _brand: 'Phone' }
+```
+
+---
+
+## 6. Código Limpo
+
+- **Funções pequenas:** cada função faz uma coisa; se precisar de "e" para descrever o que faz, quebre-a
+- **Nomes autoexplicativos:** variáveis, funções e classes descrevem intenção, não implementação
+- **Sem comentários desnecessários:** o código deve ser autoexplicativo; comentários justificam *por que*, não *o que*
+- **Early return obrigatório:** elimine aninhamentos desnecessários retornando cedo
+
+### 6.1 JSDoc Estratégico (obrigatório)
+
+| O que documentar | Exemplo |
+|---|---|
+| **Module-level** (topo de todo `.ts` exceto barrels) | `/** Orquestra processamento de mensagem: idempotência → lock → flow → envio. */` |
+| **Ports e interfaces** (contrato/invariante) | `/** Lock distribuído com TTL de 10s. Previne deadlock via auto-release (RN-012). */` |
+| **Exported factories** (semântica + `@throws`) | `/** Cria adapter Evolution API. @throws {Error} Se config.provider !== 'evolution'. */` |
+| **Branded types** (razão de existir) | `/** Previne mistura acidental de IDs via phantom type. */` |
+| **Unions discriminadas** (quando/como usar switch) | `/** Resolvida via switch exaustivo — erro de compilação se provider for esquecido. */` |
+
+**Proibido:**
+- JSDoc em helpers privados, getters/setters triviais ou barrels/index
+- Comentários que narram o código (`/** Retorna o usuário */` em `getUser()`)
+- `@param` / `@returns` quando a tipagem já comunica tudo
+
+```typescript
+// ❌ Errado
+function processMessage(session: Session, msg: string) {
+  if (session.mode === 'bot') {
+    if (session.currentNodeId) {
+      // lógica principal...
+    }
+  }
+}
+
+// ✅ Correto
+function processMessage(session: Session, msg: string) {
+  if (session.mode !== 'bot') return
+  if (!session.currentNodeId) return
+  // lógica principal...
+}
+```
+
+**Limites:**
+- Máximo ~300 linhas por arquivo — acima disso é sinal de refatoração necessária
+- Máximo ~4 parâmetros por função — acima disso, use um objeto de opções tipado
+
+---
+
+## 7. Lint e Formatação
+
+**Ferramenta:** [Biome](https://biomejs.dev/) — **Estilo:** Airbnb-like
+
+**Regras obrigatórias:**
+- Sem variáveis não usadas
+- Sem `console.log` (usar logger estruturado — ver seção Observabilidade)
+- Imports organizados: libs externas → packages internos → módulos locais → tipos
+- Sem imports não utilizados
+
+```json
+{
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": { "noUnusedVariables": "error", "noUnusedImports": "error" },
+      "suspicious": { "noExplicitAny": "error", "noConsoleLog": "error" }
+    }
+  },
+  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "organizeImports": { "enabled": true }
+}
+```
+
+> O lint deve passar sem warnings antes de qualquer merge. CI bloqueia PRs com falha de lint.
+
+---
+
+## 8. Testes
+
+### Cobertura obrigatória
+- **100% de cobertura unitária** em use cases e entidades de domínio
+
+### Tipos de teste
+
+| Tipo | Escopo | Ferramenta |
+|---|---|---|
+| **Unitário** | Use cases, entidades, value objects, flow engine | Vitest |
+| **Integração** | Repositórios, webhooks, adapters | Vitest + Testcontainers |
+| **E2E** | Fluxos críticos de ponta a ponta | Supertest (API) |
+
+### Boas práticas
+- Cada teste tem **um único motivo para falhar**
+- Nomenclatura: `should [resultado esperado] when [condição]`
+- Use **fakes e stubs** em unitários — nunca mocks acoplados a implementação. De preferência, centralize os mocks e stubs
+- Dados de teste gerados por factories — nunca objetos literais espalhados nos arquivos
+
+### Fluxos E2E obrigatórios
+- Receber mensagem → processar nó → enviar resposta
+- Transição bot → waiting_human
+- Criação de tenant + usuário + autenticação
+- Criação e ativação de fluxo
+- Outros fluxos essenciais ao funcionamento da ferramenta
+
+---
+
+## 9. Performance
+
+- **Evitar N+1:** use eager loading criterioso e batch queries
+- **Indexar obrigatoriamente:** `tenant_id`, `phone`, `status`, e qualquer coluna usada em filtros frequentes
+- **JSONB com consciência:** use para dados verdadeiramente dinâmicos; não substitui colunas tipadas para campos consultados com frequência
+- **Paginação obrigatória** em todos os endpoints que retornam listas
+- **Cache:** fluxos ativos em Valkey com TTL definido (invalidado ao ativar/desativar)
+- Toda query que exceder 100ms em staging é investigada antes de ir para produção
+
+---
+
+## 10. Segurança
+
+- **Validação de input** na borda da aplicação antes de qualquer processamento
+- **Sanitização** de dados antes de persistir ou retornar ao cliente
+- **Rate limit** em todos os endpoints públicos e webhooks
+- **Autenticação e autorização** verificadas no nível de use case — nunca apenas no controller
+- **`tenant_id`** sempre extraído do token autenticado — nunca do corpo da requisição
+- **Segredos via variáveis de ambiente** — jamais hardcodados ou commitados
+- **Idempotência nos webhooks** — reprocessar o mesmo webhook não gera duplicação
+
+---
+
+## 11. Multi-tenant
+
+- **Todas as tabelas têm `tenant_id`** como coluna indexada — sem exceção
+- **Nunca confiar no `tenant_id` vindo do frontend** — sempre extrair do token autenticado
+- **Isolamento garantido em toda query** — repositório base injeta o filtro de tenant automaticamente
+- Single-tenant via `MULTI_TENANT=false` + `DEFAULT_TENANT_ID` no `.env`
+
+```typescript
+// ✅ Sempre explícito
+findConversations(tenantId: TenantId, filters: ConversationFilters): Promise<Conversation[]>
+```
+
+---
+
+## 12. Ambientes
+
+| Ambiente | Propósito |
+|---|---|
+| `dev` | Desenvolvimento local |
+| `staging` | Validação de features antes do deploy |
+| `production` | Usuários finais |
+
+**Regras:**
+- Toda configuração sensível via variáveis de ambiente (`.env.example` versionado)
+- Logs: `debug` em dev, `info` em staging, `warn/error` em production
+- Migrations rodam via pipeline — nunca manualmente em produção
+- Docker Compose para dev local; Coolify para staging e produção
+
+---
+
+## 13. Banco de Dados
+
+- **PostgreSQL obrigatório**
+- **Migrations versionadas** — toda mudança de schema via migration, nunca diretamente
+- **Nomeação:** tabelas em `snake_case` plural, colunas em `snake_case`
+- **Soft delete padrão** para entidades críticas (`deleted_at` em vez de `DELETE`)
+- **Transações explícitas** para operações que envolvem múltiplas tabelas
+- **Constraints no banco** como última linha de defesa (NOT NULL, UNIQUE, FK)
+
+---
+
+## 14. Eventos e Mensageria
+
+**Event-driven obrigatório para:** hand-off humano, notificações externas, integrações com terceiros.
+
+**Boas práticas:**
+- Eventos nomeados no passado: `ConversationHandedOff`, `MessageReceived`, `AgentAssigned`
+- Eventos são imutáveis após publicados
+- Consumers são idempotentes — reprocessar o mesmo evento não gera efeitos duplicados
+
+---
+
+## 15. Observabilidade
+
+- **Logs estruturados** em JSON: `timestamp`, `level`, `correlationId`, `tenantId`, `message`, `context`
+- **Correlation ID** gerado na borda e propagado por toda a cadeia de chamadas
+- **Nunca logar dados sensíveis** (tokens, senhas, dados pessoais completos)
+
+```typescript
+logger.info('Message processed', {
+  correlationId, tenantId, sessionId,
+  nodeId: currentNode.id, nodeType: currentNode.type, durationMs,
+})
+```
+
+---
+
+## 16. Plano de Execução de Sets
+
+```
+Rodada 1:  [SET-A]
+Rodada 2:  [SET-B] ║ [SET-C]     ← paralelos (sessões independentes)
+Rodada 3:  [SET-D]               ← só após SET-B e SET-C concluídos
+```
+
+- Dois sets são paralelos quando não compartilham arquivos e não dependem um do outro
+- Nunca executar sets paralelos na mesma sessão do agente de IA
+
+---
+
+## 17. Protocolo de execução de um Set
+
+1. Anuncia o set: `"Iniciando SET-X: [nome] (tasks T0X, T0Y, T0Z)"`
+2. Implementa todas as tasks do set em sequência, sem pausas entre elas
+3. Executa verificação de erros de compilação
+4. **Executa automaticamente a skill `code-review` (Modo SET)** — sem aguardar pedido
+5. Verifica se é o último set:
+   - **Não é o último:** apresenta checkpoint e aguarda `[A]`, `[C]` ou `[K]`
+   - **É o último:** executa a Cadeia de Fechamento automaticamente (ver seção 18)
+
+### Auto-revisão interna (antes de publicar o checkpoint)
+
+- [ ] Cada item de "O que fazer" de cada task foi implementado?
+- [ ] Cada critério de aceite de cada task é atendido?
+- [ ] Alguma RN da sprint foi violada?
+- [ ] O código introduz débito técnico não documentado?
+- [ ] Débitos técnicos resolvidos nesta rodada foram marcados como `[x]` na documentação (`docs/changelog/CHANGELOG.md` e/ou sprint) com observação de resolução?
+- [ ] O documento de entrega da sprint contém seção de testes manuais executáveis e detalhados, com resultado esperado por passo?
+- [ ] A implementação está dentro do escopo do set?
+- [ ] Lint passa sem warnings?
+- [ ] Testes passam?
+
+### 17.1 Protocolo de Contexto com Gate (mapear -> decidir -> executar)
+
+Aplicar obrigatoriamente em tarefas com escopo não claro, análise de arquitetura ou mudança que toque mais de 2 arquivos.
+
+#### Etapa 1 — Mapear (gate obrigatório)
+
+- Descobrir candidatos com busca textual/semântica antes de abrir arquivos longos.
+- Quando o escopo for amplo, usar subagente `explore` com profundidade `quick` para triagem inicial.
+- Evitar leitura integral de arquivos grandes sem evidência de relevância.
+
+**Contrato de saída curto (Mapear) — máximo 6 linhas:**
+- `arquivos-alvo:` até 5 caminhos
+- `hipotese:` 1 frase objetiva
+- `risco:` 1 frase (opcional)
+- `proximo-passo:` 1 frase
+
+#### Etapa 2 — Decidir (gate obrigatório)
+
+- Escolher uma abordagem principal com escopo de edição explícito.
+- Registrar por que as alternativas foram descartadas.
+- Definir validações mínimas antes de editar.
+
+**Contrato de saída curto (Decidir) — máximo 6 linhas:**
+- `decisao:` 1 frase
+- `escopo:` lista de arquivos que serão alterados
+- `validacao:` até 3 checks
+- `proximo-passo:` 1 frase
+
+#### Etapa 3 — Executar
+
+- Editar apenas o escopo definido no gate anterior.
+- Validar com lint/testes adequados ao impacto.
+- Reportar resultado sem copiar blocos extensos desnecessários.
+
+**Contrato de saída curto (Executar) — máximo 8 linhas:**
+- `arquivos-alterados:` lista curta
+- `resultado-validacao:` status de lint/testes
+- `pendencias:` item único ou "nenhuma"
+- `proximo-passo:` 1 frase
+
+#### Regras de orçamento de contexto (obrigatórias)
+
+- Proibido ler arquivo inteiro com mais de 200 linhas sem justificativa.
+- Ler em fatias de 120 a 180 linhas quando necessário.
+- A cada 3 leituras, produzir síntese curta antes de continuar.
+- Não usar mais de 2 subagentes na mesma rodada de trabalho.
+- Cada subagente deve receber objetivo único e retornar somente o contrato de saída curto da etapa.
+
+---
+
+## 18. Versionamento (Git)
+
+O projeto deve seguir regras estritas de versionamento.
+
+### Regras:
+
+- Uso obrigatório de branches por sprint
+- Proibido commit direto na main
+- Commits devem seguir convenção definida
+- PR deve passar por code review antes de merge
+
+---
+
+### Fluxo:
+
+- Sprint → branch → commits → review → PR → merge
+
+---
+
+### Qualidade:
+
+- Histórico deve ser legível
+- Commits devem ser semânticos
+- PR deve documentar mudanças
+
+---
+
+## 19. Cadeia de Fechamento de Sprint (automática)
+
+Ao concluir o **último set** do Plano de Execução, executar em sequência — sem aguardar instrução do usuário entre os passos:
+
+```
+Passo 1 → skill refactor-pass        (escopo: sprint completa)
+           ↓ se sem 🔴 CRÍTICO
+Passo 2 → skill code-review          (Modo PR — escopo: sprint completa)
+           ↓ se sem 🔴 CRÍTICO
+Passo 3 → skill sprint-to-changelog
+           ↓
+        Apresentar resumo final com opções [P] e [N]
+```
+
+**Regra de bloqueio:** se qualquer passo gerar um item 🔴 CRÍTICO, corrigir imediatamente e repetir o passo antes de avançar. O usuário é informado da correção, mas não precisa intervir.
+
+---
+
+## 20. Formato de checkpoint de Set (intermediário)
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SET-X concluído: [Nome do Set]
+   Tasks: T01 · T02 · T03
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 O que foi implementado:
+  T01 · [Nome] — [descrição curta]
+  T02 · [Nome] — [descrição curta]
+  T03 · [Nome] — [descrição curta]
+
+🧪 Critérios de aceite:
+  T01 · ✅ [critério] / ✅ [critério]
+  T02 · ✅ [critério] / ⚠️ [critério — ressalva]
+  T03 · ✅ [critério]
+
+🔍 Code Review (SET-X):
+  🔴 CRÍTICO:  [item ou "Nenhum"]
+  🟠 ALTO:     [item ou "Nenhum"]
+  🟡 MÉDIO:    [item ou "Nenhum — registrado como débito"]
+  🔵 BAIXO:    [sugestão ou "Nenhum"]
+
+⚠️ Observações:
+  [Débito técnico, decisão tomada, dúvida em aberto — ou "Nenhuma."]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Próximo: SET-Y — [Nome] (T04, T05)
+
+  [A] Ajustar algo neste set
+  [C] Continuar para SET-Y
+  [K] Commit deste set e continuar para SET-Y
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+## 21. Formato de encerramento (último set + Cadeia de Fechamento)
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SET-Z concluído — último set da sprint
+   Iniciando Cadeia de Fechamento...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[resultado do checkpoint do set, igual ao formato intermediário]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 Passo 1 — Refactor Pass
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[resultado do refactor-pass]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Passo 2 — Code Review (Modo PR)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[resultado do code-review PR]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 Passo 3 — Sprint to Changelog
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[resultado do sprint-to-changelog]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏁 Sprint XX encerrada
+Sets: X/X | Tasks: X/X | Débitos: X
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [P] Abrir PR para esta sprint
+  [N] Planejar próxima sprint (sprint-definition-rn-flow)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+## 22. Prioridade absoluta
+
+`openspec/specs/` > legacy RN (`docs/business-rules/`) > padrão técnico > convenção de código. Nunca quebre um requirement para simplificar.
+Se houver conflito: sinalize, não decida sozinho.
+
+---
+
+## 23. Referência de IDs
+
+| Tipo | Formato | Exemplo |
+|---|---|---|
+| Regra de Negócio | `RN-001` | `RN-001-isolamento-tenant.md` |
+| Sprint | `sprint-01` | `sprint-01.md` |
+| Set | `SET-A`, `SET-B` | agrupamento de tasks |
+| Task | `T01`, `T02` | dentro de um set |
+| Decisão técnica | `DEC-001` | `DEC-001-escolha-orm.md` |
+
+---
+
+## 24. Dependency Injection (obrigatório)
+
+Toda instanciação deve ser feita via container de injeção de dependência (DI).
+
+---
+
+### Objetivo
+
+- Desacoplamento
+- Testabilidade
+- Controle de ciclo de vida
+- Clareza arquitetural
+
+---
+
+### Proibições
+
+- Instanciar dependências com `new` fora do container
+- Service locator implícito
+- Dependências globais ocultas
+
+---
+
+### Lifetimes suportados
+
+#### Singleton (padrão)
+- Instanciado uma única vez
+- Reutilizado sempre
+
+Exemplos:
+- Repositories
+- Services
+- Clients (DB, APIs)
+
+---
+
+#### Transient
+- Nova instância a cada resolução
+
+Exemplos:
+- Helpers
+- Use cases stateless
+
+---
+
+#### Scoped (opcional)
+- Uma instância por contexto (ex: request)
+
+Só implementar se necessário.
+
+---
+
+### Lazy instantiation
+
+- Todas dependências devem ser criadas apenas quando utilizadas
+- Nenhuma instanciação no bootstrap sem necessidade
+
+---
+
+### Implementação obrigatória
+
+- Sem uso de bibliotecas externas
+- Container manual, explícito e tipado
+
+---
+
+### Estrutura
+
+```text
+/packages/container
+  container.ts
+  types.ts
+```
+
+> **Regra de ouro:** quando houver dúvida entre a solução mais esperta e a mais simples, escolha a mais simples. Código é lido muito mais do que escrito.
+
+---
+
+## Skills disponíveis
+
+### OpenSpec (fluxo principal)
+
+O menu **`/`** do Cursor lista **comandos** em `.cursor/commands/`, não skills. Cada comando carrega a skill correspondente.
+
+| Comando `/` | Quando usar |
+|---|---|
+| `/opsx-propose` | Nova change com proposal, specs, design, tasks |
+| `/opsx-apply` | Implementar tasks da change ativa |
+| `/opsx-archive` | Finalizar change e sincronizar specs |
+| `/opsx-changelog` | Preencher `docs/changelog/CHANGELOG.md` |
+| `/opsx-explore` | Investigar sem criar change |
+| `/opsx-sync` | Sincronizar delta specs manualmente |
+| `/code-review` | Review por severidade antes do fechamento |
+| `/refactor-pass` | Refatoração no escopo da change |
+
+### Legado e suporte
+
+| Skill | Quando usar |
+|---|---|
+| `dont-be-greedy` | Controlar consumo de contexto em arquivos grandes |
+| `code-review` | Review estruturado pós-implementação |
+| `git-workflow` | Versionamento e PRs |
+| `sprint-set-execution` | **Legado** — apenas sprints 01–10 em `docs/sprints/` |
+| `sprint-definition-rn-flow` | **Legado** — substituído por `/opsx:propose` |
+
+Definições em `.cursor/skills/` e `docs/ai/skills/`.

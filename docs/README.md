@@ -70,7 +70,7 @@ Você decide: [P] abrir PR / [N] planejar próxima sprint
     ├── context/project.md                 ← fonte de verdade do projeto
     ├── business-rules/                    ← RNs aprovadas e ativas
     ├── sprints/                           ← specs de cada sprint
-    │   └── sprint-prompts.md              ← prompts prontos para cada sprint
+    ├── guides/                            ← dev local e deploy produção
     ├── decisions/                         ← ADRs (Architecture Decision Records)
     └── changelog/CHANGELOG.md
 ```

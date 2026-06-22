@@ -32,6 +32,24 @@ describe("loadApiEnvironment", () => {
     ).toThrowError("Variável de ambiente obrigatória ausente: NODE_ENV.");
   });
 
+  it("should reject DEV_MOCK_WHATSAPP_SEND in production", () => {
+    expect(() =>
+      loadApiEnvironment({
+        NODE_ENV: "production",
+        API_HOST: "0.0.0.0",
+        API_PORT: "3000",
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/spec_driven_prod",
+        REDIS_URL: "redis://localhost:6379",
+        LOG_LEVEL: "warn",
+        MULTI_TENANT: "true",
+        DEFAULT_TENANT_ID: "",
+        AUTH_SECRET: "secret-example",
+        AUTH_TOKEN_TTL_SECONDS: "3600",
+        DEV_MOCK_WHATSAPP_SEND: "true",
+      }),
+    ).toThrowError("DEV_MOCK_WHATSAPP_SEND=true não é permitido em staging/production.");
+  });
+
   it("should require default tenant id when multi-tenant is disabled", () => {
     expect(() =>
       loadApiEnvironment({

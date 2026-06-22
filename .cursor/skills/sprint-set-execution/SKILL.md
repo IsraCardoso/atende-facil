@@ -3,6 +3,8 @@ name: sprint-set-execution
 description: Executa uma sprint por sets em ordem definida no plano, com checkpoint obrigatório ao final de cada set e validação de critérios de aceite. Use quando o usuário pedir para implementar, continuar, ajustar ou revisar sets de uma sprint.
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Execução de Sprint por Sets
 
 ## Objetivo
@@ -22,9 +24,9 @@ Executar a sprint com previsibilidade, rastreabilidade e controle por checkpoint
    - critérios de aceite;
    - conformidade com RNs;
    - ausência de efeitos colaterais fora do escopo.
-6. Executar `check-compiler-errors` (cursor-team-kit).
+6. Executar verificação de erros de compilação.
 7. **Executar automaticamente a skill `code-review` com escopo do set atual** — sem aguardar pedido do usuário.
-8. Publicar checkpoint completo (implementação + code review) no formato padrão definido em `.cursor/rules/engineering.mdc`.
+8. Publicar checkpoint completo (implementação + code review) no formato padrão definido em `docs/ai/engineering.md`.
 9. **Verificar se é o último set da sprint:**
    - **Não é o último:** aguardar instrução `[A]`, `[C]` ou `[K]` e continuar normalmente.
    - **É o último:** executar automaticamente a **Cadeia de Fechamento** (ver abaixo) antes de apresentar as opções finais.
@@ -95,7 +97,7 @@ Em tasks com escopo incerto ou impacto em múltiplos arquivos, aplicar gates exp
 - [ ] Set anunciado com tasks corretas
 - [ ] Todas as tasks implementadas
 - [ ] Critérios de aceite revisados e reportados
-- [ ] `check-compiler-errors` executado
+- [ ] Verificação de erros de compilação executada
 - [ ] `code-review` executado automaticamente (escopo: set)
 - [ ] Checkpoint apresentado com resultado do review incluso
 - [ ] Se último set: Cadeia de Fechamento executada automaticamente
@@ -104,7 +106,7 @@ Em tasks com escopo incerto ou impacto em múltiplos arquivos, aplicar gates exp
 
 ---
 
-## Prompt-base sugerido (uso do usuário)
+## Prompt-base sugerido
 
 ```text
 Use a skill sprint-set-execution.

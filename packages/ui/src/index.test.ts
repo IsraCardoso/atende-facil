@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { uiTokens } from "./index";
+import { cn } from "./index";
 
-describe("uiTokens", () => {
-  it("should expose baseline semantic colors", () => {
-    expect(uiTokens.colorBackground).toBe("#ffffff");
-    expect(uiTokens.colorText).toBe("#111827");
+describe("cn", () => {
+  it("should merge tailwind classes", () => {
+    expect(cn("px-2", "px-4")).toBe("px-4");
   });
 });

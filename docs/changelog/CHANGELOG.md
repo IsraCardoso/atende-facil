@@ -21,6 +21,42 @@
 
 ---
 
+## [feat-whatsapp-evolution-ui] — 2026-05-24
+
+> **Objetivo:** Integração WhatsApp Evolution self-service in-app, runtime configurável local/Coolify, painel operacional em Configurações e renovação UX do backoffice admin.
+
+### Adicionado
+- OpenSpec como fonte de planejamento: `openspec/`, CLI (`bun run openspec:*`), skills `/opsx-*`, guia `docs/guides/openspec-workflow.md` e mapa `docs/migration/rn-to-openspec-map.md`.
+- RN-029 e spec `evolution-platform-runtime`: variáveis `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `PUBLIC_API_URL` documentadas em todos os `.env.*.example`; compose de produção repassa credenciais à API.
+- `resolvePublicApiUrlForWebhooks` — em dev, `localhost` vira `host.docker.internal` para webhooks alcançáveis pela Evolution em Docker.
+- `EvolutionInstanceProvisioner`, `EvolutionConnectionAdapter`, `evolution-platform-config` e diagnóstico `platform.available` em `GET /integrations/operational-summary`.
+- Use cases WhatsApp self-service: listar, upsert, status, pareamento QR, desconectar sessão e **desativar integração** (`POST .../deactivate` com deprovision na Evolution).
+- Migration `0008_whatsapp_instance_display_primary`: `display_name`, `is_primary` em `whatsapp_instances`.
+- Rotas `whatsapp-integration-routes` e `integration-routes`; mascaramento de secrets em respostas.
+- Web: `WhatsAppIntegration` (Ativar → Conectar QR → Desconectar → Desativar), `IntegrationOperationalPanel`, `PageHeader` com toolbar, `AdminShell`, design system shadcn em `@atende-facil/ui`.
+- Scripts locais: `verify-evolution.ps1` (`bun run verify:evolution`), `ativar-fluxo-demo.ps1`, fluxo ISP `fluxo-provedora-internet-completo.json`.
+- Guia local atualizado com ciclo E2E pela UI (sem scripts obrigatórios de pareamento).
+
+### Alterado
+- `UpsertWhatsAppInstanceUseCase` provisiona na Evolution **antes** de persistir; falha retorna `502 EVOLUTION_PROVISION_FAILED` sem órfãos no banco.
+- Páginas admin (Fluxos, Inbox, Agendamentos, Configurações, Flow Editor): layout, espaçamento e dark mode alinhados ao backoffice de referência.
+- `docs/ai/engineering.md` como fonte canônica; `bun run ai:sync` propaga para `.cursor/`, `AGENTS.md`, etc.
+- Chatwoot embed, conversation list e rate-limit middleware ajustados no mesmo pacote de polish.
+
+### Corrigido
+- `WHATSAPP_PLATFORM_UNAVAILABLE` quando env Evolution ausente — UI exibe alerta acionável em vez de falha silenciosa no botão "Ativar integração".
+- Feedback de erro/sucesso nas ações de integração (loading, toast, mensagens da API).
+
+### Regras de negócio implementadas
+- [RN-029 — WhatsApp self-service gerenciado pela plataforma](../business-rules/RN-029-whatsapp-self-service-plataforma.md)
+
+### Débitos técnicos gerados
+- [ ] Validação manual E2E completa (QR real + hand-off Chatwoot) documentada nas changes arquivadas `ui-ux-polish-validation` e `flows-inbox-backoffice-parity`
+- [ ] Sincronizar specs delta restantes (`admin-page-layout`, `admin-shell`, `tenant-whatsapp-self-service`) para `openspec/specs/`
+- [ ] Meta/Z-API/Uazapi: pareamento retorna `NOT_SUPPORTED` na v1 — documentar roadmap
+
+---
+
 ## [sprint-10] — 2026-04-07
 
 > **Objetivo:** Permitir que o admin do tenant configure quais fluxos ficam ativos em quais horários e dias da semana, com troca automática baseada no horário local do tenant.

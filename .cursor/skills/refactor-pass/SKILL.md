@@ -3,6 +3,8 @@ name: refactor-pass
 description: Executa uma passagem de refatoração ao final da sprint para reduzir débito técnico, remover duplicação e garantir consistência. Normalmente chamada automaticamente pela Cadeia de Fechamento da sprint-set-execution — não precisa ser invocada manualmente.
 ---
 
+<!-- GERADO AUTOMATICAMENTE — fonte canônica: docs/ai/ — edite lá e rode: bun run ai:sync -->
+
 # Refactor Pass
 
 ## Objetivo
@@ -23,7 +25,7 @@ Melhorar a qualidade do código após a implementação da sprint, sem alterar c
 1. Ler o checklist final da sprint e itens marcados como débito técnico
 2. Ler o resultado do `code-review` de todos os sets concluídos
 3. Executar as ações de refatoração por prioridade (🔴 → 🟠 → 🟡 → 🔵)
-4. Rodar `check-compiler-errors` após cada conjunto de mudanças
+4. Rodar verificação de erros de compilação após cada conjunto de mudanças
 5. Confirmar que todos os testes continuam passando
 6. Confirmar que o lint passa sem warnings
 7. Apresentar relatório de mudanças

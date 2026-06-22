@@ -14,9 +14,14 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
+import { ArrowLeft } from "lucide-react";
 import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import { useNavigate, useParams } from "react-router-dom";
+import { Badge } from "ui/badge";
+import { Button } from "ui/button";
+import { Input } from "ui/input";
+import { FlowEditorLayout } from "../components/flow-editor/flow-editor-layout";
 import { NodePalette } from "../components/flow-editor/node-palette";
 import { NodePropertyPanel } from "../components/flow-editor/node-property-panel";
 import { nodeTypes } from "../components/flow-editor/nodes";
@@ -265,57 +270,74 @@ function FlowEditorInner() {
     [onNodesChange],
   );
 
+  const handleNavigateBack = useCallback(() => {
+    // biome-ignore lint/suspicious/noAlert: aviso de dirty-state antes de sair (spec flow-editor)
+    if (hasUnsavedChanges && !window.confirm("Há alterações não salvas. Deseja sair sem salvar?")) {
+      return;
+    }
+    navigate("/flows");
+  }, [hasUnsavedChanges, navigate]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
+    <FlowEditorLayout>
+      <FlowEditorLayout.Toolbar>
+        <FlowEditorLayout.ToolbarStart>
+          <Button
             type="button"
-            onClick={() => navigate("/flows")}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            variant="ghost"
+            size="sm"
+            onClick={handleNavigateBack}
+            aria-label="Voltar para fluxos"
           >
-            &larr; Voltar
-          </button>
-          <input
-            type="text"
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para Fluxos
+          </Button>
+          <Input
             value={flowName}
             onChange={(e) => {
               setFlowName(e.target.value);
               setHasUnsavedChanges(true);
             }}
-            className="text-lg font-semibold border-none focus:ring-0 bg-transparent"
+            className="h-9 max-w-xs border-none bg-transparent text-lg font-semibold shadow-none focus-visible:ring-0"
+            aria-label="Nome do fluxo"
           />
           {hasUnsavedChanges && (
-            <span className="text-xs text-amber-500 font-medium">Nao salvo</span>
+            <Badge variant="outline" className="border-amber-500 text-amber-600">
+              Não salvo
+            </Badge>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
+        </FlowEditorLayout.ToolbarStart>
+        <FlowEditorLayout.ToolbarEnd>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={undo}
-            className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
             title="Desfazer (Ctrl+Z)"
           >
             Desfazer
-          </button>
-          <button
-            type="button"
-            onClick={redo}
-            className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-            title="Refazer (Ctrl+Y)"
-          >
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={redo} title="Refazer (Ctrl+Y)">
             Refazer
-          </button>
-          <button
-            type="button"
-            onClick={handleValidate}
-            className="text-xs px-3 py-1.5 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
-          >
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={handleValidate}>
             Validar
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => {
               if (showSimulation) {
                 simulation.reset();
@@ -328,32 +350,23 @@ function FlowEditorInner() {
                 });
               }
             }}
-            className="text-xs px-3 py-1.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
           >
-            {showSimulation ? "Fechar Simulacao" : "Simular"}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="text-xs px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-          >
+            {showSimulation ? "Fechar simulação" : "Simular"}
+          </Button>
+          <Button type="button" size="sm" onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Salvando..." : "Salvar"}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </FlowEditorLayout.ToolbarEnd>
+      </FlowEditorLayout.Toolbar>
 
-      {/* Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <FlowEditorLayout.Body>
         {!showSimulation && (
-          <div className="w-48 border-r bg-white overflow-y-auto">
+          <FlowEditorLayout.Palette>
             <NodePalette />
-          </div>
+          </FlowEditorLayout.Palette>
         )}
 
-        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: drag-and-drop canvas zone */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop canvas zone */}
-        <div className="flex-1" onDragOver={onDragOver} onDrop={onDrop}>
+        <FlowEditorLayout.Canvas onDragOver={onDragOver} onDrop={onDrop}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -370,33 +383,37 @@ function FlowEditorInner() {
             <Controls />
             <MiniMap />
           </ReactFlow>
-        </div>
+        </FlowEditorLayout.Canvas>
 
         {selectedNode && !showSimulation && (
-          <NodePropertyPanel
-            node={selectedNode}
-            onUpdate={handleNodeUpdate}
-            onClose={() => setSelectedNode(null)}
-          />
+          <FlowEditorLayout.Panel>
+            <NodePropertyPanel
+              node={selectedNode}
+              onUpdate={handleNodeUpdate}
+              onClose={() => setSelectedNode(null)}
+            />
+          </FlowEditorLayout.Panel>
         )}
 
         {showSimulation && (
-          <SimulationPanel
-            messages={simulation.messages as { sender: "bot" | "user"; text: string }[]}
-            isComplete={simulation.isComplete}
-            onSend={simulation.sendMessage}
-            onReset={() => {
-              const def = reactFlowToBackend(nodes, edges, startNodeId);
-              simulation.start(def as Record<string, unknown>);
-            }}
-            onClose={() => {
-              simulation.reset();
-              setShowSimulation(false);
-            }}
-          />
+          <FlowEditorLayout.Panel>
+            <SimulationPanel
+              messages={simulation.messages as { sender: "bot" | "user"; text: string }[]}
+              isComplete={simulation.isComplete}
+              onSend={simulation.sendMessage}
+              onReset={() => {
+                const def = reactFlowToBackend(nodes, edges, startNodeId);
+                simulation.start(def as Record<string, unknown>);
+              }}
+              onClose={() => {
+                simulation.reset();
+                setShowSimulation(false);
+              }}
+            />
+          </FlowEditorLayout.Panel>
         )}
-      </div>
-    </div>
+      </FlowEditorLayout.Body>
+    </FlowEditorLayout>
   );
 }
 

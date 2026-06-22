@@ -2,14 +2,18 @@
 import type { ChatwootConversationId } from "../../domain/whatsapp-types";
 
 type ChatwootAccessConfig = Readonly<{
-  chatwootAppUrl: string;
+  chatwootAppUrl: string | null;
   chatwootSsoSecret: string | null;
   chatwootAccountId: string;
 }>;
 
 type ChatwootAccessUrls = Readonly<{
   embedUrl: string | null;
-  deepLink: string;
+  deepLink: string | null;
+}>;
+
+type ChatwootPortalUrl = Readonly<{
+  portalUrl: string | null;
 }>;
 
 /** Gera token simples com expiração para SSO. Em produção, substituir por HMAC-SHA256 via Web Crypto API. */
@@ -25,10 +29,18 @@ function generateSsoToken(payload: string, secret: string): string {
 
 function createChatwootAccessService(config: ChatwootAccessConfig) {
   const { chatwootAppUrl, chatwootSsoSecret, chatwootAccountId } = config;
-  const baseUrl = chatwootAppUrl.replace(/\/$/, "");
+  const baseUrl = chatwootAppUrl?.replace(/\/$/, "") ?? null;
 
   return {
+    get isAppConfigured(): boolean {
+      return baseUrl !== null && baseUrl.length > 0;
+    },
+
     generateAccessUrls(chatwootConversationId: ChatwootConversationId): ChatwootAccessUrls {
+      if (!baseUrl) {
+        return { embedUrl: null, deepLink: null };
+      }
+
       const deepLink = `${baseUrl}/app/accounts/${chatwootAccountId}/conversations/${chatwootConversationId}`;
 
       if (!chatwootSsoSecret) {
@@ -47,8 +59,17 @@ function createChatwootAccessService(config: ChatwootAccessConfig) {
     get isEmbedAvailable(): boolean {
       return chatwootSsoSecret !== null;
     },
+
+    generatePortalUrl(): ChatwootPortalUrl {
+      if (!baseUrl) {
+        return { portalUrl: null };
+      }
+      return {
+        portalUrl: `${baseUrl}/app/accounts/${chatwootAccountId}/dashboard`,
+      };
+    },
   };
 }
 
-export type { ChatwootAccessConfig, ChatwootAccessUrls };
+export type { ChatwootAccessConfig, ChatwootAccessUrls, ChatwootPortalUrl };
 export { createChatwootAccessService };

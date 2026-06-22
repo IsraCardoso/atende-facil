@@ -1,5 +1,13 @@
 /** Modal para criar/editar um schedule de fluxo (RN-027). */
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "ui/alert";
+import { Button } from "ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "ui/dialog";
+import { Input } from "ui/input";
+import { Label } from "ui/label";
+import { cn } from "ui/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "ui/select";
 
 import type { FlowDto } from "../../services/flow-api";
 import type { ScheduleDto } from "../../services/schedule-api";
@@ -23,7 +31,7 @@ type ScheduleFormData = Readonly<{
   active: boolean;
 }>;
 
-const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"] as const;
+const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"] as const;
 
 function hasOverlap(
   existing: readonly ScheduleDto[],
@@ -59,7 +67,12 @@ export function ScheduleModal({
   const [active, setActive] = useState(true);
   const [overlapWarning, setOverlapWarning] = useState(false);
 
+  const hasPublishedFlows = publishedFlows.length > 0;
+
   useEffect(() => {
+    if (!open) {
+      return;
+    }
     if (existingSchedule) {
       setFlowId(existingSchedule.flowId);
       setDaysOfWeek([...existingSchedule.daysOfWeek]);
@@ -77,7 +90,7 @@ export function ScheduleModal({
       );
       setActive(true);
     }
-  }, [existingSchedule, publishedFlows, defaultDay, defaultHour]);
+  }, [open, existingSchedule, publishedFlows, defaultDay, defaultHour]);
 
   useEffect(() => {
     const overlap = hasOverlap(
@@ -101,133 +114,121 @@ export function ScheduleModal({
     onSave({ flowId, daysOfWeek, startTime, endTime, active });
   }, [flowId, daysOfWeek, startTime, endTime, active, onSave]);
 
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {existingSchedule ? "Editar Agendamento" : "Novo Agendamento"}
-        </h2>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{existingSchedule ? "Editar agendamento" : "Novo agendamento"}</DialogTitle>
+        </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="schedule-flow"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Fluxo
-            </label>
-            <select
-              id="schedule-flow"
-              value={flowId}
-              onChange={(e) => setFlowId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            >
-              {publishedFlows.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Dias da semana
-            </span>
-            <div className="flex gap-1">
-              {DAY_LABELS.map((label, idx) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => toggleDay(idx)}
-                  className={`rounded-md px-2 py-1 text-xs font-medium ${
-                    daysOfWeek.includes(idx)
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+        {!hasPublishedFlows && !existingSchedule ? (
+          <Alert>
+            <AlertTitle>Nenhum fluxo publicado</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>Publique um fluxo antes de criar um agendamento.</p>
+              <Button type="button" variant="outline" size="sm" asChild={true}>
+                <Link to="/flows" onClick={onClose}>
+                  Ir para Fluxos
+                </Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="schedule-flow">Fluxo</Label>
+              <Select value={flowId} onValueChange={setFlowId}>
+                <SelectTrigger id="schedule-flow" className="w-full">
+                  <SelectValue placeholder="Selecione o fluxo" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4}>
+                  {publishedFlows.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label
-                htmlFor="schedule-start"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Inicio
-              </label>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Dias da semana</span>
+              <div className="flex flex-wrap gap-1">
+                {DAY_LABELS.map((label, idx) => (
+                  <Button
+                    key={label}
+                    type="button"
+                    size="xs"
+                    variant={daysOfWeek.includes(idx) ? "default" : "outline"}
+                    onClick={() => toggleDay(idx)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="schedule-start">Início</Label>
+                <Input
+                  id="schedule-start"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="schedule-end">Fim</Label>
+                <Input
+                  id="schedule-end"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
               <input
-                id="schedule-start"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                id="schedule-active"
+                type="checkbox"
+                checked={active}
+                onChange={(e) => setActive(e.target.checked)}
+                className={cn(
+                  "border-input size-4 rounded border",
+                  "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                )}
               />
+              <Label htmlFor="schedule-active">Ativo</Label>
             </div>
-            <div className="flex-1">
-              <label
-                htmlFor="schedule-end"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Fim
-              </label>
-              <input
-                id="schedule-end"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              />
-            </div>
+
+            {overlapWarning && (
+              <Alert>
+                <AlertDescription>
+                  Conflito de horário detectado com um agendamento existente.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
+        )}
 
-          <div className="flex items-center gap-2">
-            <input
-              id="schedule-active"
-              type="checkbox"
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="schedule-active" className="text-sm text-gray-700 dark:text-gray-300">
-              Ativo
-            </label>
-          </div>
-
-          {overlapWarning && (
-            <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-              Conflito de horario detectado com um agendamento existente.
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!flowId || daysOfWeek.length === 0}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {existingSchedule ? "Atualizar" : "Criar"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+          {(hasPublishedFlows || existingSchedule) && (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!flowId || daysOfWeek.length === 0}
+            >
+              {existingSchedule ? "Atualizar" : "Criar"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

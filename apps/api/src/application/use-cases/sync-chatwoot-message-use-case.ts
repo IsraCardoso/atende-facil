@@ -5,8 +5,13 @@ import type {
   WhatsAppInstanceRepositoryPort,
   WhatsAppSenderPort,
 } from "../../domain/ports/whatsapp-ports";
-import type { ChatwootConversationId, WhatsAppInstanceConfig } from "../../domain/whatsapp-types";
+import type {
+  ChatwootConversationId,
+  Phone,
+  WhatsAppInstanceConfig,
+} from "../../domain/whatsapp-types";
 import { createAppError } from "../errors/app-error";
+import { resolveConversationFromChatwootWebhook } from "../services/resolve-conversation-from-chatwoot-webhook";
 
 type SyncChatwootMessageDependencies = Readonly<{
   conversationRepository: ConversationRepositoryPort;
@@ -19,6 +24,8 @@ type SyncChatwootMessageInput = Readonly<{
   chatwootConversationId: ChatwootConversationId;
   messageContent: string;
   correlationId: string;
+  tenantId?: string;
+  contactPhone?: Phone;
 }>;
 
 type SyncChatwootMessageResult =
@@ -28,10 +35,15 @@ type SyncChatwootMessageResult =
 export function createSyncChatwootMessageUseCase(deps: SyncChatwootMessageDependencies) {
   return {
     async execute(input: SyncChatwootMessageInput): Promise<SyncChatwootMessageResult> {
-      const { chatwootConversationId, messageContent, correlationId } = input;
+      const { chatwootConversationId, messageContent, correlationId, tenantId, contactPhone } =
+        input;
 
-      const conversation =
-        await deps.conversationRepository.findByChatwootConversationId(chatwootConversationId);
+      const conversation = await resolveConversationFromChatwootWebhook({
+        conversationRepository: deps.conversationRepository,
+        chatwootConversationId,
+        ...(tenantId !== undefined ? { tenantId } : {}),
+        ...(contactPhone !== undefined ? { contactPhone } : {}),
+      });
       if (!conversation) {
         deps.logger.warn("Webhook Chatwoot: conversa não encontrada no sistema.", {
           correlationId,

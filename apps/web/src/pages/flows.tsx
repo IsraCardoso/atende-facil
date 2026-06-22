@@ -1,21 +1,45 @@
-/** Pagina de listagem de flows com CRUD e acoes de lifecycle (RN-020). */
+/** Listagem de flows com design system (RN-020) — layout padrão billing backoffice. */
+import { ListFilter, Plus, Workflow } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "ui/badge";
+import { Button } from "ui/button";
+import { DataTableEmptyState } from "ui/data-table-empty-state";
+import { DataTableSkeleton } from "ui/data-table-skeleton";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "ui/dialog";
+import { Input } from "ui/input";
+import { Label } from "ui/label";
+import { cn } from "ui/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "ui/table";
 
 import { AppShell } from "../components/app-shell";
+import { FlowActionsMenu } from "../components/flow-actions-menu";
+import { PageHeader } from "../components/page-header";
 import { useAuth } from "../hooks/use-auth";
 import { createFlowApi, type FlowDto } from "../services/flow-api";
 
-const FALLBACK_BADGE = { bg: "bg-gray-100", text: "text-gray-700", label: "Rascunho" } as const;
-
-const STATUS_BADGES: Record<string, { bg: string; text: string; label: string }> = {
-  draft: FALLBACK_BADGE,
-  published: { bg: "bg-blue-100", text: "text-blue-700", label: "Publicado" },
-  active: { bg: "bg-green-100", text: "text-green-700", label: "Ativo" },
-  archived: { bg: "bg-red-100", text: "text-red-700", label: "Arquivado" },
+const STATUS_VARIANT: Record<
+  string,
+  { variant: "default" | "secondary" | "outline" | "destructive"; label: string }
+> = {
+  draft: { variant: "secondary", label: "Rascunho" },
+  published: { variant: "outline", label: "Publicado" },
+  active: { variant: "default", label: "Ativo" },
+  archived: { variant: "destructive", label: "Arquivado" },
 };
 
 type FlowAction = "publish" | "activate" | "deactivate" | "archive" | "delete";
+
+const FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "draft", label: "Rascunho" },
+  { value: "published", label: "Publicado" },
+  { value: "active", label: "Ativo" },
+  { value: "archived", label: "Arquivado" },
+];
+
+const COL_COUNT = 5;
 
 export function FlowsPage() {
   const { token } = useAuth();
@@ -23,19 +47,26 @@ export function FlowsPage() {
   const api = useMemo(() => createFlowApi(() => token), [token]);
 
   const [flows, setFlows] = useState<readonly FlowDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFlowName, setNewFlowName] = useState("");
   const createInputRef = useRef<HTMLInputElement>(null);
+  const hasLoadedOnceRef = useRef(false);
 
   const loadFlows = useCallback(async () => {
-    setLoading(true);
-    const res = await api.listFlows(statusFilter ? { status: statusFilter } : {});
+    setIsFetching(hasLoadedOnceRef.current);
+
+    const res = await api.listFlows(statusFilter !== "all" ? { status: statusFilter } : {});
+
     if (res.ok) {
       setFlows(res.data.data);
     }
-    setLoading(false);
+
+    hasLoadedOnceRef.current = true;
+    setIsFetching(false);
+    setInitialLoading(false);
   }, [statusFilter, api]);
 
   useEffect(() => {
@@ -83,149 +114,136 @@ export function FlowsPage() {
     loadFlows();
   };
 
+  const isEmpty = !initialLoading && !isFetching && flows.length === 0;
+  const hasActiveFilter = statusFilter !== "all";
+
   return (
-    <AppShell>
-      <div className="p-6 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Fluxos</h1>
-          <button
-            type="button"
-            onClick={() => setShowCreateDialog(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium"
-          >
-            + Novo Flow
-          </button>
-        </div>
+    <AppShell fullHeight={true}>
+      <div className="flex h-full min-h-0 flex-col gap-6">
+        <PageHeader
+          className="shrink-0"
+          title="Fluxos"
+          description="Gerencie fluxos de atendimento automatizado do tenant."
+          actions={
+            <Button type="button" className="gap-2" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="size-4" />
+              Novo fluxo
+            </Button>
+          }
+          toolbar={
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px] gap-2" size="sm" aria-label="Filtrar por status">
+                <ListFilter className="size-4 shrink-0" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={4}>
+                {FILTER_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
 
-        <div className="flex gap-2 mb-4">
-          {["", "draft", "published", "active", "archived"].map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1 text-xs rounded-full border ${statusFilter === s ? "bg-blue-500 text-white border-blue-500" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
-            >
-              {s ? STATUS_BADGES[s]?.label : "Todos"}
-            </button>
-          ))}
-        </div>
+        <div className="min-h-0 flex-1 overflow-auto rounded-md border [&>[data-slot=table-container]]:overflow-visible">
+          <Table className="min-w-[720px]">
+            <TableHeader className="bg-background sticky top-0 z-10">
+              <TableRow>
+                <TableHead className="min-w-[200px]">Nome</TableHead>
+                <TableHead className="w-[120px]">Status</TableHead>
+                <TableHead className="w-[80px]">Versão</TableHead>
+                <TableHead className="w-[120px]">Atualizado</TableHead>
+                <TableHead className="w-[44px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className={cn(isFetching && "opacity-60")}>
+              {initialLoading && <DataTableSkeleton rowCount={5} columnCount={COL_COUNT} />}
 
-        {loading && <p className="text-gray-500 text-center py-8">Carregando...</p>}
+              {isEmpty && (
+                <TableRow>
+                  <TableCell colSpan={COL_COUNT} className="h-48 p-0">
+                    <DataTableEmptyState
+                      variant={hasActiveFilter ? "filtered" : "default"}
+                      icon={Workflow}
+                      title={
+                        hasActiveFilter ? "Nenhum resultado encontrado" : "Nenhum fluxo encontrado"
+                      }
+                      description={
+                        hasActiveFilter
+                          ? "Tente outro filtro de status."
+                          : "Crie seu primeiro fluxo de atendimento automatizado."
+                      }
+                      {...(hasActiveFilter
+                        ? { onClearFilters: () => setStatusFilter("all") }
+                        : {
+                            action: (
+                              <Button type="button" onClick={() => setShowCreateDialog(true)}>
+                                Criar primeiro fluxo
+                              </Button>
+                            ),
+                          })}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
 
-        {!loading && flows.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg border">
-            <p className="text-gray-500 mb-2">Nenhum flow encontrado</p>
-            <button
-              type="button"
-              onClick={() => setShowCreateDialog(true)}
-              className="text-blue-500 hover:text-blue-700 text-sm"
-            >
-              Criar primeiro flow
-            </button>
-          </div>
-        )}
-
-        {!loading && flows.length > 0 && (
-          <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">
-                    Nome
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">
-                    Status
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">
-                    Versao
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">
-                    Atualizado
-                  </th>
-                  <th className="text-right text-xs font-medium text-gray-500 uppercase px-4 py-3">
-                    Acoes
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {flows.map((flow) => {
-                  const badge = STATUS_BADGES[flow.status] ?? FALLBACK_BADGE;
+              {!initialLoading &&
+                !isEmpty &&
+                flows.map((flow) => {
+                  const status = STATUS_VARIANT[flow.status] ?? STATUS_VARIANT.draft;
                   return (
-                    <tr key={flow.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
+                    <TableRow key={flow.id}>
+                      <TableCell className="align-middle">
                         <button
                           type="button"
                           onClick={() => navigate(`/flows/${flow.id}/edit`)}
-                          className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                          className="text-primary text-left text-sm font-medium hover:underline"
                         >
                           {flow.name}
                         </button>
                         {flow.description && (
-                          <p className="text-xs text-gray-400 mt-0.5">{flow.description}</p>
+                          <p className="text-muted-foreground mt-0.5 text-xs line-clamp-1">
+                            {flow.description}
+                          </p>
                         )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex text-xs px-2 py-0.5 rounded-full font-medium ${badge.bg} ${badge.text}`}
-                        >
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">v{flow.version}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <Badge variant={status?.variant ?? "secondary"}>
+                          {status?.label ?? flow.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground align-middle text-sm">
+                        v{flow.version}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground align-middle text-sm">
                         {new Date(flow.updatedAt).toLocaleDateString("pt-BR")}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex gap-1 justify-end">
-                          {flow.status === "draft" && (
-                            <ActionButton
-                              label="Publicar"
-                              onClick={() => handleAction(flow.id, "publish")}
-                              color="blue"
-                            />
-                          )}
-                          {flow.status === "published" && (
-                            <ActionButton
-                              label="Ativar"
-                              onClick={() => handleAction(flow.id, "activate")}
-                              color="green"
-                            />
-                          )}
-                          {flow.status === "active" && (
-                            <ActionButton
-                              label="Desativar"
-                              onClick={() => handleAction(flow.id, "deactivate")}
-                              color="amber"
-                            />
-                          )}
-                          {flow.status !== "archived" && (
-                            <ActionButton
-                              label="Arquivar"
-                              onClick={() => handleAction(flow.id, "archive")}
-                              color="red"
-                            />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="align-middle text-right">
+                        <FlowActionsMenu
+                          flowName={flow.name}
+                          status={flow.status}
+                          onAction={(action) => handleAction(flow.id, action)}
+                        />
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        )}
+            </TableBody>
+          </Table>
+        </div>
 
-        {showCreateDialog && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-96">
-              <h2 className="text-lg font-semibold mb-4">Novo Flow</h2>
-              <label htmlFor="new-flow-name" className="block text-sm text-gray-600 mb-1">
-                Nome do flow
-              </label>
-              <input
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Novo fluxo</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="new-flow-name">Nome do fluxo</Label>
+              <Input
                 ref={createInputRef}
                 id="new-flow-name"
-                type="text"
                 value={newFlowName}
                 onChange={(e) => setNewFlowName(e.target.value)}
                 onKeyDown={(e) => {
@@ -234,52 +252,26 @@ export function FlowsPage() {
                   }
                 }}
                 placeholder="Meu fluxo de atendimento"
-                className="w-full border rounded px-3 py-2 text-sm mb-4 focus:ring-1 focus:ring-blue-400"
               />
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateDialog(false);
-                    setNewFlowName("");
-                  }}
-                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateSubmit}
-                  disabled={!newFlowName.trim()}
-                  className="px-4 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-                >
-                  Criar
-                </button>
-              </div>
             </div>
-          </div>
-        )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowCreateDialog(false);
+                  setNewFlowName("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleCreateSubmit} disabled={!newFlowName.trim()}>
+                Criar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
-  );
-}
-
-function ActionButton({
-  label,
-  onClick,
-  color,
-}: {
-  label: string;
-  onClick: () => void;
-  color: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-xs px-2 py-1 rounded bg-${color}-100 text-${color}-700 hover:bg-${color}-200`}
-    >
-      {label}
-    </button>
   );
 }
