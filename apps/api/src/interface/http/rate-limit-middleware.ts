@@ -48,6 +48,7 @@ const RATE_LIMITS: Readonly<Record<string, RateLimitConfig>> = {
   webhook: { windowMs: 60_000, maxRequests: 100 },
   flow: { windowMs: 60_000, maxRequests: 30 },
   whatsapp: { windowMs: 60_000, maxRequests: 10 },
+  chatwootSso: { windowMs: 60_000, maxRequests: 10 },
 };
 
 export function resolveRateLimitCategory(path: string, method: string): string | null {
@@ -65,6 +66,13 @@ export function resolveRateLimitCategory(path: string, method: string): string |
     (path.endsWith("/pair") || path.endsWith("/status"))
   ) {
     return "whatsapp";
+  }
+  // Cada chamada aciona ate 3 requests a Platform API do Chatwoot com o token privilegiado.
+  if (
+    path.includes("/integrations/chatwoot/portal") ||
+    (path.includes("/conversations/") && path.endsWith("/access"))
+  ) {
+    return "chatwootSso";
   }
   return null;
 }

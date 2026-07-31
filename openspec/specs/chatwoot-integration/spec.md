@@ -75,8 +75,8 @@ O painel de atendimento (Inbox) utiliza o Chatwoot como UI primária de chat, em
 - **WHEN** the system operates under normal conditions
 - **THEN** the rule above MUST be enforced
 
-### Requirement: Acesso Seguro ao Chatwoot via URL Assinada (legacy: RN-019)
-The system MUST enforce the following: O acesso ao Chatwoot embutido é feito via URL assinada pelo backend com token HMAC de curta duração. O frontend nunca armazena ou gera tokens de acesso ao Chatwoot diretamente.
+### Requirement: Acesso ao Chatwoot via SSO Federado (legacy: RN-019)
+The system MUST enforce the following: O acesso ao Chatwoot é feito via URL de login único emitida pela Platform API do Chatwoot a pedido do backend (`GET /platform/api/v1/users/{id}/login`), nunca por HMAC próprio. O frontend nunca armazena, gera ou vê tokens de acesso ao Chatwoot; o token retornado é de uso único e é reemitido a cada abertura. O espelho do usuário no Chatwoot é provisionado sob demanda e sempre entra como papel `agent` — nunca `administrator` — mesmo para usuários `admin` do Atende Fácil. Falha na emissão degrada para deep-link, nunca bloqueia o carregamento da conversa.
 
 #### Scenario: Default behavior
 - **WHEN** the system operates under normal conditions

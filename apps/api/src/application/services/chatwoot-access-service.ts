@@ -24,33 +24,35 @@ function createChatwootAccessService(config: ChatwootAccessConfig) {
   const { chatwootAppUrl, chatwootAccountId } = config;
   const baseUrl = chatwootAppUrl?.replace(/\/$/, "") ?? null;
 
+  /** Caminho relativo da conversa — usado como redirect_url do SSO. */
+  function conversationPath(chatwootConversationId: ChatwootConversationId): string {
+    return `/app/accounts/${chatwootAccountId}/conversations/${chatwootConversationId}`;
+  }
+
+  const dashboardPath = `/app/accounts/${chatwootAccountId}/dashboard`;
+
   return {
     get isAppConfigured(): boolean {
       return baseUrl !== null && baseUrl.length > 0;
     },
 
+    // O caller SEM SSO deve tratar embedUrl===null explicitamente (não renderizar um iframe
+    // não-autenticado). Só quem tem SSO substitui embedUrl pela URL de login único.
     generateAccessUrls(chatwootConversationId: ChatwootConversationId): ChatwootAccessUrls {
       if (!baseUrl) {
         return { embedUrl: null, deepLink: null };
       }
 
-      const conversationPath = this.conversationPath(chatwootConversationId);
-
-      // embedUrl e deepLink apontam para o mesmo lugar; a diferença é o SSO que o caller
-      // prefixa no embedUrl para o iframe abrir já autenticado.
       return {
-        embedUrl: `${baseUrl}${conversationPath}`,
-        deepLink: `${baseUrl}${conversationPath}`,
+        embedUrl: null,
+        deepLink: `${baseUrl}${conversationPath(chatwootConversationId)}`,
       };
     },
 
-    /** Caminho relativo da conversa — usado como redirect_url do SSO. */
-    conversationPath(chatwootConversationId: ChatwootConversationId): string {
-      return `/app/accounts/${chatwootAccountId}/conversations/${chatwootConversationId}`;
-    },
+    conversationPath,
 
     get dashboardPath(): string {
-      return `/app/accounts/${chatwootAccountId}/dashboard`;
+      return dashboardPath;
     },
 
     generatePortalUrl(): ChatwootPortalUrl {
@@ -58,7 +60,7 @@ function createChatwootAccessService(config: ChatwootAccessConfig) {
         return { portalUrl: null };
       }
       return {
-        portalUrl: `${baseUrl}${this.dashboardPath}`,
+        portalUrl: `${baseUrl}${dashboardPath}`,
       };
     },
   };

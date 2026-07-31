@@ -71,13 +71,19 @@ async function requestPlatform(
   return (await response.json()) as unknown;
 }
 
+/** Valida id numérico. Chatwoot ids são inteiros; um id não-numérico não pode virar path de URL. */
 function extractId(payload: unknown): string | null {
   if (!isRecord(payload)) {
     return null;
   }
 
   const rawId = payload.id;
-  return typeof rawId === "number" || typeof rawId === "string" ? String(rawId) : null;
+  if (typeof rawId !== "number" && typeof rawId !== "string") {
+    return null;
+  }
+
+  const id = String(rawId);
+  return /^\d+$/.test(id) ? id : null;
 }
 
 /**
@@ -127,9 +133,13 @@ export function createChatwootPlatformAdapter(
     },
 
     async createSsoUrl(chatwootUserId: string): Promise<string> {
-      const payload = await requestPlatform(config, `/users/${chatwootUserId}/login`, {
-        method: "GET",
-      });
+      const payload = await requestPlatform(
+        config,
+        `/users/${encodeURIComponent(chatwootUserId)}/login`,
+        {
+          method: "GET",
+        },
+      );
 
       if (!isRecord(payload) || typeof payload.url !== "string" || !payload.url) {
         throw new Error("Chatwoot Platform login não retornou url de SSO.");

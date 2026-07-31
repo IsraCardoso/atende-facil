@@ -71,6 +71,13 @@
       "when": 1775700004000,
       "tag": "0009_users_chatwoot_user_id",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775700005000,
+      "tag": "0010_users_chatwoot_user_id_unique",
+      "breakpoints": true
     }
   ]
 }

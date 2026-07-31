@@ -11,13 +11,19 @@
 > Mudanças em desenvolvimento que ainda não foram para produção.
 
 ### Adicionado
-- 
+- Login único (SSO) para o Chatwoot via Platform API (`GET /platform/api/v1/users/{id}/login`) — o atendente autentica apenas no Atende Fácil; `users.chatwoot_user_id` guarda o vínculo com o espelho provisionado sob demanda no Chatwoot (RN-019 v2.0).
 
 ### Alterado
-- 
+- `CHATWOOT_SSO_SECRET` removida; substituída por `CHATWOOT_PLATFORM_TOKEN` (Platform App token, gerado no console Rails do Chatwoot).
+- Espelho no Chatwoot sempre provisionado como papel `agent`, independente do papel no Atende Fácil — evita escalação de privilégio via autocadastro de tenant.
 
 ### Corrigido
-- 
+- O embed Chatwoot exibia uma URL sem autenticação como se fosse funcional quando o SSO não estava configurado; agora `embedUrl` fica `null` explicitamente e o painel mostra o motivo.
+- Link "Abrir Chatwoot" da inbox vazia reusava a mesma URL de SSO (uso único) em cliques repetidos; agora busca uma URL nova a cada clique.
+
+### Débitos conhecidos (ver RN-019 §Débito conhecido)
+- [ ] SSO usa config global (`CHATWOOT_ACCOUNT_ID`/`CHATWOOT_PLATFORM_TOKEN`); tenants com Chatwoot próprio (RN-026) ainda não são resolvidos por tenant — todos os agentes federados hoje entram na MESMA conta Chatwoot.
+- [ ] Sem deprovisionamento: usuário demovido/desativado no Atende Fácil mantém o espelho e o papel no Chatwoot congelados desde a primeira federação.
 
 ---
 

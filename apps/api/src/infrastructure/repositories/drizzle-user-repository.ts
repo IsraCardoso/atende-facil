@@ -60,10 +60,15 @@ export function createDrizzleUserRepository(
     },
 
     async setChatwootUserId(userId: UserId, chatwootUserId: string): Promise<void> {
-      await db
+      const rows = await db
         .update(usersTable)
         .set({ chatwootUserId, updatedAt: new Date() })
-        .where(eq(usersTable.id, userId));
+        .where(eq(usersTable.id, userId))
+        .returning({ id: usersTable.id });
+
+      if (rows.length === 0) {
+        throw new Error("Usuário não encontrado para vincular ao Chatwoot.");
+      }
     },
   };
 }

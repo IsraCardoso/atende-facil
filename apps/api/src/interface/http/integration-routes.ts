@@ -77,6 +77,7 @@ export function createIntegrationRoutes(input: CreateIntegrationRoutesInput) {
         userId: authClaims.sub,
         role: authClaims.role,
         correlationId,
+        tenantId: authClaims.tenantId,
         redirectPath: chatwootAccess.dashboardPath,
       });
 
