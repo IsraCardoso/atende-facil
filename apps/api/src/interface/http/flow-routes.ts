@@ -9,6 +9,7 @@ import type {
   DeactivateFlowUseCase,
   DeleteFlowUseCase,
   GetFlowUseCase,
+  GoLiveFlowUseCase,
   ListFlowsUseCase,
   PublishFlowUseCase,
   UpdateFlowDefinitionUseCase,
@@ -26,6 +27,7 @@ type CreateFlowRoutesInput = Readonly<{
   deleteFlow: DeleteFlowUseCase;
   publishFlow: PublishFlowUseCase;
   activateFlow: ActivateFlowUseCase;
+  goLiveFlow: GoLiveFlowUseCase;
   deactivateFlow: DeactivateFlowUseCase;
   archiveFlow: ArchiveFlowUseCase;
   validateFlow: ValidateFlowUseCase;
@@ -41,6 +43,7 @@ export function createFlowRoutes(input: CreateFlowRoutesInput) {
     deleteFlow,
     publishFlow,
     activateFlow,
+    goLiveFlow,
     deactivateFlow,
     archiveFlow,
     validateFlow,
@@ -126,6 +129,12 @@ export function createFlowRoutes(input: CreateFlowRoutesInput) {
     )
     .post("/:id/activate", async ({ authClaims, params }) =>
       activateFlow.execute({
+        tenantId: authClaims.tenantId,
+        flowId: createFlowId(params.id),
+      }),
+    )
+    .post("/:id/go-live", async ({ authClaims, params }) =>
+      goLiveFlow.execute({
         tenantId: authClaims.tenantId,
         flowId: createFlowId(params.id),
       }),

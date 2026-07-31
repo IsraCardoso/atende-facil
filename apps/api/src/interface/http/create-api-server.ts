@@ -19,6 +19,7 @@ import type {
   DeactivateFlowUseCase,
   DeleteFlowUseCase,
   GetFlowUseCase,
+  GoLiveFlowUseCase,
   ListFlowsUseCase,
   PublishFlowUseCase,
   UpdateFlowDefinitionUseCase,
@@ -119,6 +120,7 @@ type CreateApiServerFlowDependencies = Readonly<{
   deleteFlow: DeleteFlowUseCase;
   publishFlow: PublishFlowUseCase;
   activateFlow: ActivateFlowUseCase;
+  goLiveFlow: GoLiveFlowUseCase;
   deactivateFlow: DeactivateFlowUseCase;
   archiveFlow: ArchiveFlowUseCase;
   validateFlow: ValidateFlowUseCase;

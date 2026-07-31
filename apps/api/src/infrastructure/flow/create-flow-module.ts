@@ -9,6 +9,7 @@ import {
   createDeactivateFlowUseCase,
   createDeleteFlowUseCase,
   createGetFlowUseCase,
+  createGoLiveFlowUseCase,
   createListFlowsUseCase,
   createPublishFlowUseCase,
   createUpdateFlowDefinitionUseCase,
@@ -20,6 +21,7 @@ import type { CreateFlowUseCase } from "../../application/use-cases/flows/create
 import type { DeactivateFlowUseCase } from "../../application/use-cases/flows/deactivate-flow-use-case";
 import type { DeleteFlowUseCase } from "../../application/use-cases/flows/delete-flow-use-case";
 import type { GetFlowUseCase } from "../../application/use-cases/flows/get-flow-use-case";
+import type { GoLiveFlowUseCase } from "../../application/use-cases/flows/go-live-flow-use-case";
 import type { ListFlowsUseCase } from "../../application/use-cases/flows/list-flows-use-case";
 import type { PublishFlowUseCase } from "../../application/use-cases/flows/publish-flow-use-case";
 import type { UpdateFlowDefinitionUseCase } from "../../application/use-cases/flows/update-flow-definition-use-case";
@@ -39,6 +41,7 @@ type FlowModule = Readonly<{
   deleteFlow: DeleteFlowUseCase;
   publishFlow: PublishFlowUseCase;
   activateFlow: ActivateFlowUseCase;
+  goLiveFlow: GoLiveFlowUseCase;
   deactivateFlow: DeactivateFlowUseCase;
   archiveFlow: ArchiveFlowUseCase;
   validateFlow: ValidateFlowUseCase;
@@ -58,6 +61,7 @@ type FlowContainerTokenMap = Readonly<{
   deleteFlow: DeleteFlowUseCase;
   publishFlow: PublishFlowUseCase;
   activateFlow: ActivateFlowUseCase;
+  goLiveFlow: GoLiveFlowUseCase;
   deactivateFlow: DeactivateFlowUseCase;
   archiveFlow: ArchiveFlowUseCase;
   validateFlow: ValidateFlowUseCase;
@@ -74,6 +78,7 @@ const flowTokens: Readonly<{
   deleteFlow: createToken<DeleteFlowUseCase>("flow.deleteFlow"),
   publishFlow: createToken<PublishFlowUseCase>("flow.publishFlow"),
   activateFlow: createToken<ActivateFlowUseCase>("flow.activateFlow"),
+  goLiveFlow: createToken<GoLiveFlowUseCase>("flow.goLiveFlow"),
   deactivateFlow: createToken<DeactivateFlowUseCase>("flow.deactivateFlow"),
   archiveFlow: createToken<ArchiveFlowUseCase>("flow.archiveFlow"),
   validateFlow: createToken<ValidateFlowUseCase>("flow.validateFlow"),
@@ -131,6 +136,12 @@ export function createFlowModule(input: CreateFlowModuleInput): FlowModule {
     }),
   );
 
+  container.registerTransient(flowTokens.goLiveFlow, (resolver) =>
+    createGoLiveFlowUseCase({
+      flowRepository: resolver.resolve(flowTokens.flowRepository),
+    }),
+  );
+
   container.registerTransient(flowTokens.deactivateFlow, (resolver) =>
     createDeactivateFlowUseCase({
       flowRepository: resolver.resolve(flowTokens.flowRepository),
@@ -158,6 +169,7 @@ export function createFlowModule(input: CreateFlowModuleInput): FlowModule {
     deleteFlow: container.resolve(flowTokens.deleteFlow),
     publishFlow: container.resolve(flowTokens.publishFlow),
     activateFlow: container.resolve(flowTokens.activateFlow),
+    goLiveFlow: container.resolve(flowTokens.goLiveFlow),
     deactivateFlow: container.resolve(flowTokens.deactivateFlow),
     archiveFlow: container.resolve(flowTokens.archiveFlow),
     validateFlow: container.resolve(flowTokens.validateFlow),

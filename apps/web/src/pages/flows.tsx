@@ -1,7 +1,8 @@
 /** Listagem de flows com design system (RN-020) — layout padrão billing backoffice. */
-import { ListFilter, Plus, Workflow } from "lucide-react";
+import { AlertTriangle, ListFilter, Plus, Workflow } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "ui/alert";
 import { Badge } from "ui/badge";
 import { Button } from "ui/button";
 import { DataTableEmptyState } from "ui/data-table-empty-state";
@@ -17,7 +18,8 @@ import { AppShell } from "../components/app-shell";
 import { FlowActionsMenu } from "../components/flow-actions-menu";
 import { PageHeader } from "../components/page-header";
 import { useAuth } from "../hooks/use-auth";
-import { createFlowApi, type FlowDto } from "../services/flow-api";
+import { flowTemplates } from "../lib/flow-templates";
+import { createFlowApi, type FlowDto, type ValidationIssue } from "../services/flow-api";
 
 const STATUS_VARIANT: Record<
   string,
@@ -29,7 +31,12 @@ const STATUS_VARIANT: Record<
   archived: { variant: "destructive", label: "Arquivado" },
 };
 
-type FlowAction = "publish" | "activate" | "deactivate" | "archive" | "delete";
+type FlowAction = "go-live" | "publish" | "activate" | "deactivate" | "archive" | "delete";
+
+type GoLiveErrorPayload = Readonly<{
+  code?: string;
+  details?: Readonly<{ issues?: readonly ValidationIssue[] }>;
+}>;
 
 const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: "all", label: "Todos" },
@@ -52,6 +59,11 @@ export function FlowsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFlowName, setNewFlowName] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [goLiveIssues, setGoLiveIssues] = useState<Readonly<{
+    flowName: string;
+    issues: readonly ValidationIssue[];
+  }> | null>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
   const hasLoadedOnceRef = useRef(false);
 
@@ -86,13 +98,33 @@ export function FlowsPage() {
     const res = await api.createFlow(newFlowName.trim());
     setShowCreateDialog(false);
     setNewFlowName("");
-    if (res.ok) {
-      navigate(`/flows/${res.data.flow.id}/edit`);
+
+    if (!res.ok) {
+      return;
     }
+
+    const template = flowTemplates.find((t) => t.id === selectedTemplateId);
+    setSelectedTemplateId(null);
+
+    if (template) {
+      await api.updateFlow(res.data.flow.id, { definition: template.definition });
+    }
+
+    navigate(`/flows/${res.data.flow.id}/edit`);
   };
 
-  const handleAction = async (flowId: string, action: FlowAction) => {
+  const handleAction = async (flowId: string, flowName: string, action: FlowAction) => {
     switch (action) {
+      case "go-live": {
+        const res = await api.goLiveFlow(flowId);
+        if (!res.ok) {
+          const errorPayload = res.data as unknown as GoLiveErrorPayload;
+          if (errorPayload.code === "FLOW_VALIDATION_FAILED" && errorPayload.details?.issues) {
+            setGoLiveIssues({ flowName, issues: errorPayload.details.issues });
+          }
+        }
+        break;
+      }
       case "publish":
         await api.publishFlow(flowId);
         break;
@@ -224,7 +256,7 @@ export function FlowsPage() {
                         <FlowActionsMenu
                           flowName={flow.name}
                           status={flow.status}
-                          onAction={(action) => handleAction(flow.id, action)}
+                          onAction={(action) => handleAction(flow.id, flow.name, action)}
                         />
                       </TableCell>
                     </TableRow>
@@ -239,20 +271,57 @@ export function FlowsPage() {
             <DialogHeader>
               <DialogTitle>Novo fluxo</DialogTitle>
             </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="new-flow-name">Nome do fluxo</Label>
-              <Input
-                ref={createInputRef}
-                id="new-flow-name"
-                value={newFlowName}
-                onChange={(e) => setNewFlowName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleCreateSubmit();
-                  }
-                }}
-                placeholder="Meu fluxo de atendimento"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-flow-name">Nome do fluxo</Label>
+                <Input
+                  ref={createInputRef}
+                  id="new-flow-name"
+                  value={newFlowName}
+                  onChange={(e) => setNewFlowName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleCreateSubmit();
+                    }
+                  }}
+                  placeholder="Meu fluxo de atendimento"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ponto de partida</Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTemplateId(null)}
+                    className={cn(
+                      "rounded-md border p-3 text-left text-sm transition-colors",
+                      selectedTemplateId === null
+                        ? "border-primary bg-primary/5"
+                        : "hover:bg-accent",
+                    )}
+                  >
+                    <p className="font-medium">Em branco</p>
+                    <p className="text-muted-foreground text-xs">Monte o fluxo do zero.</p>
+                  </button>
+                  {flowTemplates.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedTemplateId(template.id)}
+                      className={cn(
+                        "rounded-md border p-3 text-left text-sm transition-colors",
+                        selectedTemplateId === template.id
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-accent",
+                      )}
+                    >
+                      <p className="font-medium">{template.name}</p>
+                      <p className="text-muted-foreground text-xs">{template.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -261,12 +330,37 @@ export function FlowsPage() {
                 onClick={() => {
                   setShowCreateDialog(false);
                   setNewFlowName("");
+                  setSelectedTemplateId(null);
                 }}
               >
                 Cancelar
               </Button>
               <Button type="button" onClick={handleCreateSubmit} disabled={!newFlowName.trim()}>
                 Criar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={goLiveIssues !== null} onOpenChange={() => setGoLiveIssues(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Não foi possível ativar "{goLiveIssues?.flowName}"</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              {goLiveIssues?.issues.map((issue) => (
+                <Alert
+                  key={`${issue.code}-${issue.nodeId ?? "flow"}-${issue.message}`}
+                  variant={issue.severity === "error" ? "destructive" : "default"}
+                >
+                  <AlertTriangle className="size-4" />
+                  <AlertDescription>{issue.message}</AlertDescription>
+                </Alert>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => setGoLiveIssues(null)}>
+                Entendi
               </Button>
             </DialogFooter>
           </DialogContent>

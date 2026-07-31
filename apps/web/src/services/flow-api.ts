@@ -81,6 +81,13 @@ export function createFlowApi(getToken: () => string | null) {
       return client.post<{ flow: FlowDto }>(`/flows/${id}/activate`, {});
     },
 
+    goLiveFlow(id: string) {
+      return client.post<{ flow: FlowDto; previousActiveFlow: FlowDto | null }>(
+        `/flows/${id}/go-live`,
+        {},
+      );
+    },
+
     deactivateFlow(id: string) {
       return client.post<{ flow: FlowDto }>(`/flows/${id}/deactivate`, {});
     },

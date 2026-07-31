@@ -11,6 +11,7 @@ import { createCreateFlowUseCase } from "./create-flow-use-case";
 import { createDeactivateFlowUseCase } from "./deactivate-flow-use-case";
 import { createDeleteFlowUseCase } from "./delete-flow-use-case";
 import { createGetFlowUseCase } from "./get-flow-use-case";
+import { createGoLiveFlowUseCase } from "./go-live-flow-use-case";
 import { createListFlowsUseCase } from "./list-flows-use-case";
 import { createPublishFlowUseCase } from "./publish-flow-use-case";
 import { createUpdateFlowDefinitionUseCase } from "./update-flow-definition-use-case";
@@ -331,6 +332,92 @@ describe("ActivateFlowUseCase", () => {
     await expect(useCase.execute({ tenantId: TENANT_A, flowId: flow.id })).rejects.toThrow(
       AppError,
     );
+  });
+});
+
+describe("GoLiveFlowUseCase", () => {
+  let repo: FlowRepositoryPort;
+
+  beforeEach(() => {
+    repo = createInMemoryFlowRepository();
+  });
+
+  it("should validate, publish and activate a draft flow in one call", async () => {
+    const flow = await seedDraftFlow(repo, TENANT_A);
+    const useCase = createGoLiveFlowUseCase({ flowRepository: repo });
+
+    const result = await useCase.execute({ tenantId: TENANT_A, flowId: flow.id });
+
+    expect(result.flow.status).toBe("active");
+    expect(result.validation.isValid).toBe(true);
+    expect(result.previousActiveFlow).toBeNull();
+  });
+
+  it("should activate a published flow without re-publishing", async () => {
+    const flow = await seedDraftFlow(repo, TENANT_A, { status: "published" });
+    const useCase = createGoLiveFlowUseCase({ flowRepository: repo });
+
+    const result = await useCase.execute({ tenantId: TENANT_A, flowId: flow.id });
+
+    expect(result.flow.status).toBe("active");
+    expect(result.validation.isValid).toBe(true);
+  });
+
+  it("should deactivate the previous active flow", async () => {
+    const firstFlow = await seedDraftFlow(repo, TENANT_A, { status: "active", name: "First" });
+    const secondFlow = await seedDraftFlow(repo, TENANT_A, { name: "Second" });
+
+    const useCase = createGoLiveFlowUseCase({ flowRepository: repo });
+    const result = await useCase.execute({ tenantId: TENANT_A, flowId: secondFlow.id });
+
+    expect(result.flow.status).toBe("active");
+    expect(result.previousActiveFlow?.id).toBe(firstFlow.id);
+    expect(result.previousActiveFlow?.status).toBe("published");
+  });
+
+  it("should throw FLOW_VALIDATION_FAILED when definition is invalid", async () => {
+    const flow = await seedDraftFlow(repo, TENANT_A, {
+      definition: createInvalidFlowDefinition(),
+    });
+    const useCase = createGoLiveFlowUseCase({ flowRepository: repo });
+
+    try {
+      await useCase.execute({ tenantId: TENANT_A, flowId: flow.id });
+      expect.fail("Should have thrown");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(AppError);
+      expect((error as AppError).code).toBe("FLOW_VALIDATION_FAILED");
+    }
+
+    const found = await repo.findById(TENANT_A, flow.id);
+    expect(found?.status).toBe("draft");
+  });
+
+  it("should be idempotent when the flow is already active", async () => {
+    const flow = await seedDraftFlow(repo, TENANT_A, { status: "active" });
+    const useCase = createGoLiveFlowUseCase({ flowRepository: repo });
+
+    const result = await useCase.execute({ tenantId: TENANT_A, flowId: flow.id });
+
+    expect(result.flow.status).toBe("active");
+    expect(result.previousActiveFlow).toBeNull();
+  });
+
+  it("should throw FLOW_INVALID_TRANSITION when flow is archived", async () => {
+    const flow = await seedDraftFlow(repo, TENANT_A, { status: "archived" });
+    const useCase = createGoLiveFlowUseCase({ flowRepository: repo });
+
+    await expect(useCase.execute({ tenantId: TENANT_A, flowId: flow.id })).rejects.toThrow(
+      AppError,
+    );
+  });
+
+  it("should throw FLOW_NOT_FOUND when flow does not exist", async () => {
+    const useCase = createGoLiveFlowUseCase({ flowRepository: repo });
+
+    await expect(
+      useCase.execute({ tenantId: TENANT_A, flowId: createFlowId("nonexistent") }),
+    ).rejects.toThrow(AppError);
   });
 });
 

@@ -255,6 +255,7 @@ export function bootstrapApi(): ApiRuntime {
       deleteFlow: flowModule.deleteFlow,
       publishFlow: flowModule.publishFlow,
       activateFlow: flowModule.activateFlow,
+      goLiveFlow: flowModule.goLiveFlow,
       deactivateFlow: flowModule.deactivateFlow,
       archiveFlow: flowModule.archiveFlow,
       validateFlow: flowModule.validateFlow,

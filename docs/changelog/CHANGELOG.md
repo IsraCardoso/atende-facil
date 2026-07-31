@@ -15,6 +15,8 @@
 - Deactivate and remove endpoints for tenant members (`POST /auth/users/:userId/deactivate`, `DELETE /auth/users/:userId`), admin-only, with last-active-admin and self-action guards; revokes the member's Chatwoot account access best-effort (RN-019).
 - `/signup` page for self-service tenant registration, previously only reachable via direct `POST /auth/register-tenant` calls.
 - Login without `tenantSlug`: the tenant is now derived from the authenticated e-mail's active memberships. Ambiguous e-mails (2+ active tenants) get a new `AUTH_TENANT_AMBIGUOUS` response with the candidate list instead of a generic error, and the login page renders them as a picker.
+- Ready-made flow templates gallery ("Boas-vindas simples", "Menu de opções (FAQ)", "Coleta de dados + transferência") offered when creating a new flow, as an alternative to starting blank.
+- One-click "Ativar atendimento" action (`POST /flows/:id/go-live`): validates, publishes (if draft) and activates a flow in a single step, surfacing validation issues in a dialog instead of requiring the two manual steps.
 
 ### Alterado
 - `CHATWOOT_SSO_SECRET` removida; substituída por `CHATWOOT_PLATFORM_TOKEN` (Platform App token, gerado no console Rails do Chatwoot).
