@@ -58,7 +58,9 @@ async function resolveTenantIdByEmail(
   }
 
   const candidateTenants = await Promise.all(
-    activeMemberships.map((membership) => tenantRepository.findById(membership.tenantId)),
+    activeMemberships.map((membership) =>
+      tenantRepository.findById(membership.tenantId).catch(() => null),
+    ),
   );
   const tenants = candidateTenants
     .filter((tenant): tenant is NonNullable<typeof tenant> => tenant !== null)

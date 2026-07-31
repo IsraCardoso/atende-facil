@@ -28,10 +28,11 @@ export function createChatwootPlatformPortFactory(
     }
 
     let integration = null;
+    let lookupFailed = false;
     try {
       integration = await deps.integrationRepository.findByTenantAndProvider(tenantId, "chatwoot");
     } catch {
-      integration = null;
+      lookupFailed = true;
     }
 
     if (integration && isChatwootPlatformConfig(integration.config)) {
@@ -46,7 +47,14 @@ export function createChatwootPlatformPortFactory(
 
     if (deps.globalFallbackConfig) {
       const port = createChatwootPlatformAdapter(deps.globalFallbackConfig);
-      cache.set(tenantId, port);
+      // Nao cacheia quando o lookup FALHOU (erro transiente de DB): cachear aqui
+      // congelaria o tenant no fallback global ate reiniciar o processo, mesmo
+      // que ele tenha platformToken proprio (reintroduz o isolamento furado que
+      // esta factory existe pra resolver). "Nao configurado" (lookup OK, null)
+      // continua cacheavel normalmente.
+      if (!lookupFailed) {
+        cache.set(tenantId, port);
+      }
       return port;
     }
 

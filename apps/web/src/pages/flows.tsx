@@ -64,6 +64,7 @@ export function FlowsPage() {
     flowName: string;
     issues: readonly ValidationIssue[];
   }> | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
   const hasLoadedOnceRef = useRef(false);
 
@@ -107,7 +108,16 @@ export function FlowsPage() {
     setSelectedTemplateId(null);
 
     if (template) {
-      await api.updateFlow(res.data.flow.id, { definition: template.definition });
+      const templateRes = await api.updateFlow(res.data.flow.id, {
+        definition: template.definition,
+      });
+      if (!templateRes.ok) {
+        setPageError(
+          `Fluxo "${newFlowName.trim()}" criado, mas não foi possível aplicar o template "${template.name}". Abra o fluxo e monte o conteúdo manualmente.`,
+        );
+        loadFlows();
+        return;
+      }
     }
 
     navigate(`/flows/${res.data.flow.id}/edit`);
@@ -178,6 +188,13 @@ export function FlowsPage() {
             </Select>
           }
         />
+
+        {pageError && (
+          <Alert variant="destructive" className="shrink-0">
+            <AlertTriangle className="size-4" />
+            <AlertDescription>{pageError}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="min-h-0 flex-1 overflow-auto rounded-md border [&>[data-slot=table-container]]:overflow-visible">
           <Table className="min-w-[720px]">

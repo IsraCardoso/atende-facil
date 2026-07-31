@@ -93,9 +93,4 @@ export function createGoLiveFlowUseCase(
   };
 }
 
-export type {
-  GoLiveFlowInput,
-  GoLiveFlowOutput,
-  GoLiveFlowUseCase,
-  GoLiveFlowUseCaseDependencies,
-};
+export type { GoLiveFlowInput, GoLiveFlowOutput, GoLiveFlowUseCase, GoLiveFlowUseCaseDependencies };

@@ -59,13 +59,13 @@ async function revokeChatwootAccessBestEffort(
     return;
   }
 
-  const targetUser = await deps.userRepository.findById(input.targetUserId);
-
-  if (!targetUser?.chatwootUserId) {
-    return;
-  }
-
   try {
+    const targetUser = await deps.userRepository.findById(input.targetUserId);
+
+    if (!targetUser?.chatwootUserId) {
+      return;
+    }
+
     const chatwootPlatform = await deps.resolveChatwootPlatform(input.tenantId);
     await chatwootPlatform.revokeUserFromAccount(targetUser.chatwootUserId);
   } catch (error: unknown) {
