@@ -10,7 +10,7 @@
 import type { UserRole } from "../../domain";
 import type { TenantId, UserId } from "../../domain/auth-types";
 import type { AppLoggerPort, UserRepositoryPort } from "../../domain/ports";
-import type { ChatwootPlatformPort } from "../../domain/ports/chatwoot-platform-ports";
+import type { ChatwootPlatformPortResolver } from "../../domain/ports/chatwoot-platform-ports";
 
 type GetChatwootSsoUrlInput = Readonly<{
   userId: UserId;
@@ -32,7 +32,7 @@ type GetChatwootSsoUrlUseCase = Readonly<{
 
 type GetChatwootSsoUrlUseCaseDependencies = Readonly<{
   userRepository: UserRepositoryPort;
-  chatwootPlatform: ChatwootPlatformPort;
+  resolveChatwootPlatform: ChatwootPlatformPortResolver;
   logger: AppLoggerPort;
 }>;
 
@@ -64,9 +64,13 @@ function appendRedirect(ssoUrl: string, redirectPath: string | undefined): strin
 export function createGetChatwootSsoUrlUseCase(
   dependencies: GetChatwootSsoUrlUseCaseDependencies,
 ): GetChatwootSsoUrlUseCase {
-  const { userRepository, chatwootPlatform, logger } = dependencies;
+  const { userRepository, resolveChatwootPlatform, logger } = dependencies;
 
-  async function ensureChatwootUserId(userId: UserId, role: UserRole): Promise<string> {
+  async function ensureChatwootUserId(
+    userId: UserId,
+    role: UserRole,
+    chatwootPlatform: Awaited<ReturnType<ChatwootPlatformPortResolver>>,
+  ): Promise<string> {
     const user = await userRepository.findById(userId);
 
     if (!user) {
@@ -100,7 +104,12 @@ export function createGetChatwootSsoUrlUseCase(
   return {
     async execute(input: GetChatwootSsoUrlInput): Promise<GetChatwootSsoUrlOutput> {
       try {
-        const chatwootUserId = await ensureChatwootUserId(input.userId, input.role);
+        const chatwootPlatform = await resolveChatwootPlatform(input.tenantId);
+        const chatwootUserId = await ensureChatwootUserId(
+          input.userId,
+          input.role,
+          chatwootPlatform,
+        );
         const ssoUrl = await chatwootPlatform.createSsoUrl(chatwootUserId);
 
         return { ssoUrl: appendRedirect(ssoUrl, input.redirectPath) };

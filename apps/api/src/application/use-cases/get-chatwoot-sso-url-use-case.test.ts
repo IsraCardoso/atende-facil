@@ -23,11 +23,11 @@ function createChatwootPlatformFake(
 
 async function seedUser(
   repositories: ReturnType<typeof createInMemoryAuthRepositories>,
-  overrides: Partial<{ chatwootUserId: string | null }> = {},
+  overrides: Partial<{ chatwootUserId: string | null; email: string }> = {},
 ) {
   const user = createUserEntity({
     id: createUserId(crypto.randomUUID()),
-    email: createEmailAddress("agente@netfacil.com"),
+    email: createEmailAddress(overrides.email ?? "agente@netfacil.com"),
     displayName: "Agente NetFacil",
     passwordHash: "hash:x",
     chatwootUserId: overrides.chatwootUserId ?? null,
@@ -44,7 +44,7 @@ describe("GetChatwootSsoUrlUseCase", () => {
     const chatwootPlatform = createChatwootPlatformFake();
     const useCase = createGetChatwootSsoUrlUseCase({
       userRepository: repositories.userRepository,
-      chatwootPlatform,
+      resolveChatwootPlatform: async () => chatwootPlatform,
       logger: createFakeLogger(),
     });
 
@@ -66,7 +66,7 @@ describe("GetChatwootSsoUrlUseCase", () => {
     const chatwootPlatform = createChatwootPlatformFake();
     const useCase = createGetChatwootSsoUrlUseCase({
       userRepository: repositories.userRepository,
-      chatwootPlatform,
+      resolveChatwootPlatform: async () => chatwootPlatform,
       logger: createFakeLogger(),
     });
 
@@ -98,7 +98,7 @@ describe("GetChatwootSsoUrlUseCase", () => {
     });
     const useCase = createGetChatwootSsoUrlUseCase({
       userRepository: repositories.userRepository,
-      chatwootPlatform,
+      resolveChatwootPlatform: async () => chatwootPlatform,
       logger: createFakeLogger(),
     });
 
@@ -136,7 +136,7 @@ describe("GetChatwootSsoUrlUseCase", () => {
     });
     const useCase = createGetChatwootSsoUrlUseCase({
       userRepository: repositories.userRepository,
-      chatwootPlatform,
+      resolveChatwootPlatform: async () => chatwootPlatform,
       logger: createFakeLogger(),
     });
 
@@ -162,7 +162,7 @@ describe("GetChatwootSsoUrlUseCase", () => {
     });
     const useCase = createGetChatwootSsoUrlUseCase({
       userRepository: repositories.userRepository,
-      chatwootPlatform,
+      resolveChatwootPlatform: async () => chatwootPlatform,
       logger: createFakeLogger(),
     });
 
@@ -185,7 +185,7 @@ describe("GetChatwootSsoUrlUseCase", () => {
     const chatwootPlatform = createChatwootPlatformFake();
     const useCase = createGetChatwootSsoUrlUseCase({
       userRepository: repositories.userRepository,
-      chatwootPlatform,
+      resolveChatwootPlatform: async () => chatwootPlatform,
       logger: createFakeLogger(),
     });
 
@@ -209,7 +209,7 @@ describe("GetChatwootSsoUrlUseCase", () => {
     const warnSpy = vi.spyOn(logger, "warn");
     const useCase = createGetChatwootSsoUrlUseCase({
       userRepository: repositories.userRepository,
-      chatwootPlatform,
+      resolveChatwootPlatform: async () => chatwootPlatform,
       logger,
     });
 
@@ -231,5 +231,55 @@ describe("GetChatwootSsoUrlUseCase", () => {
     );
     const loggedPayload = JSON.stringify(warnSpy.mock.calls[0]);
     expect(loggedPayload).not.toContain("sso_auth_token");
+  });
+
+  it("should resolve a different ChatwootPlatformPort per tenant, never a shared instance", async () => {
+    const repositories = createInMemoryAuthRepositories();
+    const userTenantA = await seedUser(repositories, {
+      chatwootUserId: "111",
+      email: "agente-a@netfacil.com",
+    });
+    const userTenantB = await seedUser(repositories, {
+      chatwootUserId: "222",
+      email: "agente-b@netfacil.com",
+    });
+    const tenantAPlatform = createChatwootPlatformFake({
+      createSsoUrl: vi
+        .fn()
+        .mockResolvedValue("https://a.chatwoot.example.com/login?sso_auth_token=a"),
+    });
+    const tenantBPlatform = createChatwootPlatformFake({
+      createSsoUrl: vi
+        .fn()
+        .mockResolvedValue("https://b.chatwoot.example.com/login?sso_auth_token=b"),
+    });
+    const resolveChatwootPlatform = vi.fn(async (tenantId: string) =>
+      tenantId === "tenant-a" ? tenantAPlatform : tenantBPlatform,
+    );
+    const useCase = createGetChatwootSsoUrlUseCase({
+      userRepository: repositories.userRepository,
+      resolveChatwootPlatform,
+      logger: createFakeLogger(),
+    });
+
+    const resultA = await useCase.execute({
+      userId: userTenantA.id,
+      role: "agent",
+      correlationId: "corr-a",
+      tenantId: "tenant-a" as TenantId,
+    });
+    const resultB = await useCase.execute({
+      userId: userTenantB.id,
+      role: "agent",
+      correlationId: "corr-b",
+      tenantId: "tenant-b" as TenantId,
+    });
+
+    expect(resultA.ssoUrl).toContain("a.chatwoot.example.com");
+    expect(resultB.ssoUrl).toContain("b.chatwoot.example.com");
+    expect(tenantAPlatform.createSsoUrl).toHaveBeenCalledWith("111");
+    expect(tenantBPlatform.createSsoUrl).toHaveBeenCalledWith("222");
+    expect(resolveChatwootPlatform).toHaveBeenCalledWith("tenant-a");
+    expect(resolveChatwootPlatform).toHaveBeenCalledWith("tenant-b");
   });
 });

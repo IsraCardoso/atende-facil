@@ -22,4 +22,12 @@ type ChatwootPlatformPort = Readonly<{
   createSsoUrl: (chatwootUserId: string) => Promise<string>;
 }>;
 
-export type { ChatwootPlatformAddUserInput, ChatwootPlatformCreateUserInput, ChatwootPlatformPort };
+/** Resolve o ChatwootPlatformPort per-tenant — cada tenant federa na própria conta Chatwoot (RN-019/RN-026). */
+type ChatwootPlatformPortResolver = (tenantId: string) => Promise<ChatwootPlatformPort>;
+
+export type {
+  ChatwootPlatformAddUserInput,
+  ChatwootPlatformCreateUserInput,
+  ChatwootPlatformPort,
+  ChatwootPlatformPortResolver,
+};

@@ -16,6 +16,7 @@ export type {
   ChatwootPlatformAddUserInput,
   ChatwootPlatformCreateUserInput,
   ChatwootPlatformPort,
+  ChatwootPlatformPortResolver,
 } from "./chatwoot-platform-ports";
 export type {
   ConversationFilters,

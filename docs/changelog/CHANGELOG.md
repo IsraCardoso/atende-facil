@@ -20,9 +20,10 @@
 ### Corrigido
 - O embed Chatwoot exibia uma URL sem autenticação como se fosse funcional quando o SSO não estava configurado; agora `embedUrl` fica `null` explicitamente e o painel mostra o motivo.
 - Link "Abrir Chatwoot" da inbox vazia reusava a mesma URL de SSO (uso único) em cliques repetidos; agora busca uma URL nova a cada clique.
+- **[Security]** Federated SSO (`GetChatwootSsoUrlUseCase`) resolved `ChatwootPlatformPort` from global config, causing agents from different tenants to federate into the SAME Chatwoot account; now resolves per-tenant via `createChatwootPlatformPortFactory` (global env fallback preserved).
 
 ### Débitos conhecidos (ver RN-019 §Débito conhecido)
-- [ ] SSO usa config global (`CHATWOOT_ACCOUNT_ID`/`CHATWOOT_PLATFORM_TOKEN`); tenants com Chatwoot próprio (RN-026) ainda não são resolvidos por tenant — todos os agentes federados hoje entram na MESMA conta Chatwoot.
+- [x] SSO usava config global (`CHATWOOT_ACCOUNT_ID`/`CHATWOOT_PLATFORM_TOKEN`); tenants com Chatwoot próprio (RN-026) não eram resolvidos por tenant — todos os agentes federados entravam na MESMA conta Chatwoot. **Resolved** (change `chatwoot-sso-multi-tenant`).
 - [ ] Sem deprovisionamento: usuário demovido/desativado no Atende Fácil mantém o espelho e o papel no Chatwoot congelados desde a primeira federação.
 
 ---

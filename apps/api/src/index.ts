@@ -21,7 +21,8 @@ import type { WhatsAppProvider } from "./domain/whatsapp-types";
 import { createAuthModule } from "./infrastructure/auth";
 import { createValkeyCacheAdapterFromUrl } from "./infrastructure/cache";
 import type { ChatwootHttpConfig } from "./infrastructure/chatwoot/chatwoot-http-adapter";
-import { createChatwootPlatformAdapter } from "./infrastructure/chatwoot/chatwoot-platform-adapter";
+import type { ChatwootPlatformConfig } from "./infrastructure/chatwoot/chatwoot-platform-adapter";
+import { createChatwootPlatformPortFactory } from "./infrastructure/chatwoot/chatwoot-platform-port-factory";
 import { createChatwootPortFactory } from "./infrastructure/chatwoot/chatwoot-port-factory";
 import type { ApiEnvironment } from "./infrastructure/config/env";
 import { loadApiEnvironment } from "./infrastructure/config/env";
@@ -64,6 +65,20 @@ function buildGlobalChatwootConfig(environment: ApiEnvironment): ChatwootHttpCon
     apiToken: environment.chatwootApiToken,
     accountId: environment.chatwootAccountId,
     inboxId: environment.chatwootInboxId,
+  };
+}
+
+function buildGlobalChatwootPlatformConfig(
+  environment: ApiEnvironment,
+): ChatwootPlatformConfig | undefined {
+  if (!environment.chatwootApiUrl || !environment.chatwootPlatformToken) {
+    return undefined;
+  }
+
+  return {
+    apiUrl: environment.chatwootApiUrl,
+    platformToken: environment.chatwootPlatformToken,
+    accountId: environment.chatwootAccountId ?? "1",
   };
 }
 
@@ -180,20 +195,20 @@ export function bootstrapApi(): ApiRuntime {
     db,
   });
 
-  // Login único: só disponível quando há Platform App token. Sem ele, o painel
-  // continua funcionando com deep link e o atendente loga no Chatwoot manualmente.
-  const getChatwootSsoUrl =
-    env.chatwootApiUrl && env.chatwootPlatformToken
-      ? createGetChatwootSsoUrlUseCase({
-          userRepository: authModule.userRepository,
-          chatwootPlatform: createChatwootPlatformAdapter({
-            apiUrl: env.chatwootApiUrl,
-            platformToken: env.chatwootPlatformToken,
-            accountId: env.chatwootAccountId ?? "1",
-          }),
-          logger: appLoggerPort,
-        })
-      : undefined;
+  // Login único: só disponível quando há Platform App token global (master switch, RN-019).
+  // Tenant com platformToken próprio em tenant_integrations federa na SUA conta; sem config
+  // própria, cai no fallback global — nunca na conta de outro tenant (RN-026 R5).
+  const globalChatwootPlatformConfig = buildGlobalChatwootPlatformConfig(env);
+  const getChatwootSsoUrl = globalChatwootPlatformConfig
+    ? createGetChatwootSsoUrlUseCase({
+        userRepository: authModule.userRepository,
+        resolveChatwootPlatform: createChatwootPlatformPortFactory({
+          integrationRepository: tenantIntegrationRepository,
+          globalFallbackConfig: globalChatwootPlatformConfig,
+        }),
+        logger: appLoggerPort,
+      })
+    : undefined;
 
   const createSchedule = createCreateScheduleUseCase({
     scheduleRepository,
