@@ -208,7 +208,7 @@ function validateNodeDefinition(
         code: "NODE_ID_EMPTY",
         severity: "error",
         nodeId: node.id,
-        message: "Todo no deve possuir id nao vazio.",
+        message: "Este nó está sem identificador. Todo nó precisa de um nome único.",
       }),
     );
   }
@@ -219,7 +219,7 @@ function validateNodeDefinition(
         code: "MESSAGE_TEXT_EMPTY",
         severity: "error",
         nodeId: node.id,
-        message: "No de message deve possuir texto nao vazio.",
+        message: "Este nó de mensagem está sem texto. Escreva o que o cliente vai receber.",
       }),
     );
   }
@@ -231,7 +231,7 @@ function validateNodeDefinition(
           code: "OPTION_PROMPT_EMPTY",
           severity: "error",
           nodeId: node.id,
-          message: "No de option deve possuir prompt nao vazio.",
+          message: "Este nó de opções está sem a pergunta que será exibida ao cliente.",
         }),
       );
     }
@@ -242,7 +242,8 @@ function validateNodeDefinition(
           code: "OPTION_WITHOUT_CHOICES",
           severity: "error",
           nodeId: node.id,
-          message: "No de option deve possuir pelo menos uma alternativa.",
+          message:
+            "Este nó de opções não tem nenhuma alternativa cadastrada. Adicione pelo menos uma.",
         }),
       );
     }
@@ -255,7 +256,7 @@ function validateNodeDefinition(
             code: "OPTION_ID_EMPTY",
             severity: "error",
             nodeId: node.id,
-            message: "Opcao deve possuir id nao vazio.",
+            message: "Uma das alternativas deste nó está sem identificador.",
           }),
         );
       }
@@ -266,7 +267,7 @@ function validateNodeDefinition(
             code: "OPTION_LABEL_EMPTY",
             severity: "error",
             nodeId: node.id,
-            message: "Opcao deve possuir label nao vazio.",
+            message: "Uma das alternativas deste nó está sem o texto que o cliente vai ver.",
           }),
         );
       }
@@ -277,7 +278,7 @@ function validateNodeDefinition(
             code: "OPTION_DESTINATION_EMPTY",
             severity: "error",
             nodeId: node.id,
-            message: "Opcao deve apontar para um no de destino.",
+            message: "Uma das alternativas deste nó não está conectada a nenhum próximo passo.",
           }),
         );
       }
@@ -296,7 +297,8 @@ function validateNodeDefinition(
               code: "AMBIGUOUS_OPTION_TOKEN",
               severity: "warning",
               nodeId: node.id,
-              message: "No de option possui token ambiguo (id/label/alias duplicado).",
+              message:
+                "Duas alternativas deste nó usam o mesmo texto ou atalho — o cliente pode não conseguir escolher entre elas com clareza.",
               details: {
                 token: normalizedToken,
               },
@@ -317,7 +319,7 @@ function validateNodeDefinition(
           code: "INPUT_PROMPT_EMPTY",
           severity: "error",
           nodeId: node.id,
-          message: "No de input deve possuir prompt nao vazio.",
+          message: "Este nó de coleta de dado está sem a pergunta que será exibida ao cliente.",
         }),
       );
     }
@@ -328,7 +330,8 @@ function validateNodeDefinition(
           code: "INPUT_FIELD_KEY_EMPTY",
           severity: "error",
           nodeId: node.id,
-          message: "No de input deve definir fieldKey para coleta de dado.",
+          message:
+            "Este nó de coleta de dado não definiu onde a resposta do cliente será guardada.",
         }),
       );
     }
@@ -339,7 +342,7 @@ function validateNodeDefinition(
           code: "INPUT_DESTINATION_EMPTY",
           severity: "error",
           nodeId: node.id,
-          message: "No de input deve possuir destino de navegacao.",
+          message: "Este nó de coleta de dado não está conectado a nenhum próximo passo.",
         }),
       );
     }
@@ -390,7 +393,7 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
         createIssue({
           code: "FLOW_WITHOUT_NODES",
           severity: "error",
-          message: "Fluxo deve possuir ao menos um no.",
+          message: "O fluxo precisa ter pelo menos um nó.",
         }),
       ],
       reachableNodeIds: [],
@@ -408,7 +411,7 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
           code: "DUPLICATE_NODE_ID",
           severity: "error",
           nodeId: node.id,
-          message: "Fluxo nao pode possuir ids de no duplicados.",
+          message: "Dois nós estão usando o mesmo identificador. Cada nó precisa de um nome único.",
         }),
       );
       continue;
@@ -427,7 +430,7 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
       createIssue({
         code: "START_NODE_NOT_FOUND",
         severity: "error",
-        message: "Fluxo deve possuir startNodeId existente.",
+        message: "O nó inicial do fluxo não existe. Escolha um nó válido para começar a conversa.",
         details: {
           startNodeId: flow.startNodeId,
         },
@@ -443,7 +446,7 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
             code: "DESTINATION_NODE_ID_EMPTY",
             severity: "error",
             nodeId: node.id,
-            message: "No possui destino vazio em transicao.",
+            message: "Este nó tem uma conexão sem destino definido.",
           }),
         );
         continue;
@@ -455,7 +458,7 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
             code: "DESTINATION_NODE_NOT_FOUND",
             severity: "error",
             nodeId: node.id,
-            message: "No referencia destino inexistente.",
+            message: "Este nó está conectado a um destino que não existe mais.",
             details: {
               destinationNodeId: targetNodeId,
             },
@@ -476,7 +479,8 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
           code: "ORPHAN_NODE",
           severity: "warning",
           nodeId,
-          message: "No nao alcancavel a partir do startNodeId.",
+          message:
+            "Este nó nunca será alcançado a partir do início do fluxo — nenhum caminho leva até ele.",
         }),
       );
     }
@@ -491,7 +495,8 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
       createIssue({
         code: "FLOW_WITHOUT_TERMINAL_NODE",
         severity: "error",
-        message: "Fluxo deve possuir ao menos um no terminal (transfer ou end).",
+        message:
+          "O fluxo precisa terminar em algum ponto — adicione um nó de transferência para atendente ou de encerramento.",
       }),
     );
   }
@@ -507,7 +512,8 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
           code: "NODE_WITHOUT_TERMINAL_PATH",
           severity: "error",
           nodeId,
-          message: "No alcancavel nao possui caminho para terminal.",
+          message:
+            "A partir deste nó, a conversa não tem como chegar a um encerramento ou transferência para atendente.",
         }),
       );
     }
@@ -542,7 +548,8 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
           code: "AUTOMATIC_CYCLE_WITHOUT_INTERACTION",
           severity: "error",
           nodeId: firstNodeId,
-          message: "Ciclo automatico sem no interativo nao e permitido.",
+          message:
+            "Estes nós formam um loop automático sem nenhuma pergunta ao cliente — a conversa ficaria presa se repetindo para sempre.",
           details: {
             componentNodeIds: component,
           },
@@ -565,7 +572,8 @@ export function validateFlowDefinition(flow: Flow): FlowValidationResult {
           code: "INTERACTIVE_CYCLE_WITHOUT_ESCAPE",
           severity: "warning",
           nodeId: firstNodeId,
-          message: "Ciclo interativo sem caminho de escape para no terminal.",
+          message:
+            "Estes nós formam um loop e não há como sair dele para encerrar ou transferir a conversa.",
           details: {
             componentNodeIds: component,
           },

@@ -24,6 +24,7 @@
 - O embed Chatwoot exibia uma URL sem autenticação como se fosse funcional quando o SSO não estava configurado; agora `embedUrl` fica `null` explicitamente e o painel mostra o motivo.
 - Link "Abrir Chatwoot" da inbox vazia reusava a mesma URL de SSO (uso único) em cliques repetidos; agora busca uma URL nova a cada clique.
 - **[Security]** Federated SSO (`GetChatwootSsoUrlUseCase`) resolved `ChatwootPlatformPort` from global config, causing agents from different tenants to federate into the SAME Chatwoot account; now resolves per-tenant via `createChatwootPlatformPortFactory` (global env fallback preserved).
+- Flow validator messages (`validateFlowDefinition`) had their diacritics stripped and leaked internal field names (`startNodeId`, `fieldKey`, `nextNodeId`) into user-facing text; all 21 messages rewritten in proper accented Portuguese from the flow editor user's perspective. `code` and `details` unchanged.
 
 ### Débitos conhecidos (ver RN-019 §Débito conhecido)
 - [x] SSO usava config global (`CHATWOOT_ACCOUNT_ID`/`CHATWOOT_PLATFORM_TOKEN`); tenants com Chatwoot próprio (RN-026) não eram resolvidos por tenant — todos os agentes federados entravam na MESMA conta Chatwoot. **Resolved** (change `chatwoot-sso-multi-tenant`).
