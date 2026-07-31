@@ -13,6 +13,8 @@
 ### Adicionado
 - Login único (SSO) para o Chatwoot via Platform API (`GET /platform/api/v1/users/{id}/login`) — o atendente autentica apenas no Atende Fácil; `users.chatwoot_user_id` guarda o vínculo com o espelho provisionado sob demanda no Chatwoot (RN-019 v2.0).
 - Deactivate and remove endpoints for tenant members (`POST /auth/users/:userId/deactivate`, `DELETE /auth/users/:userId`), admin-only, with last-active-admin and self-action guards; revokes the member's Chatwoot account access best-effort (RN-019).
+- `/signup` page for self-service tenant registration, previously only reachable via direct `POST /auth/register-tenant` calls.
+- Login without `tenantSlug`: the tenant is now derived from the authenticated e-mail's active memberships. Ambiguous e-mails (2+ active tenants) get a new `AUTH_TENANT_AMBIGUOUS` response with the candidate list instead of a generic error, and the login page renders them as a picker.
 
 ### Alterado
 - `CHATWOOT_SSO_SECRET` removida; substituída por `CHATWOOT_PLATFORM_TOKEN` (Platform App token, gerado no console Rails do Chatwoot).

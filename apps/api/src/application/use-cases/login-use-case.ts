@@ -4,6 +4,7 @@ import {
   requireNonEmptyString,
   type TenantId,
   toSafeUserProfile,
+  type UserEntity,
 } from "../../domain";
 import type {
   AuthTokenPort,
@@ -37,11 +38,48 @@ type LoginUseCase = Readonly<{
   execute: (input: LoginInput) => Promise<LoginOutput>;
 }>;
 
+/** Deriva o tenant pelas memberships ativas do usuário quando tenantSlug não é informado. */
+async function resolveTenantIdByEmail(
+  user: UserEntity,
+  dependencies: Pick<LoginUseCaseDependencies, "tenantRepository" | "membershipRepository">,
+): Promise<TenantId> {
+  const { tenantRepository, membershipRepository } = dependencies;
+  const memberships = await membershipRepository.listByUserId(user.id);
+  const activeMemberships = memberships.filter((membership) => membership.status === "active");
+
+  if (activeMemberships.length === 0) {
+    throw createAppError("AUTH_FORBIDDEN", "Usuário sem vínculo ativo com nenhum tenant.");
+  }
+
+  const [onlyMembership] = activeMemberships;
+
+  if (activeMemberships.length === 1 && onlyMembership) {
+    return onlyMembership.tenantId;
+  }
+
+  const candidateTenants = await Promise.all(
+    activeMemberships.map((membership) => tenantRepository.findById(membership.tenantId)),
+  );
+  const tenants = candidateTenants
+    .filter((tenant): tenant is NonNullable<typeof tenant> => tenant !== null)
+    .map((tenant) => ({ slug: tenant.slug, name: tenant.name }));
+
+  throw createAppError(
+    "AUTH_TENANT_AMBIGUOUS",
+    "E-mail vinculado a múltiplos tenants; selecione um para continuar.",
+    { tenants },
+  );
+}
+
 async function resolveTenantId(
   input: LoginInput,
-  dependencies: Pick<LoginUseCaseDependencies, "tenantRepository" | "tenantMode">,
+  user: UserEntity,
+  dependencies: Pick<
+    LoginUseCaseDependencies,
+    "tenantRepository" | "tenantMode" | "membershipRepository"
+  >,
 ): Promise<TenantId> {
-  const { tenantRepository, tenantMode } = dependencies;
+  const { tenantRepository, tenantMode, membershipRepository } = dependencies;
 
   if (!tenantMode.multiTenant) {
     return tenantMode.defaultTenantId;
@@ -50,10 +88,7 @@ async function resolveTenantId(
   const rawTenantSlug = input.tenantSlug?.trim();
 
   if (!rawTenantSlug) {
-    throw createAppError(
-      "AUTH_TENANT_REQUIRED",
-      "tenantSlug é obrigatório quando MULTI_TENANT=true.",
-    );
+    return resolveTenantIdByEmail(user, { tenantRepository, membershipRepository });
   }
 
   let tenantSlug: ReturnType<typeof createTenantSlug>;
@@ -115,7 +150,11 @@ export function createLoginUseCase(dependencies: LoginUseCaseDependencies): Logi
         throw createAppError("AUTH_INVALID_CREDENTIALS", "Credenciais inválidas.");
       }
 
-      const tenantId = await resolveTenantId(input, { tenantRepository, tenantMode });
+      const tenantId = await resolveTenantId(input, user, {
+        tenantRepository,
+        tenantMode,
+        membershipRepository,
+      });
       const membership = await membershipRepository.findByUserAndTenant(user.id, tenantId);
 
       if (!membership || membership.status !== "active") {

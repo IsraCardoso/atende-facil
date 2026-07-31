@@ -169,7 +169,7 @@ describe("createApiServer", () => {
     expect(payload.code).toBe("AUTH_UNAUTHORIZED");
   });
 
-  it("should require tenantSlug when multi-tenant login is used", async () => {
+  it("should derive the tenant from email when no tenantSlug is given and the user has a single membership", async () => {
     const { app } = createAppUnderTest();
 
     await app.handle(
@@ -202,8 +202,8 @@ describe("createApiServer", () => {
     );
     const loginPayload = await parseJsonObject(loginResponse);
 
-    expect(loginResponse.status).toBe(400);
-    expect(loginPayload.code).toBe("AUTH_TENANT_REQUIRED");
+    expect(loginResponse.status).toBe(200);
+    expect(loginPayload.accessToken).toBeTypeOf("string");
   });
 
   it("should return 401 for invalid bearer token", async () => {
