@@ -25,7 +25,7 @@ function buildEnv(overrides: Partial<ApiEnvironment>): ApiEnvironment {
     chatwootInboxId: null,
     chatwootWebhookToken: null,
     chatwootAppUrl: null,
-    chatwootSsoSecret: null,
+    chatwootPlatformToken: null,
     devMockWhatsappSend: false,
     corsOrigins: [],
     evolutionApiUrl: "http://localhost:8081",

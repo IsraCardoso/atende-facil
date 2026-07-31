@@ -19,7 +19,7 @@ type ApiEnvironment = Readonly<{
   chatwootInboxId: string | null;
   chatwootWebhookToken: string | null;
   chatwootAppUrl: string | null;
-  chatwootSsoSecret: string | null;
+  chatwootPlatformToken: string | null;
   devMockWhatsappSend: boolean;
   corsOrigins: readonly string[];
   evolutionApiUrl: string | null;
@@ -192,7 +192,7 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
   const chatwootInboxId = readOptionalEnvVariable("CHATWOOT_INBOX_ID", source) ?? null;
   const chatwootWebhookToken = readOptionalEnvVariable("CHATWOOT_WEBHOOK_TOKEN", source) ?? null;
   const chatwootAppUrl = readOptionalEnvVariable("CHATWOOT_APP_URL", source) ?? null;
-  const chatwootSsoSecret = readOptionalEnvVariable("CHATWOOT_SSO_SECRET", source) ?? null;
+  const chatwootPlatformToken = readOptionalEnvVariable("CHATWOOT_PLATFORM_TOKEN", source) ?? null;
   const devMockWhatsappSendRaw = readOptionalEnvVariable("DEV_MOCK_WHATSAPP_SEND", source);
   const devMockWhatsappSend =
     devMockWhatsappSendRaw !== undefined
@@ -222,7 +222,7 @@ export function loadApiEnvironment(source: RuntimeEnvMap = getRuntimeEnvMap()): 
     chatwootInboxId,
     chatwootWebhookToken,
     chatwootAppUrl,
-    chatwootSsoSecret,
+    chatwootPlatformToken,
     devMockWhatsappSend,
     corsOrigins,
     evolutionApiUrl,

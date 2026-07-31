@@ -23,6 +23,8 @@ type UserRepositoryPort = Readonly<{
   create: (user: UserEntity) => Promise<UserEntity>;
   findById: (userId: UserId) => Promise<UserEntity | null>;
   findByEmail: (email: EmailAddress) => Promise<UserEntity | null>;
+  /** Persiste o vínculo com o espelho do usuário no Chatwoot, criado sob demanda no primeiro SSO. */
+  setChatwootUserId: (userId: UserId, chatwootUserId: string) => Promise<void>;
 }>;
 
 /** Port de persistência de tenants. Garante isolamento multi-tenant via tenant_id. */

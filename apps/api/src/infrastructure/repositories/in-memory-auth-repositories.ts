@@ -41,6 +41,15 @@ function createUserRepository(store: {
 
       return store.usersById.get(userId) ?? null;
     },
+    async setChatwootUserId(userId, chatwootUserId): Promise<void> {
+      const user = store.usersById.get(userId);
+
+      if (!user) {
+        throw new Error("Usuário não encontrado para vincular ao Chatwoot.");
+      }
+
+      store.usersById.set(userId, { ...user, chatwootUserId, updatedAt: new Date() });
+    },
   };
 }
 

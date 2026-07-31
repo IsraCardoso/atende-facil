@@ -1,6 +1,7 @@
 import { createDatabaseConnection, createDatabaseUrl } from "db";
 
 import { createFlowResolverService } from "./application/services/flow-resolver-service";
+import { createGetChatwootSsoUrlUseCase } from "./application/use-cases/get-chatwoot-sso-url-use-case";
 import { createGetIntegrationOperationalSummaryUseCase } from "./application/use-cases/integration";
 import {
   createCreateScheduleUseCase,
@@ -20,6 +21,7 @@ import type { WhatsAppProvider } from "./domain/whatsapp-types";
 import { createAuthModule } from "./infrastructure/auth";
 import { createValkeyCacheAdapterFromUrl } from "./infrastructure/cache";
 import type { ChatwootHttpConfig } from "./infrastructure/chatwoot/chatwoot-http-adapter";
+import { createChatwootPlatformAdapter } from "./infrastructure/chatwoot/chatwoot-platform-adapter";
 import { createChatwootPortFactory } from "./infrastructure/chatwoot/chatwoot-port-factory";
 import type { ApiEnvironment } from "./infrastructure/config/env";
 import { loadApiEnvironment } from "./infrastructure/config/env";
@@ -173,11 +175,25 @@ export function bootstrapApi(): ApiRuntime {
     logger: appLoggerPort,
     chatwootAccessConfig: {
       chatwootAppUrl: env.chatwootAppUrl,
-      chatwootSsoSecret: env.chatwootSsoSecret,
       chatwootAccountId: env.chatwootAccountId ?? "1",
     },
     db,
   });
+
+  // Login único: só disponível quando há Platform App token. Sem ele, o painel
+  // continua funcionando com deep link e o atendente loga no Chatwoot manualmente.
+  const getChatwootSsoUrl =
+    env.chatwootApiUrl && env.chatwootPlatformToken
+      ? createGetChatwootSsoUrlUseCase({
+          userRepository: authModule.userRepository,
+          chatwootPlatform: createChatwootPlatformAdapter({
+            apiUrl: env.chatwootApiUrl,
+            platformToken: env.chatwootPlatformToken,
+            accountId: env.chatwootAccountId ?? "1",
+          }),
+          logger: appLoggerPort,
+        })
+      : undefined;
 
   const createSchedule = createCreateScheduleUseCase({
     scheduleRepository,
@@ -208,6 +224,7 @@ export function bootstrapApi(): ApiRuntime {
       authTokenPort: authModule.authTokenPort,
       chatwootWebhookToken: env.chatwootWebhookToken ?? "",
       logger: appLoggerPort,
+      ...(getChatwootSsoUrl ? { getChatwootSsoUrl } : {}),
     },
     flow: {
       createFlow: flowModule.createFlow,

@@ -22,6 +22,7 @@ import type {
   UpdateFlowDefinitionUseCase,
   ValidateFlowUseCase,
 } from "../../application/use-cases/flows";
+import type { GetChatwootSsoUrlUseCase } from "../../application/use-cases/get-chatwoot-sso-url-use-case";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
 import type { GetIntegrationOperationalSummaryUseCase } from "../../application/use-cases/integration";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
@@ -103,6 +104,7 @@ type CreateApiServerConversationDependencies = Readonly<{
   authTokenPort: AuthTokenPort;
   chatwootWebhookToken: string;
   logger: AppLoggerPort;
+  getChatwootSsoUrl?: GetChatwootSsoUrlUseCase;
 }>;
 
 type CreateApiServerFlowDependencies = Readonly<{
@@ -288,12 +290,18 @@ export function createApiServer(input: CreateApiServerInput) {
           chatwootAccess: conversation.chatwootAccess,
           sessionRepository: conversation.sessionRepository,
           verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+          ...(conversation.getChatwootSsoUrl
+            ? { getChatwootSsoUrl: conversation.getChatwootSsoUrl }
+            : {}),
         }),
       )
       .use(
         createIntegrationRoutes({
           chatwootAccess: conversation.chatwootAccess,
           verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+          ...(conversation.getChatwootSsoUrl
+            ? { getChatwootSsoUrl: conversation.getChatwootSsoUrl }
+            : {}),
           ...(tenant?.tenantRepository ? { tenantRepository: tenant.tenantRepository } : {}),
           ...(whatsapp?.integration?.getOperationalSummary
             ? { getOperationalSummary: whatsapp.integration.getOperationalSummary }
