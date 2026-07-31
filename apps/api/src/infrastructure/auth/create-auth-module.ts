@@ -11,13 +11,17 @@ import {
   type AuthTenantMode,
   type CreateUserUseCase,
   createCreateUserUseCase,
+  createDeactivateTenantMemberUseCase,
   createGetCurrentUserUseCase,
   createLoginUseCase,
   createRegisterTenantUseCase,
+  createRemoveTenantMemberUseCase,
   createVerifyAccessTokenUseCase,
+  type DeactivateTenantMemberUseCase,
   type GetCurrentUserUseCase,
   type LoginUseCase,
   type RegisterTenantUseCase,
+  type RemoveTenantMemberUseCase,
   type VerifyAccessTokenUseCase,
 } from "../../application/use-cases";
 import { createTenantId } from "../../domain";
@@ -30,6 +34,7 @@ import type {
   TenantRepositoryPort,
   UserRepositoryPort,
 } from "../../domain/ports";
+import type { ChatwootPlatformPortResolver } from "../../domain/ports/chatwoot-platform-ports";
 
 import { createInMemoryCacheAdapter, createValkeyCacheAdapterFromUrl } from "../cache";
 import type { ApiEnvironment } from "../config/env";
@@ -50,6 +55,8 @@ type AuthModule = Readonly<{
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
+  deactivateTenantMemberUseCase: DeactivateTenantMemberUseCase;
+  removeTenantMemberUseCase: RemoveTenantMemberUseCase;
   authTokenPort: AuthTokenPort;
   tenantRepository: TenantRepositoryPort;
   userRepository: UserRepositoryPort;
@@ -59,6 +66,8 @@ type CreateAuthModuleInput = Readonly<{
   environment: ApiEnvironment;
   logger: StructuredLogger;
   db?: PostgresJsDatabase<typeof schema>;
+  /** Resolve o ChatwootPlatformPort per-tenant (RN-019/RN-026) — usado no deprovisionamento de membership. */
+  resolveChatwootPlatform?: ChatwootPlatformPortResolver;
 }>;
 
 type AuthContainerTokenMap = Readonly<{
@@ -75,11 +84,14 @@ type AuthContainerTokenMap = Readonly<{
   appLoggerPort: AppLoggerPort;
   identityCacheService: IdentityCacheService;
   rbacPolicyService: RbacPolicyService;
+  resolveChatwootPlatform: ChatwootPlatformPortResolver | undefined;
   registerTenantUseCase: RegisterTenantUseCase;
   createUserUseCase: CreateUserUseCase;
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
+  deactivateTenantMemberUseCase: DeactivateTenantMemberUseCase;
+  removeTenantMemberUseCase: RemoveTenantMemberUseCase;
 }>;
 
 const authContainerTokens: Readonly<{
@@ -100,12 +112,21 @@ const authContainerTokens: Readonly<{
   appLoggerPort: createToken<AppLoggerPort>("auth.logger"),
   identityCacheService: createToken<IdentityCacheService>("auth.identityCacheService"),
   rbacPolicyService: createToken<RbacPolicyService>("auth.rbacPolicyService"),
+  resolveChatwootPlatform: createToken<ChatwootPlatformPortResolver | undefined>(
+    "auth.resolveChatwootPlatform",
+  ),
   registerTenantUseCase: createToken<RegisterTenantUseCase>("auth.useCases.registerTenant"),
   createUserUseCase: createToken<CreateUserUseCase>("auth.useCases.createUser"),
   loginUseCase: createToken<LoginUseCase>("auth.useCases.login"),
   getCurrentUserUseCase: createToken<GetCurrentUserUseCase>("auth.useCases.getCurrentUser"),
   verifyAccessTokenUseCase: createToken<VerifyAccessTokenUseCase>(
     "auth.useCases.verifyAccessToken",
+  ),
+  deactivateTenantMemberUseCase: createToken<DeactivateTenantMemberUseCase>(
+    "auth.useCases.deactivateTenantMember",
+  ),
+  removeTenantMemberUseCase: createToken<RemoveTenantMemberUseCase>(
+    "auth.useCases.removeTenantMember",
   ),
 };
 
@@ -199,6 +220,10 @@ function registerAuthContainer(input: CreateAuthModuleInput): ReturnType<typeof 
   container.registerSingleton(authContainerTokens.rbacPolicyService, () =>
     createRbacPolicyService(),
   );
+  container.registerSingleton(
+    authContainerTokens.resolveChatwootPlatform,
+    () => input.resolveChatwootPlatform,
+  );
   container.registerTransient(authContainerTokens.registerTenantUseCase, (resolver) =>
     createRegisterTenantUseCase({
       tenantRepository: resolver.resolve(authContainerTokens.tenantRepository),
@@ -241,6 +266,30 @@ function registerAuthContainer(input: CreateAuthModuleInput): ReturnType<typeof 
       authTokenPort: resolver.resolve(authContainerTokens.authTokenPort),
     }),
   );
+  container.registerTransient(authContainerTokens.deactivateTenantMemberUseCase, (resolver) => {
+    const resolveChatwootPlatform = resolver.resolve(authContainerTokens.resolveChatwootPlatform);
+
+    return createDeactivateTenantMemberUseCase({
+      userRepository: resolver.resolve(authContainerTokens.userRepository),
+      membershipRepository: resolver.resolve(authContainerTokens.membershipRepository),
+      identityCacheService: resolver.resolve(authContainerTokens.identityCacheService),
+      rbacPolicyService: resolver.resolve(authContainerTokens.rbacPolicyService),
+      logger: resolver.resolve(authContainerTokens.appLoggerPort),
+      ...(resolveChatwootPlatform ? { resolveChatwootPlatform } : {}),
+    });
+  });
+  container.registerTransient(authContainerTokens.removeTenantMemberUseCase, (resolver) => {
+    const resolveChatwootPlatform = resolver.resolve(authContainerTokens.resolveChatwootPlatform);
+
+    return createRemoveTenantMemberUseCase({
+      userRepository: resolver.resolve(authContainerTokens.userRepository),
+      membershipRepository: resolver.resolve(authContainerTokens.membershipRepository),
+      identityCacheService: resolver.resolve(authContainerTokens.identityCacheService),
+      rbacPolicyService: resolver.resolve(authContainerTokens.rbacPolicyService),
+      logger: resolver.resolve(authContainerTokens.appLoggerPort),
+      ...(resolveChatwootPlatform ? { resolveChatwootPlatform } : {}),
+    });
+  });
 
   return container;
 }
@@ -254,6 +303,10 @@ export function createAuthModule(input: CreateAuthModuleInput): AuthModule {
     loginUseCase: container.resolve(authContainerTokens.loginUseCase),
     getCurrentUserUseCase: container.resolve(authContainerTokens.getCurrentUserUseCase),
     verifyAccessTokenUseCase: container.resolve(authContainerTokens.verifyAccessTokenUseCase),
+    deactivateTenantMemberUseCase: container.resolve(
+      authContainerTokens.deactivateTenantMemberUseCase,
+    ),
+    removeTenantMemberUseCase: container.resolve(authContainerTokens.removeTenantMemberUseCase),
     authTokenPort: container.resolve(authContainerTokens.authTokenPort),
     tenantRepository: container.resolve(authContainerTokens.tenantRepository),
     userRepository: container.resolve(authContainerTokens.userRepository),

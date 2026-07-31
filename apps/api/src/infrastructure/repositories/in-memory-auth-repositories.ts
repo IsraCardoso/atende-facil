@@ -140,6 +140,36 @@ function createMembershipRepository(store: {
         .map((membershipId) => store.membershipsById.get(membershipId))
         .filter((membership): membership is TenantMembershipEntity => membership !== undefined);
     },
+    async listByTenant(tenantId) {
+      return Array.from(store.membershipsById.values()).filter(
+        (membership) => membership.tenantId === tenantId,
+      );
+    },
+    async updateStatus(membershipId, status) {
+      const membership = store.membershipsById.get(membershipId);
+
+      if (!membership) {
+        throw new Error("Membership não encontrada para atualizar status.");
+      }
+
+      store.membershipsById.set(membershipId, { ...membership, status, updatedAt: new Date() });
+    },
+    async remove(tenantId, userId) {
+      const tenantUserKey = createTenantUserKey(tenantId, userId);
+      const membershipId = store.membershipIdByTenantUser.get(tenantUserKey);
+
+      if (!membershipId) {
+        return;
+      }
+
+      store.membershipsById.delete(membershipId);
+      store.membershipIdByTenantUser.delete(tenantUserKey);
+
+      const remainingIds = (store.membershipIdsByUser.get(userId) ?? []).filter(
+        (id) => id !== membershipId,
+      );
+      store.membershipIdsByUser.set(userId, remainingIds);
+    },
   };
 }
 

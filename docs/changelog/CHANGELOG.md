@@ -12,6 +12,7 @@
 
 ### Adicionado
 - Login único (SSO) para o Chatwoot via Platform API (`GET /platform/api/v1/users/{id}/login`) — o atendente autentica apenas no Atende Fácil; `users.chatwoot_user_id` guarda o vínculo com o espelho provisionado sob demanda no Chatwoot (RN-019 v2.0).
+- Deactivate and remove endpoints for tenant members (`POST /auth/users/:userId/deactivate`, `DELETE /auth/users/:userId`), admin-only, with last-active-admin and self-action guards; revokes the member's Chatwoot account access best-effort (RN-019).
 
 ### Alterado
 - `CHATWOOT_SSO_SECRET` removida; substituída por `CHATWOOT_PLATFORM_TOKEN` (Platform App token, gerado no console Rails do Chatwoot).
@@ -24,7 +25,7 @@
 
 ### Débitos conhecidos (ver RN-019 §Débito conhecido)
 - [x] SSO usava config global (`CHATWOOT_ACCOUNT_ID`/`CHATWOOT_PLATFORM_TOKEN`); tenants com Chatwoot próprio (RN-026) não eram resolvidos por tenant — todos os agentes federados entravam na MESMA conta Chatwoot. **Resolved** (change `chatwoot-sso-multi-tenant`).
-- [ ] Sem deprovisionamento: usuário demovido/desativado no Atende Fácil mantém o espelho e o papel no Chatwoot congelados desde a primeira federação.
+- [x] Sem deprovisionamento: usuário demovido/desativado no Atende Fácil mantinha o espelho e o papel no Chatwoot congelados desde a primeira federação. **Resolved** (change `user-deprovisioning`) — deactivate/remove revoke Chatwoot account access best-effort.
 
 ---
 

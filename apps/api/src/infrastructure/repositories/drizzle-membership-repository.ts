@@ -5,7 +5,12 @@ import {
   createTenantMembershipEntity,
   type TenantMembershipEntity,
 } from "../../domain/auth-entities";
-import type { TenantId, TenantMembershipId, UserId } from "../../domain/auth-types";
+import type {
+  MembershipStatus,
+  TenantId,
+  TenantMembershipId,
+  UserId,
+} from "../../domain/auth-types";
 import type { MembershipRepositoryPort } from "../../domain/ports";
 
 type MembershipRow = typeof tenantMembershipsTable.$inferSelect;
@@ -74,6 +79,33 @@ export function createDrizzleMembershipRepository(
         .where(eq(tenantMembershipsTable.userId, userId));
 
       return rows.map(mapRowToEntity);
+    },
+
+    async listByTenant(tenantId: TenantId): Promise<readonly TenantMembershipEntity[]> {
+      const rows = await db
+        .select()
+        .from(tenantMembershipsTable)
+        .where(eq(tenantMembershipsTable.tenantId, tenantId));
+
+      return rows.map(mapRowToEntity);
+    },
+
+    async updateStatus(membershipId: TenantMembershipId, status: MembershipStatus): Promise<void> {
+      await db
+        .update(tenantMembershipsTable)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(tenantMembershipsTable.id, membershipId));
+    },
+
+    async remove(tenantId: TenantId, userId: UserId): Promise<void> {
+      await db
+        .delete(tenantMembershipsTable)
+        .where(
+          and(
+            eq(tenantMembershipsTable.tenantId, tenantId),
+            eq(tenantMembershipsTable.userId, userId),
+          ),
+        );
     },
   };
 }

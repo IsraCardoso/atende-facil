@@ -17,6 +17,7 @@ function createChatwootPlatformFake(
     createSsoUrl: vi
       .fn()
       .mockResolvedValue("https://chatwoot.example.com/login?sso_auth_token=tok"),
+    revokeUserFromAccount: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

@@ -20,6 +20,8 @@ type ChatwootPlatformPort = Readonly<{
   addUserToAccount: (input: ChatwootPlatformAddUserInput) => Promise<void>;
   /** Emite URL de login único. O token embutido é de uso ÚNICO — gerar por abertura. */
   createSsoUrl: (chatwootUserId: string) => Promise<string>;
+  /** Remove o vínculo do usuário com a conta (RN-019 deprovisionamento) — não deleta o Chatwoot user global. */
+  revokeUserFromAccount: (chatwootUserId: string) => Promise<void>;
 }>;
 
 /** Resolve o ChatwootPlatformPort per-tenant — cada tenant federa na própria conta Chatwoot (RN-019/RN-026). */

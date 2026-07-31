@@ -47,7 +47,7 @@ async function readErrorBody(response: Response): Promise<string> {
 async function requestPlatform(
   config: ChatwootPlatformConfig,
   path: string,
-  init: Readonly<{ method: "GET" | "POST"; body?: unknown }>,
+  init: Readonly<{ method: "GET" | "POST" | "DELETE"; body?: unknown }>,
 ): Promise<unknown> {
   const url = `${config.apiUrl.replace(/\/$/, "")}/platform/api/v1${path}`;
 
@@ -68,7 +68,12 @@ async function requestPlatform(
     );
   }
 
-  return (await response.json()) as unknown;
+  if (response.status === 204) {
+    return null;
+  }
+
+  const text = await response.text();
+  return text ? (JSON.parse(text) as unknown) : null;
 }
 
 /** Valida id numérico. Chatwoot ids são inteiros; um id não-numérico não pode virar path de URL. */
@@ -129,6 +134,17 @@ export function createChatwootPlatformAdapter(
           user_id: Number(input.chatwootUserId),
           role: input.role,
         },
+      });
+    },
+
+    // O swagger publicado da Platform API (developers.chatwoot.com) documenta o DELETE de
+    // account_users sem parâmetro de user_id (nem body nem query aparecem na spec) — gap de
+    // documentação da própria Chatwoot. Body inferido do payload do POST irmão (user_id, role);
+    // PRECISA validação contra uma instância Chatwoot real antes de habilitar em produção.
+    async revokeUserFromAccount(chatwootUserId: string): Promise<void> {
+      await requestPlatform(config, `/accounts/${config.accountId}/account_users`, {
+        method: "DELETE",
+        body: { user_id: Number(chatwootUserId) },
       });
     },
 

@@ -92,10 +92,27 @@ export function bootstrapApi(): ApiRuntime {
 
   const { db } = createDatabaseConnection(createDatabaseUrl(env.databaseUrl));
 
+  const tenantIntegrationRepository = db
+    ? createDrizzleTenantIntegrationRepository(db)
+    : createInMemoryTenantIntegrationRepository();
+
+  // Login único: só disponível quando há Platform App token global (master switch, RN-019).
+  // Tenant com platformToken próprio em tenant_integrations federa na SUA conta; sem config
+  // própria, cai no fallback global — nunca na conta de outro tenant (RN-026 R5). A factory é
+  // construída sempre (mesmo sem fallback global): deprovisionamento revoga acesso best-effort
+  // e só é chamado quando o usuário-alvo já tem chatwootUserId — o que só acontece se o SSO já
+  // foi habilitado em algum momento (globalmente ou por tenant).
+  const globalChatwootPlatformConfig = buildGlobalChatwootPlatformConfig(env);
+  const resolveChatwootPlatform = createChatwootPlatformPortFactory({
+    integrationRepository: tenantIntegrationRepository,
+    ...(globalChatwootPlatformConfig ? { globalFallbackConfig: globalChatwootPlatformConfig } : {}),
+  });
+
   const authModule = createAuthModule({
     environment: env,
     logger,
     db,
+    resolveChatwootPlatform,
   });
   const flowModule = createFlowModule({ db });
 
@@ -114,10 +131,6 @@ export function bootstrapApi(): ApiRuntime {
     tenantRepository: authModule.tenantRepository,
     cache: flowResolverCache,
   });
-
-  const tenantIntegrationRepository = db
-    ? createDrizzleTenantIntegrationRepository(db)
-    : createInMemoryTenantIntegrationRepository();
 
   const globalChatwootConfig = buildGlobalChatwootConfig(env);
   const resolveChatwootPort = createChatwootPortFactory({
@@ -195,17 +208,10 @@ export function bootstrapApi(): ApiRuntime {
     db,
   });
 
-  // Login único: só disponível quando há Platform App token global (master switch, RN-019).
-  // Tenant com platformToken próprio em tenant_integrations federa na SUA conta; sem config
-  // própria, cai no fallback global — nunca na conta de outro tenant (RN-026 R5).
-  const globalChatwootPlatformConfig = buildGlobalChatwootPlatformConfig(env);
   const getChatwootSsoUrl = globalChatwootPlatformConfig
     ? createGetChatwootSsoUrlUseCase({
         userRepository: authModule.userRepository,
-        resolveChatwootPlatform: createChatwootPlatformPortFactory({
-          integrationRepository: tenantIntegrationRepository,
-          globalFallbackConfig: globalChatwootPlatformConfig,
-        }),
+        resolveChatwootPlatform,
         logger: appLoggerPort,
       })
     : undefined;

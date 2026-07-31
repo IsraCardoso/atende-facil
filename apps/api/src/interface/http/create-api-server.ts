@@ -5,9 +5,11 @@ import { createAppError, isAppError, toAppErrorPayload } from "../../application
 import type { createChatwootAccessService } from "../../application/services/chatwoot-access-service";
 import type {
   CreateUserUseCase,
+  DeactivateTenantMemberUseCase,
   GetCurrentUserUseCase,
   LoginUseCase,
   RegisterTenantUseCase,
+  RemoveTenantMemberUseCase,
   VerifyAccessTokenUseCase,
 } from "../../application/use-cases";
 import type {
@@ -72,6 +74,8 @@ type CreateApiServerAuthDependencies = Readonly<{
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
+  deactivateTenantMemberUseCase: DeactivateTenantMemberUseCase;
+  removeTenantMemberUseCase: RemoveTenantMemberUseCase;
 }>;
 
 type CreateApiServerWhatsAppIntegrationDependencies = Readonly<{
@@ -260,6 +264,8 @@ export function createApiServer(input: CreateApiServerInput) {
         loginUseCase: auth.loginUseCase,
         getCurrentUserUseCase: auth.getCurrentUserUseCase,
         verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+        deactivateTenantMemberUseCase: auth.deactivateTenantMemberUseCase,
+        removeTenantMemberUseCase: auth.removeTenantMemberUseCase,
       }),
     );
 

@@ -16,6 +16,13 @@ export {
   createCreateUserUseCase,
 } from "./create-user-use-case";
 export {
+  createDeactivateTenantMemberUseCase,
+  type DeactivateTenantMemberInput,
+  type DeactivateTenantMemberOutput,
+  type DeactivateTenantMemberUseCase,
+  type DeactivateTenantMemberUseCaseDependencies,
+} from "./deactivate-tenant-member-use-case";
+export {
   createGetCurrentUserUseCase,
   type GetCurrentUserUseCase,
   type GetCurrentUserUseCaseDependencies,
@@ -32,6 +39,13 @@ export {
   type RegisterTenantUseCase,
   type RegisterTenantUseCaseDependencies,
 } from "./register-tenant-use-case";
+export {
+  createRemoveTenantMemberUseCase,
+  type RemoveTenantMemberInput,
+  type RemoveTenantMemberOutput,
+  type RemoveTenantMemberUseCase,
+  type RemoveTenantMemberUseCaseDependencies,
+} from "./remove-tenant-member-use-case";
 export {
   createVerifyAccessTokenUseCase,
   type VerifyAccessTokenUseCase,

@@ -4,7 +4,15 @@ import type {
   TenantMembershipEntity,
   UserEntity,
 } from "../auth-entities";
-import type { EmailAddress, TenantId, TenantSlug, UserId, UserRole } from "../auth-types";
+import type {
+  EmailAddress,
+  MembershipStatus,
+  TenantId,
+  TenantMembershipId,
+  TenantSlug,
+  UserId,
+  UserRole,
+} from "../auth-types";
 
 type JwtTokenIssueInput = Readonly<{
   sub: UserId;
@@ -42,6 +50,11 @@ type MembershipRepositoryPort = Readonly<{
     tenantId: TenantId,
   ) => Promise<TenantMembershipEntity | null>;
   listByUserId: (userId: UserId) => Promise<readonly TenantMembershipEntity[]>;
+  /** Lista todos os memberships de um tenant — usado pelo guard de último-admin no deprovisionamento. */
+  listByTenant: (tenantId: TenantId) => Promise<readonly TenantMembershipEntity[]>;
+  updateStatus: (membershipId: TenantMembershipId, status: MembershipStatus) => Promise<void>;
+  /** Hard delete — sem soft-delete: `unique(tenantId, userId)` exige liberar o vínculo pra permitir re-convite. */
+  remove: (tenantId: TenantId, userId: UserId) => Promise<void>;
 }>;
 
 /** Port de emissão e verificação de JWT. Desacoplado do algoritmo de assinatura. */
