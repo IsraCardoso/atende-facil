@@ -419,4 +419,232 @@ describe("createApiServer", () => {
     expect(loginResponse.status).toBe(200);
     expect(claims.tenantId).toBe(defaultTenantId);
   });
+
+  async function registerTenantAndLogin(
+    app: ReturnType<typeof createAppUnderTest>["app"],
+    input: Readonly<{ tenantSlug: string; adminEmail: string }>,
+  ): Promise<string> {
+    await app.handle(
+      new Request("http://localhost/auth/register-tenant", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tenantName: "Tenant Deprovisioning",
+          tenantSlug: input.tenantSlug,
+          adminDisplayName: "Admin",
+          adminEmail: input.adminEmail,
+          adminPassword: "super-secret",
+        }),
+      }),
+    );
+
+    const loginResponse = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: input.adminEmail,
+          password: "super-secret",
+          tenantSlug: input.tenantSlug,
+        }),
+      }),
+    );
+    const loginPayload = await parseJsonObject(loginResponse);
+    return String(loginPayload.accessToken);
+  }
+
+  async function createMember(
+    app: ReturnType<typeof createAppUnderTest>["app"],
+    adminToken: string,
+    input: Readonly<{ email: string; role: string }>,
+  ): Promise<string> {
+    const response = await app.handle(
+      new Request("http://localhost/auth/users", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          displayName: "Member",
+          email: input.email,
+          password: "member-secret",
+          role: input.role,
+        }),
+      }),
+    );
+    const payload = await parseJsonObject(response);
+    const user = payload.user as Readonly<Record<string, unknown>>;
+    return String(user.id);
+  }
+
+  it("should deactivate a tenant member via POST /auth/users/:userId/deactivate", async () => {
+    const { app } = createAppUnderTest();
+    const adminToken = await registerTenantAndLogin(app, {
+      tenantSlug: "tenant-deactivate",
+      adminEmail: "admin-deactivate@demo.com",
+    });
+    const memberId = await createMember(app, adminToken, {
+      email: "member-deactivate@demo.com",
+      role: "agent",
+    });
+
+    const response = await app.handle(
+      new Request(`http://localhost/auth/users/${memberId}/deactivate`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    const payload = await parseJsonObject(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+  });
+
+  it("should remove a tenant member via DELETE /auth/users/:userId", async () => {
+    const { app } = createAppUnderTest();
+    const adminToken = await registerTenantAndLogin(app, {
+      tenantSlug: "tenant-remove",
+      adminEmail: "admin-remove@demo.com",
+    });
+    const memberId = await createMember(app, adminToken, {
+      email: "member-remove@demo.com",
+      role: "agent",
+    });
+
+    const response = await app.handle(
+      new Request(`http://localhost/auth/users/${memberId}`, {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    const payload = await parseJsonObject(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+  });
+
+  it("should reject deactivate/remove without permission (403) for a non-admin actor", async () => {
+    const { app } = createAppUnderTest();
+    const adminToken = await registerTenantAndLogin(app, {
+      tenantSlug: "tenant-forbidden",
+      adminEmail: "admin-forbidden@demo.com",
+    });
+    const agentEmail = "agent-forbidden@demo.com";
+    await createMember(app, adminToken, { email: agentEmail, role: "agent" });
+
+    const agentLoginResponse = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: agentEmail,
+          password: "member-secret",
+          tenantSlug: "tenant-forbidden",
+        }),
+      }),
+    );
+    const agentLoginPayload = await parseJsonObject(agentLoginResponse);
+    const agentToken = String(agentLoginPayload.accessToken);
+
+    const response = await app.handle(
+      new Request("http://localhost/auth/users/nonexistent-user/deactivate", {
+        method: "POST",
+        headers: { authorization: `Bearer ${agentToken}` },
+      }),
+    );
+    const payload = await parseJsonObject(response);
+
+    expect(response.status).toBe(403);
+    expect(payload.code).toBe("AUTH_FORBIDDEN");
+  });
+
+  it("should reject self-deactivation (403 MEMBERSHIP_SELF_ACTION_FORBIDDEN)", async () => {
+    const { app } = createAppUnderTest();
+    const adminToken = await registerTenantAndLogin(app, {
+      tenantSlug: "tenant-self-action",
+      adminEmail: "admin-self@demo.com",
+    });
+    const meResponse = await app.handle(
+      new Request("http://localhost/auth/me", {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    const mePayload = await parseJsonObject(meResponse);
+    const adminId = String((mePayload.user as Readonly<Record<string, unknown>>).id);
+
+    const response = await app.handle(
+      new Request(`http://localhost/auth/users/${adminId}/deactivate`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    const payload = await parseJsonObject(response);
+
+    expect(response.status).toBe(403);
+    expect(payload.code).toBe("MEMBERSHIP_SELF_ACTION_FORBIDDEN");
+  });
+
+  it("should reject deactivating the last active admin (409 MEMBERSHIP_LAST_ADMIN)", async () => {
+    const { app } = createAppUnderTest();
+    const adminToken = await registerTenantAndLogin(app, {
+      tenantSlug: "tenant-last-admin",
+      adminEmail: "admin-last-1@demo.com",
+    });
+
+    // Promove um segundo admin (agora 2 admins ativos), depois usa ESSE segundo
+    // admin como ator pra deprovisionar o primeiro (nao e self-action) — o tenant
+    // fica com 1 admin ativo (o segundo). Deprovisionar esse ultimo restante,
+    // pelo mesmo ator, e o caminho real que dispara MEMBERSHIP_LAST_ADMIN.
+    const secondAdminEmail = "admin-last-2@demo.com";
+    await createMember(app, adminToken, { email: secondAdminEmail, role: "admin" });
+    const secondAdminLoginResponse = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: secondAdminEmail,
+          password: "member-secret",
+          tenantSlug: "tenant-last-admin",
+        }),
+      }),
+    );
+    const secondAdminLoginPayload = await parseJsonObject(secondAdminLoginResponse);
+    const secondAdminToken = String(secondAdminLoginPayload.accessToken);
+
+    const meResponse = await app.handle(
+      new Request("http://localhost/auth/me", {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    const mePayload = await parseJsonObject(meResponse);
+    const firstAdminId = String((mePayload.user as Readonly<Record<string, unknown>>).id);
+
+    const demoteFirstAdminResponse = await app.handle(
+      new Request(`http://localhost/auth/users/${firstAdminId}/deactivate`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${secondAdminToken}` },
+      }),
+    );
+    expect(demoteFirstAdminResponse.status).toBe(200);
+
+    const secondMeResponse = await app.handle(
+      new Request("http://localhost/auth/me", {
+        headers: { authorization: `Bearer ${secondAdminToken}` },
+      }),
+    );
+    const secondMePayload = await parseJsonObject(secondMeResponse);
+    const secondAdminId = String((secondMePayload.user as Readonly<Record<string, unknown>>).id);
+
+    const lastAdminResponse = await app.handle(
+      new Request(`http://localhost/auth/users/${secondAdminId}/deactivate`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    const lastAdminPayload = await parseJsonObject(lastAdminResponse);
+
+    expect(lastAdminResponse.status).toBe(409);
+    expect(lastAdminPayload.code).toBe("MEMBERSHIP_LAST_ADMIN");
+  });
 });

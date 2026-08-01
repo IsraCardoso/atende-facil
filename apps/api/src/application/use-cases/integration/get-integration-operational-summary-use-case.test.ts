@@ -63,6 +63,7 @@ function createUseCase(overrides?: {
       findByTenantPaginated: vi.fn(),
       save: vi.fn(),
       updateStatus: vi.fn(),
+      activateExclusive: vi.fn(),
       softDelete: vi.fn(),
     },
   });
@@ -105,6 +106,7 @@ describe("createGetIntegrationOperationalSummaryUseCase", () => {
         findByTenantPaginated: vi.fn(),
         save: vi.fn(),
         updateStatus: vi.fn(),
+        activateExclusive: vi.fn(),
         softDelete: vi.fn(),
       },
     });

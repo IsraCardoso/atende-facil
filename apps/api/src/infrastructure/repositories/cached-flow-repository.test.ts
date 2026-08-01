@@ -40,6 +40,9 @@ function createMockFlowRepo(): FlowRepositoryPort {
       .mockResolvedValue({ data: [], total: 0, page: 1, limit: 10, hasMore: false }),
     save: vi.fn().mockResolvedValue(flowEntity),
     updateStatus: vi.fn().mockResolvedValue(flowEntity),
+    activateExclusive: vi
+      .fn()
+      .mockResolvedValue({ ok: true, activated: flowEntity, previousActiveFlow: null }),
     softDelete: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -92,6 +95,18 @@ describe("CachedFlowRepository", () => {
     await cached.findActiveByTenant("tenant-1");
     await cached.softDelete("tenant-1", "flow-1" as FlowEntity["id"]);
 
+    expect(cache.delete).toHaveBeenCalledWith("flow:active:tenant-1");
+  });
+
+  it("should invalidate cache on activateExclusive", async () => {
+    const cache = createMockCachePort();
+    const inner = createMockFlowRepo();
+    const cached = createCachedFlowRepository(inner, cache);
+
+    await cached.findActiveByTenant("tenant-1");
+    await cached.activateExclusive("tenant-1", "flow-1" as FlowEntity["id"]);
+
+    expect(inner.activateExclusive).toHaveBeenCalledWith("tenant-1", "flow-1");
     expect(cache.delete).toHaveBeenCalledWith("flow:active:tenant-1");
   });
 

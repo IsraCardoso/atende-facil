@@ -30,6 +30,9 @@ function createStubFlowRepository(
     async updateStatus() {
       return {} as FlowEntity;
     },
+    async activateExclusive() {
+      return { ok: true, activated: {} as FlowEntity, previousActiveFlow: null } as const;
+    },
     async softDelete() {
       /* noop */
     },
