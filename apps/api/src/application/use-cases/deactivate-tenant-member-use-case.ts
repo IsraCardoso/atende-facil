@@ -13,7 +13,6 @@ import type { ChatwootPlatformPortResolver } from "../../domain/ports/chatwoot-p
 import { createAppError } from "../errors/app-error";
 import type { IdentityCacheService, RbacPolicyService } from "../services";
 import {
-  assertNotLastActiveAdmin,
   assertNotSelfAction,
   revokeChatwootAccessBestEffort,
 } from "./tenant-member-deprovisioning-shared";
@@ -67,8 +66,18 @@ export function createDeactivateTenantMemberUseCase(
         throw createAppError("MEMBERSHIP_NOT_FOUND", "Usuário não possui vínculo com este tenant.");
       }
 
-      await assertNotLastActiveAdmin(membershipRepository, input.tenantId, targetMembership);
-      await membershipRepository.updateStatus(targetMembership.id, "suspended");
+      const guardedUpdate = await membershipRepository.updateStatusIfNotLastAdmin(
+        input.tenantId,
+        targetMembership.id,
+        "suspended",
+      );
+
+      if (!guardedUpdate.ok) {
+        throw createAppError(
+          "MEMBERSHIP_LAST_ADMIN",
+          "O tenant precisa de ao menos um administrador ativo.",
+        );
+      }
 
       await revokeChatwootAccessBestEffort(
         { userRepository, resolveChatwootPlatform, logger },

@@ -9,7 +9,9 @@ export type {
   LoggerMetadata,
   MembershipRepositoryPort,
   PasswordHasherPort,
+  RemoveIfNotLastAdminResult,
   TenantRepositoryPort,
+  UpdateStatusIfNotLastAdminResult,
   UserRepositoryPort,
 } from "./auth-ports";
 export type {

@@ -1,3 +1,4 @@
+/** Ports de persistência e infraestrutura de autenticação/autorização (usuários, tenants, memberships, JWT, cache, logging). */
 import type {
   SafeUserProfile,
   TenantEntity,
@@ -43,6 +44,14 @@ type TenantRepositoryPort = Readonly<{
   updateTimezone: (tenantId: TenantId, timezone: string) => Promise<void>;
 }>;
 
+type LastAdminGuardFailure = Readonly<{ ok: false; reason: "LAST_ADMIN" }>;
+
+type UpdateStatusIfNotLastAdminResult =
+  | Readonly<{ ok: true; membership: TenantMembershipEntity }>
+  | LastAdminGuardFailure;
+
+type RemoveIfNotLastAdminResult = Readonly<{ ok: true }> | LastAdminGuardFailure;
+
 type MembershipRepositoryPort = Readonly<{
   create: (membership: TenantMembershipEntity) => Promise<TenantMembershipEntity>;
   findByUserAndTenant: (
@@ -50,11 +59,25 @@ type MembershipRepositoryPort = Readonly<{
     tenantId: TenantId,
   ) => Promise<TenantMembershipEntity | null>;
   listByUserId: (userId: UserId) => Promise<readonly TenantMembershipEntity[]>;
-  /** Lista todos os memberships de um tenant — usado pelo guard de último-admin no deprovisionamento. */
+  /** Lista todos os memberships de um tenant. */
   listByTenant: (tenantId: TenantId) => Promise<readonly TenantMembershipEntity[]>;
-  updateStatus: (membershipId: TenantMembershipId, status: MembershipStatus) => Promise<void>;
-  /** Hard delete — sem soft-delete: `unique(tenantId, userId)` exige liberar o vínculo pra permitir re-convite. */
-  remove: (tenantId: TenantId, userId: UserId) => Promise<void>;
+  /**
+   * Aplica o guard de último-admin e a mutação de status em uma única operação atômica
+   * (transação + row lock nas memberships admin/active do tenant) — elimina a janela TOCTOU
+   * entre ler o count de admins e escrever o novo status. Única forma de mudar status —
+   * não existe `updateStatus` bruto/sem guard neste port (evita reabrir a corrida corrigida).
+   */
+  updateStatusIfNotLastAdmin: (
+    tenantId: TenantId,
+    membershipId: TenantMembershipId,
+    status: MembershipStatus,
+  ) => Promise<UpdateStatusIfNotLastAdminResult>;
+  /**
+   * Mesma garantia atômica de `updateStatusIfNotLastAdmin`, para remoção (hard delete).
+   * Única forma de remover — não existe `remove` bruto/sem guard neste port.
+   * Sem soft-delete: `unique(tenantId, userId)` exige liberar o vínculo pra permitir re-convite.
+   */
+  removeIfNotLastAdmin: (tenantId: TenantId, userId: UserId) => Promise<RemoveIfNotLastAdminResult>;
 }>;
 
 /** Port de emissão e verificação de JWT. Desacoplado do algoritmo de assinatura. */
@@ -112,6 +135,8 @@ export type {
   LoggerMetadata,
   MembershipRepositoryPort,
   PasswordHasherPort,
+  RemoveIfNotLastAdminResult,
   TenantRepositoryPort,
+  UpdateStatusIfNotLastAdminResult,
   UserRepositoryPort,
 };

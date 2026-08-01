@@ -1,7 +1,10 @@
+/** Repositorios de auth (usuario, tenant, membership) em memoria — para testes unitarios. Mesmo contrato dos repositorios Drizzle. */
 import type { TenantEntity, TenantMembershipEntity, UserEntity } from "../../domain";
 import type {
   MembershipRepositoryPort,
+  RemoveIfNotLastAdminResult,
   TenantRepositoryPort,
+  UpdateStatusIfNotLastAdminResult,
   UserRepositoryPort,
 } from "../../domain/ports";
 
@@ -145,21 +148,53 @@ function createMembershipRepository(store: {
         (membership) => membership.tenantId === tenantId,
       );
     },
-    async updateStatus(membershipId, status) {
+    async updateStatusIfNotLastAdmin(
+      tenantId,
+      membershipId,
+      status,
+    ): Promise<UpdateStatusIfNotLastAdminResult> {
       const membership = store.membershipsById.get(membershipId);
 
       if (!membership) {
         throw new Error("Membership não encontrada para atualizar status.");
       }
 
-      store.membershipsById.set(membershipId, { ...membership, status, updatedAt: new Date() });
+      const activeAdminCount = Array.from(store.membershipsById.values()).filter(
+        (candidate) =>
+          candidate.tenantId === tenantId &&
+          candidate.role === "admin" &&
+          candidate.status === "active",
+      ).length;
+
+      const isGuardedTarget = membership.role === "admin" && membership.status === "active";
+      if (isGuardedTarget && activeAdminCount <= 1) {
+        return { ok: false, reason: "LAST_ADMIN" };
+      }
+
+      const updated = { ...membership, status, updatedAt: new Date() };
+      store.membershipsById.set(membershipId, updated);
+
+      return { ok: true, membership: updated };
     },
-    async remove(tenantId, userId) {
+    async removeIfNotLastAdmin(tenantId, userId): Promise<RemoveIfNotLastAdminResult> {
       const tenantUserKey = createTenantUserKey(tenantId, userId);
       const membershipId = store.membershipIdByTenantUser.get(tenantUserKey);
 
       if (!membershipId) {
-        return;
+        return { ok: true };
+      }
+
+      const membership = store.membershipsById.get(membershipId);
+      const activeAdminCount = Array.from(store.membershipsById.values()).filter(
+        (candidate) =>
+          candidate.tenantId === tenantId &&
+          candidate.role === "admin" &&
+          candidate.status === "active",
+      ).length;
+
+      const isGuardedTarget = membership?.role === "admin" && membership.status === "active";
+      if (isGuardedTarget && activeAdminCount <= 1) {
+        return { ok: false, reason: "LAST_ADMIN" };
       }
 
       store.membershipsById.delete(membershipId);
@@ -169,6 +204,8 @@ function createMembershipRepository(store: {
         (id) => id !== membershipId,
       );
       store.membershipIdsByUser.set(userId, remainingIds);
+
+      return { ok: true };
     },
   };
 }

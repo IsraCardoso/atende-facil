@@ -1,11 +1,6 @@
 /** Guards e revogação Chatwoot compartilhados entre deactivate/remove de membership (RN-019). */
-import type { TenantMembershipEntity } from "../../domain";
 import type { TenantId, UserId } from "../../domain/auth-types";
-import type {
-  AppLoggerPort,
-  MembershipRepositoryPort,
-  UserRepositoryPort,
-} from "../../domain/ports";
+import type { AppLoggerPort, UserRepositoryPort } from "../../domain/ports";
 import type { ChatwootPlatformPortResolver } from "../../domain/ports/chatwoot-platform-ports";
 import { createAppError } from "../errors/app-error";
 
@@ -14,28 +9,6 @@ function assertNotSelfAction(actorUserId: UserId, targetUserId: UserId): void {
     throw createAppError(
       "MEMBERSHIP_SELF_ACTION_FORBIDDEN",
       "Não é possível executar esta ação sobre o próprio acesso.",
-    );
-  }
-}
-
-async function assertNotLastActiveAdmin(
-  membershipRepository: MembershipRepositoryPort,
-  tenantId: TenantId,
-  targetMembership: TenantMembershipEntity,
-): Promise<void> {
-  if (targetMembership.role !== "admin" || targetMembership.status !== "active") {
-    return;
-  }
-
-  const allMemberships = await membershipRepository.listByTenant(tenantId);
-  const activeAdmins = allMemberships.filter(
-    (membership) => membership.role === "admin" && membership.status === "active",
-  );
-
-  if (activeAdmins.length <= 1) {
-    throw createAppError(
-      "MEMBERSHIP_LAST_ADMIN",
-      "O tenant precisa de ao menos um administrador ativo.",
     );
   }
 }
@@ -80,4 +53,4 @@ async function revokeChatwootAccessBestEffort(
   }
 }
 
-export { assertNotLastActiveAdmin, assertNotSelfAction, revokeChatwootAccessBestEffort };
+export { assertNotSelfAction, revokeChatwootAccessBestEffort };
