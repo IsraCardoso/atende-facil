@@ -63,6 +63,14 @@ export function createCachedFlowRepository(
       return result;
     },
 
+    async activateExclusive(tenantId: string, flowId: FlowId) {
+      const result = await inner.activateExclusive(tenantId, flowId);
+      if (result.ok) {
+        await cache.delete(cacheKey(tenantId));
+      }
+      return result;
+    },
+
     async softDelete(tenantId: string, flowId: FlowId): Promise<void> {
       await inner.softDelete(tenantId, flowId);
       await cache.delete(cacheKey(tenantId));

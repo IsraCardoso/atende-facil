@@ -75,20 +75,16 @@ export function createGoLiveFlowUseCase(
         );
       }
 
-      const currentActive = await flowRepository.findActiveByTenant(input.tenantId);
-      let previousActiveFlow: FlowEntity | null = null;
+      const result = await flowRepository.activateExclusive(input.tenantId, input.flowId);
 
-      if (currentActive && currentActive.id !== input.flowId) {
-        previousActiveFlow = await flowRepository.updateStatus(
-          input.tenantId,
-          currentActive.id,
-          "published",
+      if (!result.ok) {
+        throw createAppError(
+          "FLOW_ACTIVATION_CONFLICT",
+          "Outra ativacao concorrente venceu a corrida — tente novamente.",
         );
       }
 
-      const activated = await flowRepository.updateStatus(input.tenantId, input.flowId, "active");
-
-      return { flow: activated, previousActiveFlow, validation };
+      return { flow: result.activated, previousActiveFlow: result.previousActiveFlow, validation };
     },
   };
 }

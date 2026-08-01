@@ -8,6 +8,16 @@ import type { FlowFilters, FlowRepositoryPort } from "../../domain/ports/flow-po
 
 type FlowRow = typeof flowsTable.$inferSelect;
 
+/** Postgres unique_violation (SQLSTATE 23505) — dispara quando o indice flows_one_active_per_tenant rejeita a 2a ativacao concorrente. */
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: unknown }).code === "23505"
+  );
+}
+
 function mapRowToEntity(row: FlowRow): FlowEntity {
   return {
     id: createFlowId(row.id),
@@ -187,6 +197,72 @@ export function createDrizzleFlowRepository(
       }
 
       return mapRowToEntity(row);
+    },
+
+    async activateExclusive(tenantId: string, flowId: FlowId) {
+      try {
+        return await db.transaction(async (tx) => {
+          const lockedActiveRows = await tx
+            .select()
+            .from(flowsTable)
+            .where(
+              and(
+                eq(flowsTable.tenantId, tenantId),
+                eq(flowsTable.status, "active"),
+                isNull(flowsTable.deletedAt),
+              ),
+            )
+            .for("update");
+
+          const currentActive = lockedActiveRows[0];
+          let previousActiveFlow: FlowEntity | null = null;
+
+          if (currentActive && currentActive.id !== flowId) {
+            const demoted = await tx
+              .update(flowsTable)
+              .set({ status: "published", updatedAt: new Date() })
+              .where(and(eq(flowsTable.id, currentActive.id), eq(flowsTable.tenantId, tenantId)))
+              .returning();
+
+            const demotedRow = demoted[0];
+            if (!demotedRow) {
+              throw new Error("Falha ao desativar flow anterior: registro nao encontrado.");
+            }
+            previousActiveFlow = mapRowToEntity(demotedRow);
+          }
+
+          // isNull(deletedAt): sem essa guarda, um softDelete concorrente no meio da troca
+          // ativaria uma linha ja soft-deletada — "ghost row" invisivel pra findById/findActiveByTenant
+          // (que filtram isNull(deletedAt)) e fora do alcance do indice unico (que so cobre deletedAt IS NULL).
+          const activatedRows = await tx
+            .update(flowsTable)
+            .set({ status: "active", updatedAt: new Date() })
+            .where(
+              and(
+                eq(flowsTable.id, flowId),
+                eq(flowsTable.tenantId, tenantId),
+                isNull(flowsTable.deletedAt),
+              ),
+            )
+            .returning();
+
+          const activatedRow = activatedRows[0];
+          if (!activatedRow) {
+            return { ok: false, reason: "ACTIVATION_CONFLICT" } as const;
+          }
+
+          return {
+            ok: true,
+            activated: mapRowToEntity(activatedRow),
+            previousActiveFlow,
+          } as const;
+        });
+      } catch (error: unknown) {
+        if (isUniqueViolation(error)) {
+          return { ok: false, reason: "ACTIVATION_CONFLICT" } as const;
+        }
+        throw error;
+      }
     },
 
     async softDelete(tenantId: string, flowId: FlowId): Promise<void> {
