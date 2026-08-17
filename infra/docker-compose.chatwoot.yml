@@ -1,0 +1,52 @@
+# Chatwoot local para atendimento humano E2E.
+# Uso: docker compose -f infra/docker-compose.yml -f infra/docker-compose.chatwoot.yml up -d
+# Requer Postgres (service postgres) e Valkey ja em execucao.
+
+x-chatwoot-env: &chatwoot-env
+  INSTALLATION_ENV: docker
+  SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY_BASE:-atende-facil-local-chatwoot-secret-key-base-64chars-minimum-xx}
+  FRONTEND_URL: ${CHATWOOT_APP_URL:-http://localhost:3001}
+  FORCE_SSL: "false"
+  ENABLE_ACCOUNT_SIGNUP: "true"
+  REDIS_URL: redis://valkey:6379/5
+  POSTGRES_HOST: postgres
+  POSTGRES_USERNAME: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DATABASE: chatwoot
+  RAILS_ENV: production
+  RAILS_LOG_TO_STDOUT: "true"
+  ACTIVE_STORAGE_SERVICE: local
+
+services:
+  chatwoot:
+    image: chatwoot/chatwoot:v3.16.0
+    container_name: spec-driven-chatwoot
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      <<: *chatwoot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  chatwoot-sidekiq:
+    image: chatwoot/chatwoot:v3.16.0
+    container_name: spec-driven-chatwoot-sidekiq
+    restart: unless-stopped
+    environment:
+      <<: *chatwoot-env
+    depends_on:
+      chatwoot:
+        condition: service_started
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]

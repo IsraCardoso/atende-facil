@@ -1,0 +1,547 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "suspicious": {
+        "noConsole": "error",
+        "noExplicitAny": "error"
+      },
+      "style": {
+        "noRestrictedGlobals": {
+          "level": "error",
+          "options": {
+            "deniedGlobals": {
+              "defaultStatus": "API legada de navegador. Evite status bar global e mantenha estado na aplicacao.",
+              "status": "API legada de navegador. Evite status bar global e mantenha estado na aplicacao.",
+              "scroll": "Use window.scroll(...) explicitamente para deixar o alvo da acao claro.",
+              "outerHeight": "Use window.outerHeight explicitamente para evitar global implicito.",
+              "screenX": "Use window.screenX explicitamente para evitar global implicito.",
+              "opener": "Evite window.opener por riscos de seguranca e acoplamento entre janelas.",
+              "onfocus": "Nao use handler global onfocus. Prefira window.addEventListener('focus', ...).",
+              "pageYOffset": "Use window.scrollY explicitamente no lugar de pageYOffset.",
+              "addEventListener": "Use window.addEventListener(...) explicitamente para evitar global implicito.",
+              "defaultstatus": "API legada de navegador. Nao use defaultstatus global.",
+              "history": "Use window.history explicitamente para navegacao.",
+              "frames": "Evite acesso global a frames. Use window.frames explicitamente e valide origem.",
+              "screenY": "Use window.screenY explicitamente para evitar global implicito.",
+              "focus": "Use window.focus() explicitamente e apenas quando estritamente necessario.",
+              "outerWidth": "Use window.outerWidth explicitamente para evitar global implicito.",
+              "opera": "Propriedade nao padrao e obsoleta. Nao use deteccao via window.opera.",
+              "external": "API legada de navegador. Evite window.external.",
+              "innerHeight": "Use window.innerHeight explicitamente para evitar global implicito.",
+              "closed": "Use window.closed explicitamente para evitar global implicito.",
+              "isFinite": "Use Number.isFinite(value) para evitar coercoes implicitas do global isFinite.",
+              "frameElement": "Use window.frameElement explicitamente e trate cenarios cross-origin.",
+              "scrollY": "Use window.scrollY explicitamente para evitar global implicito.",
+              "self": "Evite self implicito. Prefira globalThis ou window.self explicitamente.",
+              "onblur": "Nao use handler global onblur. Prefira window.addEventListener('blur', ...).",
+              "find": "window.find e nao padrao. Evite dependencia de API especifica de navegador.",
+              "parent": "Use window.parent explicitamente e valide origem antes de acessar.",
+              "top": "Use window.top explicitamente e valide origem para evitar erros de seguranca.",
+              "moveBy": "Use window.moveBy(...) explicitamente; API pouco previsivel entre navegadores.",
+              "menubar": "API de UI legada e pouco suportada. Evite window.menubar.",
+              "length": "Global length e ambiguo (frames). Use referencia explicita ao objeto esperado.",
+              "onerror": "Nao use handler global onerror. Prefira addEventListener('error', ...).",
+              "onresize": "Nao use handler global onresize. Prefira addEventListener('resize', ...).",
+              "removeEventListener": "Use window.removeEventListener(...) explicitamente.",
+              "onload": "Nao use handler global onload. Prefira addEventListener('load', ...).",
+              "scrollTo": "Use window.scrollTo(...) explicitamente para evitar global implicito.",
+              "moveTo": "Use window.moveTo(...) explicitamente; API pouco previsivel entre navegadores.",
+              "scrollX": "Use window.scrollX explicitamente para evitar global implicito.",
+              "name": "Evite window.name por comportamento global persistente entre navegacoes.",
+              "toolbar": "API de UI legada e pouco suportada. Evite window.toolbar.",
+              "innerWidth": "Use window.innerWidth explicitamente para evitar global implicito.",
+              "location": "Use window.location explicitamente para evitar sombra de identificador.",
+              "locationbar": "API de UI legada e pouco suportada. Evite window.locationbar.",
+              "scrollBy": "Use window.scrollBy(...) explicitamente para evitar global implicito.",
+              "resizeTo": "Use window.resizeTo(...) explicitamente; API pouco previsivel entre navegadores.",
+              "stop": "Evite global stop(). Se necessario, use window.stop() de forma explicita.",
+              "scrollbars": "API de UI legada e pouco suportada. Evite window.scrollbars.",
+              "blur": "Use window.blur() explicitamente e apenas quando estritamente necessario.",
+              "screenTop": "Use window.screenTop explicitamente para evitar global implicito.",
+              "confirm": "Evite confirm() global em fluxos criticos. Use componente/modal controlado.",
+              "screen": "Use window.screen explicitamente para evitar global implicito.",
+              "screenLeft": "Use window.screenLeft explicitamente para evitar global implicito.",
+              "event": "Nao use global event implicito. Receba o evento como parametro da funcao.",
+              "onunload": "Nao use handler global onunload. Prefira pagehide/beforeunload com cautela.",
+              "pageXOffset": "Use window.scrollX explicitamente no lugar de pageXOffset.",
+              "resizeBy": "Use window.resizeBy(...) explicitamente; API pouco previsivel entre navegadores.",
+              "statusbar": "API de UI legada e pouco suportada. Evite window.statusbar.",
+              "isNaN": "Use Number.isNaN(value) para evitar coercoes implicitas do global isNaN.",
+              "close": "Use window.close() explicitamente e somente em janelas abertas pelo script.",
+              "open": "Use window.open(...) explicitamente com noopener/noreferrer quando aplicavel.",
+              "print": "Use window.print() explicitamente para deixar efeito colateral evidente."
+            }
+          }
+        }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/web/**/*.{js,jsx,ts,tsx}"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noAccessKey": "error",
+            "noAriaUnsupportedElements": "error",
+            "noAutofocus": "error",
+            "noDistractingElements": "error",
+            "noHeaderScope": "error",
+            "noInteractiveElementToNoninteractiveRole": "error",
+            "noLabelWithoutControl": "error",
+            "noNoninteractiveElementInteractions": "error",
+            "noNoninteractiveElementToInteractiveRole": "error",
+            "noNoninteractiveTabindex": "error",
+            "noPositiveTabindex": "error",
+            "noRedundantAlt": "error",
+            "noRedundantRoles": "error",
+            "noStaticElementInteractions": "error",
+            "useAltText": "error",
+            "useAnchorContent": "error",
+            "useAriaActivedescendantWithTabindex": "error",
+            "useAriaPropsForRole": "error",
+            "useAriaPropsSupportedByRole": "error",
+            "useButtonType": "error",
+            "useFocusableInteractive": "error",
+            "useHeadingContent": "error",
+            "useHtmlLang": "error",
+            "useIframeTitle": "error",
+            "useKeyWithClickEvents": "error",
+            "useKeyWithMouseEvents": "error",
+            "useMediaCaption": "error",
+            "useValidAnchor": "error",
+            "useValidAriaProps": "error",
+            "useValidAriaRole": {
+              "level": "error",
+              "options": {
+                "ignoreNonDom": false
+              }
+            },
+            "useValidAriaValues": "error",
+            "useValidAutocomplete": "off",
+            "useValidLang": "error"
+          },
+          "complexity": {
+            "noAdjacentSpacesInRegex": "error",
+            "noArguments": "error",
+            "noCommaOperator": "error",
+            "noExcessiveCognitiveComplexity": "off",
+            "noExcessiveLinesPerFunction": "off",
+            "noExtraBooleanCast": "error",
+            "noImplicitCoercions": "off",
+            "noUselessCatch": "error",
+            "noUselessConstructor": "error",
+            "noUselessEscapeInRegex": "error",
+            "noUselessFragments": "error",
+            "noUselessLabel": "error",
+            "noUselessLoneBlockStatements": "error",
+            "noUselessRename": "error",
+            "noUselessStringConcat": "error",
+            "noUselessTernary": "error",
+            "noUselessUndefinedInitialization": "error",
+            "noVoid": "error",
+            "useArrowFunction": "error",
+            "useLiteralKeys": "error",
+            "useMaxParams": "off",
+            "useNumericLiterals": "error",
+            "useRegexLiterals": "error"
+          },
+          "correctness": {
+            "noChildrenProp": "error",
+            "noConstAssign": "error",
+            "noConstantCondition": "warn",
+            "noConstructorReturn": "error",
+            "noEmptyCharacterClassInRegex": "error",
+            "noEmptyPattern": "error",
+            "noGlobalObjectCalls": "error",
+            "noInnerDeclarations": "error",
+            "noInvalidConstructorSuper": "error",
+            "noInvalidUseBeforeDeclaration": "error",
+            "noNodejsModules": "off",
+            "noNonoctalDecimalEscape": "error",
+            "noPrecisionLoss": "error",
+            "noRestrictedElements": "off",
+            "noSelfAssign": "error",
+            "noSetterReturn": "error",
+            "noSwitchDeclarations": "error",
+            "noUndeclaredDependencies": "error",
+            "noUndeclaredVariables": "error",
+            "noUnreachable": "error",
+            "noUnreachableSuper": "error",
+            "noUnresolvedImports": "error",
+            "noUnsafeFinally": "error",
+            "noUnsafeOptionalChaining": "error",
+            "noUnusedLabels": "error",
+            "noUnusedPrivateClassMembers": "off",
+            "noUnusedVariables": "error",
+            "noVoidElementsWithChildren": "error",
+            "useExhaustiveDependencies": "error",
+            "useHookAtTopLevel": "error",
+            "useIsNan": "error",
+            "useJsxKeyInIterable": "off",
+            "useParseIntRadix": "error",
+            "useValidForDirection": "error",
+            "useValidTypeof": "error",
+            "useYield": "error"
+          },
+          "performance": {
+            "noAwaitInLoops": "error"
+          },
+          "security": {
+            "noBlankTarget": "error",
+            "noDangerouslySetInnerHtml": "warn",
+            "noDangerouslySetInnerHtmlWithChildren": "error",
+            "noGlobalEval": "error"
+          },
+          "style": {
+            "noCommonJs": "off",
+            "noDefaultExport": "off",
+            "noImplicitBoolean": "error",
+            "noJsxLiterals": "off",
+            "noMagicNumbers": "off",
+            "noNegationElse": "off",
+            "noNestedTernary": "error",
+            "noParameterAssign": "error",
+            "noRestrictedImports": "off",
+            "noUselessElse": "error",
+            "noYodaExpression": "error",
+            "useArrayLiterals": "error",
+            "useBlockStatements": "error",
+            "useCollapsedElseIf": "error",
+            "useConsistentArrowReturn": "error",
+            "useConsistentBuiltinInstantiation": "error",
+            "useConsistentCurlyBraces": "error",
+            "useConsistentObjectDefinitions": "error",
+            "useConst": "error",
+            "useDefaultParameterLast": "error",
+            "useDefaultSwitchClause": "error",
+            "useExponentiationOperator": "error",
+            "useExportsLast": "off",
+            "useFragmentSyntax": "error",
+            "useGroupedAccessorPairs": "error",
+            "useNamingConvention": {
+              "level": "error",
+              "options": {
+                "strictCase": false,
+                "requireAscii": false,
+                "conventions": [
+                  {
+                    "selector": {
+                      "kind": "function"
+                    },
+                    "formats": ["camelCase", "PascalCase"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "variable"
+                    },
+                    "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "objectLiteralMember"
+                    },
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "typeProperty"
+                    },
+                    "match": "_*(.+)",
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "typeLike"
+                    },
+                    "formats": ["PascalCase"]
+                  }
+                ]
+              }
+            },
+            "useObjectSpread": "error",
+            "useShorthandAssign": "error",
+            "useSingleVarDeclarator": "error",
+            "useSymbolDescription": "error",
+            "useTemplate": "error",
+            "useThrowOnlyError": "off"
+          },
+          "suspicious": {
+            "noAlert": "warn",
+            "noArrayIndexKey": "error",
+            "noAssignInExpressions": "error",
+            "noAsyncPromiseExecutor": "error",
+            "noBitwiseOperators": "error",
+            "noCatchAssign": "error",
+            "noClassAssign": "error",
+            "noCommentText": "error",
+            "noCompareNegZero": "error",
+            "noConfusingLabels": "error",
+            "noConsole": "warn",
+            "noControlCharactersInRegex": "error",
+            "noDebugger": "error",
+            "noDeprecatedImports": "off",
+            "noDoubleEquals": "error",
+            "noDuplicateCase": "error",
+            "noDuplicateClassMembers": "error",
+            "noDuplicateElseIf": "error",
+            "noDuplicateJsxProps": "error",
+            "noDuplicateObjectKeys": "error",
+            "noDuplicateParameters": "error",
+            "noEmptyBlockStatements": "error",
+            "noFallthroughSwitchClause": "error",
+            "noFunctionAssign": "error",
+            "noGlobalAssign": "error",
+            "noImportAssign": "error",
+            "noImportCycles": "error",
+            "noIrregularWhitespace": "error",
+            "noLabelVar": "error",
+            "noMisleadingCharacterClass": "error",
+            "noOctalEscape": "error",
+            "noPrototypeBuiltins": "error",
+            "noRedeclare": "error",
+            "noSelfCompare": "error",
+            "noShadowRestrictedNames": "error",
+            "noSparseArray": "error",
+            "noTemplateCurlyInString": "error",
+            "noUnsafeNegation": "error",
+            "noUnusedExpressions": "off",
+            "noUselessRegexBackrefs": "error",
+            "noVar": "error",
+            "noWith": "error",
+            "useAwait": "off",
+            "useDefaultSwitchClauseLast": "error",
+            "useGetterReturn": "error",
+            "useGuardForIn": "error",
+            "useIterableCallbackReturn": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/components/flow-editor/flow-editor-layout.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/api/**/*.{js,ts}", "apps/worker/**/*.{js,ts}", "packages/**/*.{js,ts}"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noAdjacentSpacesInRegex": "error",
+            "noArguments": "error",
+            "noCommaOperator": "error",
+            "noExcessiveCognitiveComplexity": "off",
+            "noExcessiveLinesPerFunction": "off",
+            "noExtraBooleanCast": "error",
+            "noImplicitCoercions": "off",
+            "noUselessCatch": "error",
+            "noUselessConstructor": "error",
+            "noUselessEscapeInRegex": "error",
+            "noUselessLabel": "error",
+            "noUselessLoneBlockStatements": "error",
+            "noUselessRename": "error",
+            "noUselessStringConcat": "error",
+            "noUselessTernary": "error",
+            "noUselessUndefinedInitialization": "error",
+            "noVoid": "error",
+            "useArrowFunction": "error",
+            "useLiteralKeys": "error",
+            "useMaxParams": "off",
+            "useNumericLiterals": "error",
+            "useRegexLiterals": "error"
+          },
+          "correctness": {
+            "noConstAssign": "error",
+            "noConstantCondition": "warn",
+            "noConstructorReturn": "error",
+            "noEmptyCharacterClassInRegex": "error",
+            "noEmptyPattern": "error",
+            "noGlobalObjectCalls": "error",
+            "noInnerDeclarations": "error",
+            "noInvalidConstructorSuper": "error",
+            "noInvalidUseBeforeDeclaration": "error",
+            "noNodejsModules": "off",
+            "noNonoctalDecimalEscape": "error",
+            "noPrecisionLoss": "error",
+            "noSelfAssign": "error",
+            "noSetterReturn": "error",
+            "noSwitchDeclarations": "error",
+            "noUndeclaredDependencies": "error",
+            "noUndeclaredVariables": "error",
+            "noUnreachable": "error",
+            "noUnreachableSuper": "error",
+            "noUnresolvedImports": "error",
+            "noUnsafeFinally": "error",
+            "noUnsafeOptionalChaining": "error",
+            "noUnusedLabels": "error",
+            "noUnusedPrivateClassMembers": "off",
+            "noUnusedVariables": "error",
+            "useIsNan": "error",
+            "useParseIntRadix": "error",
+            "useValidForDirection": "error",
+            "useValidTypeof": "error",
+            "useYield": "error"
+          },
+          "performance": {
+            "noAwaitInLoops": "error"
+          },
+          "security": {
+            "noGlobalEval": "error"
+          },
+          "style": {
+            "noCommonJs": "off",
+            "noDefaultExport": "off",
+            "noMagicNumbers": "off",
+            "noNegationElse": "off",
+            "noNestedTernary": "error",
+            "noParameterAssign": "error",
+            "noRestrictedImports": "off",
+            "noUselessElse": "error",
+            "noYodaExpression": "error",
+            "useArrayLiterals": "error",
+            "useBlockStatements": "error",
+            "useCollapsedElseIf": "error",
+            "useConsistentArrowReturn": "error",
+            "useConsistentBuiltinInstantiation": "error",
+            "useConsistentObjectDefinitions": "error",
+            "useConst": "error",
+            "useDefaultParameterLast": "error",
+            "useDefaultSwitchClause": "error",
+            "useExponentiationOperator": "error",
+            "useExportsLast": "off",
+            "useGroupedAccessorPairs": "error",
+            "useNamingConvention": {
+              "level": "error",
+              "options": {
+                "strictCase": false,
+                "requireAscii": false,
+                "conventions": [
+                  {
+                    "selector": {
+                      "kind": "function"
+                    },
+                    "formats": ["camelCase", "PascalCase"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "variable"
+                    },
+                    "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "objectLiteralMember"
+                    },
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "typeProperty"
+                    },
+                    "match": "_*(.+)",
+                    "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
+                  },
+                  {
+                    "selector": {
+                      "kind": "typeLike"
+                    },
+                    "formats": ["PascalCase"]
+                  }
+                ]
+              }
+            },
+            "useObjectSpread": "error",
+            "useShorthandAssign": "error",
+            "useSingleVarDeclarator": "error",
+            "useSymbolDescription": "error",
+            "useTemplate": "error",
+            "useThrowOnlyError": "off"
+          },
+          "suspicious": {
+            "noAlert": "warn",
+            "noAssignInExpressions": "error",
+            "noAsyncPromiseExecutor": "error",
+            "noBitwiseOperators": "error",
+            "noCatchAssign": "error",
+            "noClassAssign": "error",
+            "noCompareNegZero": "error",
+            "noConfusingLabels": "error",
+            "noConsole": "warn",
+            "noControlCharactersInRegex": "error",
+            "noDebugger": "error",
+            "noDeprecatedImports": "off",
+            "noDoubleEquals": "error",
+            "noDuplicateCase": "error",
+            "noDuplicateClassMembers": "error",
+            "noDuplicateElseIf": "error",
+            "noDuplicateObjectKeys": "error",
+            "noDuplicateParameters": "error",
+            "noEmptyBlockStatements": "error",
+            "noFallthroughSwitchClause": "error",
+            "noFunctionAssign": "error",
+            "noGlobalAssign": "error",
+            "noImportAssign": "error",
+            "noImportCycles": "error",
+            "noIrregularWhitespace": "error",
+            "noLabelVar": "error",
+            "noMisleadingCharacterClass": "error",
+            "noOctalEscape": "error",
+            "noPrototypeBuiltins": "error",
+            "noRedeclare": "error",
+            "noSelfCompare": "error",
+            "noShadowRestrictedNames": "error",
+            "noSparseArray": "error",
+            "noTemplateCurlyInString": "error",
+            "noUnsafeNegation": "error",
+            "noUnusedExpressions": "off",
+            "noUselessRegexBackrefs": "error",
+            "noVar": "error",
+            "noWith": "error",
+            "useAwait": "off",
+            "useDefaultSwitchClauseLast": "error",
+            "useGetterReturn": "error",
+            "useGuardForIn": "error",
+            "useIterableCallbackReturn": "error"
+          }
+        }
+      }
+    }
+  ],
+  "files": {
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/dist",
+      "!!**/build",
+      "!!**/coverage",
+      "!!**/.next",
+      "!!**/.turbo",
+      "!!packages/db/drizzle/**"
+    ]
+  }
+}

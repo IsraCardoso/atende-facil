@@ -1,0 +1,4 @@
+@import "ui/globals.css";
+
+/* Inclui classes do design system (packages/ui) no bundle Tailwind do app web. */
+@source "../../../packages/ui/src/**/*.{ts,tsx}";

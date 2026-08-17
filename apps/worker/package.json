@@ -1,0 +1,20 @@
+{
+  "name": "worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --env-file=../../.env.development.example --watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "bun --bun vitest run --dir src",
+    "lint": "biome check ."
+  },
+  "devDependencies": {
+    "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "bullmq": "^5.73.0",
+    "db": "workspace:*",
+    "redis": "^5.11.0"
+  }
+}
