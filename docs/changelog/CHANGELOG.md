@@ -11,13 +11,28 @@
 > Mudanças em desenvolvimento que ainda não foram para produção.
 
 ### Adicionado
-- 
+- Login único (SSO) para o Chatwoot via Platform API (`GET /platform/api/v1/users/{id}/login`) — o atendente autentica apenas no Atende Fácil; `users.chatwoot_user_id` guarda o vínculo com o espelho provisionado sob demanda no Chatwoot (RN-019 v2.0).
+- Deactivate and remove endpoints for tenant members (`POST /auth/users/:userId/deactivate`, `DELETE /auth/users/:userId`), admin-only, with last-active-admin and self-action guards; revokes the member's Chatwoot account access best-effort (RN-019).
+- `/signup` page for self-service tenant registration, previously only reachable via direct `POST /auth/register-tenant` calls.
+- Login without `tenantSlug`: the tenant is now derived from the authenticated e-mail's active memberships. Ambiguous e-mails (2+ active tenants) get a new `AUTH_TENANT_AMBIGUOUS` response with the candidate list instead of a generic error, and the login page renders them as a picker.
+- Ready-made flow templates gallery ("Boas-vindas simples", "Menu de opções (FAQ)", "Coleta de dados + transferência") offered when creating a new flow, as an alternative to starting blank.
+- One-click "Ativar atendimento" action (`POST /flows/:id/go-live`): validates, publishes (if draft) and activates a flow in a single step, surfacing validation issues in a dialog instead of requiring the two manual steps.
 
 ### Alterado
-- 
+- `CHATWOOT_SSO_SECRET` removida; substituída por `CHATWOOT_PLATFORM_TOKEN` (Platform App token, gerado no console Rails do Chatwoot).
+- Espelho no Chatwoot sempre provisionado como papel `agent`, independente do papel no Atende Fácil — evita escalação de privilégio via autocadastro de tenant.
 
 ### Corrigido
-- 
+- **[Concurrency]** `assertNotLastActiveAdmin` read-then-write had a TOCTOU window: two concurrent deactivate/remove calls against a tenant's last 2 active admins could both pass the check before either write committed, leaving 0 active admins. `MembershipRepositoryPort` gained `updateStatusIfNotLastAdmin`/`removeIfNotLastAdmin` — the only ways to mutate membership status/existence now, atomic via `db.transaction()` + `SELECT ... FOR UPDATE` on the tenant's admin/active rows, tenant-scoped on both the read and the write. The unguarded `updateStatus`/`remove` were removed from the port (dead code that would have reopened the same race).
+- **[Concurrency]** Flow activation (`go-live-flow-use-case`, `activate-flow-use-case`) demoted the previous active flow and activated the target as two independent `updateStatus` calls; a failure between them (or two concurrent activations) could leave a tenant with 0 or 2 active flows. `FlowRepositoryPort` gained `activateExclusive`, atomic via `db.transaction()` + `SELECT ... FOR UPDATE`, guarded against a concurrent soft-delete of the target; the `flows_one_active_per_tenant` unique partial index (dropped in sprint-10 for an unrelated `published`-flows reason) was reintroduced as defense-in-depth. A concurrent-activation conflict now returns a typed `FLOW_ACTIVATION_CONFLICT` (409) instead of an unhandled Postgres unique-violation.
+- O embed Chatwoot exibia uma URL sem autenticação como se fosse funcional quando o SSO não estava configurado; agora `embedUrl` fica `null` explicitamente e o painel mostra o motivo.
+- Link "Abrir Chatwoot" da inbox vazia reusava a mesma URL de SSO (uso único) em cliques repetidos; agora busca uma URL nova a cada clique.
+- **[Security]** Federated SSO (`GetChatwootSsoUrlUseCase`) resolved `ChatwootPlatformPort` from global config, causing agents from different tenants to federate into the SAME Chatwoot account; now resolves per-tenant via `createChatwootPlatformPortFactory` (global env fallback preserved).
+- Flow validator messages (`validateFlowDefinition`) had their diacritics stripped and leaked internal field names (`startNodeId`, `fieldKey`, `nextNodeId`) into user-facing text; all 21 messages rewritten in proper accented Portuguese from the flow editor user's perspective. `code` and `details` unchanged.
+
+### Débitos conhecidos (ver RN-019 §Débito conhecido)
+- [x] SSO usava config global (`CHATWOOT_ACCOUNT_ID`/`CHATWOOT_PLATFORM_TOKEN`); tenants com Chatwoot próprio (RN-026) não eram resolvidos por tenant — todos os agentes federados entravam na MESMA conta Chatwoot. **Resolved** (change `chatwoot-sso-multi-tenant`).
+- [x] Sem deprovisionamento: usuário demovido/desativado no Atende Fácil mantinha o espelho e o papel no Chatwoot congelados desde a primeira federação. **Resolved** (change `user-deprovisioning`) — deactivate/remove revoke Chatwoot account access best-effort.
 
 ---
 

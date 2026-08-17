@@ -13,6 +13,8 @@ type ChatwootIntegrationConfig = Readonly<{
   appUrl: string;
   ssoSecret: string;
   webhookToken: string;
+  /** Platform App token — distinto do apiToken de mensageria. Habilita SSO federado per-tenant (RN-019). */
+  platformToken?: string;
 }>;
 
 type TenantIntegrationEntity = Readonly<{
@@ -44,10 +46,24 @@ function isChatwootConfig(
   );
 }
 
+/** Config suficiente pra resolver o ChatwootPlatformPort (SSO) per-tenant — RN-019. */
+function isChatwootPlatformConfig(
+  config: Readonly<Record<string, unknown>>,
+): config is ChatwootIntegrationConfig & { platformToken: string } {
+  return (
+    typeof config.apiUrl === "string" &&
+    !!config.apiUrl &&
+    typeof config.platformToken === "string" &&
+    !!config.platformToken &&
+    typeof config.accountId === "string" &&
+    !!config.accountId
+  );
+}
+
 export type {
   ChatwootIntegrationConfig,
   IntegrationProvider,
   TenantIntegrationEntity,
   TenantIntegrationId,
 };
-export { createTenantIntegrationId, isChatwootConfig };
+export { createTenantIntegrationId, isChatwootConfig, isChatwootPlatformConfig };

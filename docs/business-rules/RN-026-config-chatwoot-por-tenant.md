@@ -18,7 +18,7 @@ Config Chatwoot esta em variaveis de ambiente globais (`CHATWOOT_API_URL`, `CHAT
 Credenciais Chatwoot DEVEM ser armazenadas por tenant em tabela `tenant_integrations`:
 - `tenant_id` (FK para tenants)
 - `provider` (varchar, ex: "chatwoot")
-- `config` (JSONB contendo: `apiUrl`, `apiToken`, `accountId`, `appUrl`, `ssoSecret`, `webhookToken`)
+- `config` (JSONB contendo: `apiUrl`, `apiToken`, `accountId`, `appUrl`, `ssoSecret`, `webhookToken`, `platformToken` — Platform App token, distinto do `apiToken` de mensageria; habilita SSO federado per-tenant, RN-019)
 - `is_active` (boolean)
 - Unique constraint: `(tenant_id, provider)`
 
@@ -49,6 +49,7 @@ Validacao do webhook Chatwoot DEVE considerar token per-tenant:
 Geração de URLs de acesso (embed, deep link, SSO) DEVE usar config do tenant:
 - `appUrl`, `ssoSecret`, `accountId` do tenant.
 - Fallback para env global se tenant sem config.
+- SSO federado via Platform API (RN-019): `GetChatwootSsoUrlUseCase` resolve o `ChatwootPlatformPort` per-tenant via `createChatwootPlatformPortFactory`, usando `apiUrl`+`platformToken`+`accountId` da config do tenant; fallback para env global (`CHATWOOT_PLATFORM_TOKEN`) se ausente.
 
 ### R6 — Segurança de credenciais
 

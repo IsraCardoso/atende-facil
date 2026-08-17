@@ -76,6 +76,7 @@ function createMockFlowRepo(
     findByTenantPaginated: vi.fn(),
     save: vi.fn(),
     updateStatus: vi.fn(),
+    activateExclusive: vi.fn(),
     softDelete: vi.fn(),
   };
 }

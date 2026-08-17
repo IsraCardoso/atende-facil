@@ -1,35 +1,40 @@
-# RN-019 — Acesso Seguro ao Chatwoot via URL Assinada
+# RN-019 — Acesso Seguro ao Chatwoot via SSO Federado
 
-> **Versão:** 1.0 | **Status:** Ativa | **Sprint:** 06
+> **Versão:** 2.0 | **Status:** Ativa | **Sprint:** 06 (revisada na Sprint 11)
 
 ---
 
 ## A Regra
 
-**O acesso ao Chatwoot embutido é feito via URL assinada pelo backend com token HMAC de curta duração. O frontend nunca armazena ou gera tokens de acesso ao Chatwoot diretamente.**
+**O acesso ao Chatwoot é feito via URL de login único emitida pela Platform API do Chatwoot, a pedido do backend. O frontend nunca armazena, gera ou vê tokens de acesso ao Chatwoot. O atendente autentica UMA vez, no Atende Fácil.**
 
 ---
 
 ## Motivação
 
-Evitar exposição de credenciais do Chatwoot no frontend. O backend é o único ponto que conhece segredos de autenticação com o Chatwoot.
+Evitar exposição de credenciais do Chatwoot no frontend **e eliminar o segundo login**: o atendente não é técnico e manter duas senhas (Atende Fácil + Chatwoot) é fricção e fonte de erro. O Atende Fácil é a fonte de verdade da identidade; o Chatwoot confia no token que o backend obtém em nome do usuário.
 
 ---
 
 ## Detalhamento
 
-1. O frontend solicita URL de acesso via `GET /conversations/:id/access`.
-2. O backend gera a URL de embed com token HMAC assinado usando `CHATWOOT_SSO_SECRET`.
-3. O token tem expiração curta (recomendado: 5 minutos).
-4. O deep-link é gerado sem token (acesso público ao Chatwoot, requer login separado).
-5. `CHATWOOT_SSO_SECRET` e `CHATWOOT_APP_URL` são variáveis de ambiente — nunca hardcodadas.
-6. Logs de geração de URL não incluem o token gerado — apenas metadata (tenantId, conversationId, expiresAt).
+1. O frontend solicita a URL de acesso via `GET /conversations/:id/access` (ou `GET /integrations/chatwoot/portal` para o painel).
+2. O backend resolve o espelho do usuário no Chatwoot:
+   - Se `users.chatwoot_user_id` estiver vazio, provisiona o espelho sob demanda (`POST /platform/api/v1/users`) e persiste o vínculo **antes** de vinculá-lo à conta — uma falha no passo seguinte nunca deixa o usuário sem ID reconhecível.
+   - Papel no Chatwoot: **sempre `agent`**, independente do papel no Atende Fácil. `POST /auth/register-tenant` é público e concede `admin` a qualquer autocadastro; mapear isso para `administrator` no Chatwoot seria escalação de privilégio. Promoção a `administrator` é ação manual do operador, fora deste fluxo.
+3. O backend pede a URL de login único: `GET /platform/api/v1/users/{id}/login`, autenticando com `CHATWOOT_PLATFORM_TOKEN`.
+4. O token embutido na URL é de **uso único** — uma nova URL é emitida a cada abertura, nunca cacheada.
+5. O `redirect_url` leva o atendente direto à conversa (ou ao dashboard), evitando navegação manual.
+6. A senha do espelho no Chatwoot é aleatória e descartada: o acesso se dá exclusivamente por SSO. A senha do Atende Fácil **nunca** é replicada.
+7. `CHATWOOT_PLATFORM_TOKEN` e `CHATWOOT_APP_URL` são variáveis de ambiente — nunca hardcodadas, nunca enviadas ao frontend.
+8. Logs de emissão não incluem a URL nem o token — apenas metadata (`correlationId`, `userId`).
 
 ---
 
 ## Exceções
 
-- Se `CHATWOOT_SSO_SECRET` não estiver configurado, o endpoint de access retorna apenas deep-link (sem embed URL).
+- Se `CHATWOOT_PLATFORM_TOKEN` não estiver configurado, o SSO é desabilitado e o endpoint retorna o deep-link. O atendente alcança o Chatwoot, mas precisa logar lá manualmente.
+- Se a emissão do SSO falhar (Chatwoot indisponível, token inválido), a resposta degrada para o deep-link com um `reason` — a falha **não** derruba o carregamento da conversa.
 
 ---
 
@@ -37,6 +42,16 @@ Evitar exposição de credenciais do Chatwoot no frontend. O backend é o único
 
 | Área | Impacto |
 |---|---|
-| Backend | Serviço de geração de URL assinada |
-| Frontend | Consome URL pronta, não manipula segredos |
-| Segurança | Token curto, segredo isolado no backend |
+| Backend | Adapter da Platform API + provisionamento sob demanda do espelho |
+| Banco | `users.chatwoot_user_id` guarda o vínculo entre as duas identidades |
+| Frontend | Consome URL pronta; iframe abre já autenticado |
+| Segurança | Token de uso único, segredo isolado no backend, senha nunca replicada |
+| UX | **Um único login** para o atendente |
+
+---
+
+## Débito conhecido
+
+- O `sso_auth_token` estabelece a sessão via cookie do Chatwoot. Em ambientes onde o painel e o Chatwoot estão em origens diferentes sem HTTPS (ex.: `localhost:5173` × `localhost:3001`), o navegador pode recusar o cookie de terceiro no iframe (`SameSite`). Nesse caso o botão "Abrir Chatwoot" (nova aba) funciona normalmente. Em produção, servir os dois sob o mesmo domínio-pai com HTTPS resolve.
+- ~~**[BLOQUEANTE para deploy multi-tenant]**~~ **Resolvido (2026-07-31, change `chatwoot-sso-multi-tenant`).** O `ChatwootPlatformPort` agora é resolvido per-tenant via `createChatwootPlatformPortFactory` (mesmo padrão de `chatwoot-port-factory.ts`, RN-026 R2/R3): tenant com `platformToken` próprio em `tenant_integrations` federa na SUA conta; sem config própria, cai no fallback de env global. A env global (`CHATWOOT_PLATFORM_TOKEN`) continua sendo o master switch da feature — se ausente, o SSO federado permanece desabilitado para todos os tenants (comportamento inalterado).
+- ~~Sem deprovisionamento~~ **Resolvido (2026-07-31, change `user-deprovisioning`).** Desativar (suspender) ou remover um membership de tenant agora chama `ChatwootPlatformPort.revokeUserFromAccount`, removendo o usuário da conta Chatwoot daquele tenant — best-effort (falha loga warn, não bloqueia a deprovisão). Guards impedem deixar o tenant sem administrador ativo e impedem autodeprovisionamento. **Nota:** o parâmetro exato do endpoint `DELETE .../account_users` (body vs query) não está documentado no swagger publicado da Chatwoot — implementado por inferência do endpoint irmão; validar contra uma instância real antes do primeiro uso em produção (ver `openspec/changes/archive/2026-07-31-user-deprovisioning/design.md` D2).

@@ -11,6 +11,7 @@ import { InboxPage } from "./pages/inbox";
 import { LoginPage } from "./pages/login";
 import { SchedulesPage } from "./pages/schedules";
 import { SettingsPage } from "./pages/settings";
+import { SignupPage } from "./pages/signup";
 import "./styles.css";
 
 const FlowEditorPage = lazy(() =>
@@ -26,6 +27,7 @@ function App() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route
             path="/inbox"
             element={

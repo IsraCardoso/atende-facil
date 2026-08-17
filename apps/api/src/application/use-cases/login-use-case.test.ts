@@ -129,15 +129,72 @@ describe("createLoginUseCase", () => {
     expect(authTokenStub.getLastIssuedClaims()?.sub).toBe(createUserId("seed-user"));
   });
 
-  it("should reject login without tenant slug in multi-tenant mode", async () => {
+  it("should derive the tenant from email when exactly one active membership exists and no slug is given", async () => {
     const passwordHasher = createPasswordHasherStub();
     const repositories = await seedUserTenantMembership({
-      tenantId: createTenantId("tenant-require-slug"),
-      tenantSlug: "tenant-require-slug",
-      email: "missing-slug@tenant.dev",
+      tenantId: createTenantId("tenant-derived"),
+      tenantSlug: "tenant-derived",
+      email: "derived@tenant.dev",
       passwordHash: await passwordHasher.hash("valid-secret"),
       membershipStatus: "active",
     });
+    const authTokenStub = createAuthTokenStub();
+    const useCase = createLoginUseCase({
+      userRepository: repositories.userRepository,
+      tenantRepository: repositories.tenantRepository,
+      membershipRepository: repositories.membershipRepository,
+      passwordHasher,
+      authTokenPort: authTokenStub.port,
+      tenantMode: {
+        multiTenant: true,
+      },
+    });
+
+    const output = await useCase.execute({
+      email: createEmailAddress("derived@tenant.dev"),
+      password: "valid-secret",
+    });
+
+    expect(output.claims.tenantId).toBe(createTenantId("tenant-derived"));
+  });
+
+  it("should return AUTH_TENANT_AMBIGUOUS when email has multiple active memberships and no slug is given", async () => {
+    const passwordHasher = createPasswordHasherStub();
+    const repositories = createInMemoryAuthRepositories();
+    const passwordHash = await passwordHasher.hash("valid-secret");
+    const userId = createUserId("multi-tenant-user");
+    await repositories.userRepository.create(
+      createUserEntity({
+        id: userId,
+        email: createEmailAddress("multi@tenant.dev"),
+        displayName: "Multi Tenant User",
+        passwordHash,
+      }),
+    );
+    await repositories.tenantRepository.create(
+      createTenantEntity({ id: createTenantId("tenant-a"), name: "Tenant A", slug: "tenant-a" }),
+    );
+    await repositories.tenantRepository.create(
+      createTenantEntity({ id: createTenantId("tenant-b"), name: "Tenant B", slug: "tenant-b" }),
+    );
+    await repositories.membershipRepository.create(
+      createTenantMembershipEntity({
+        id: createTenantMembershipId("membership-a"),
+        tenantId: createTenantId("tenant-a"),
+        userId,
+        role: "agent",
+        status: "active",
+      }),
+    );
+    await repositories.membershipRepository.create(
+      createTenantMembershipEntity({
+        id: createTenantMembershipId("membership-b"),
+        tenantId: createTenantId("tenant-b"),
+        userId,
+        role: "agent",
+        status: "active",
+      }),
+    );
     const useCase = createLoginUseCase({
       userRepository: repositories.userRepository,
       tenantRepository: repositories.tenantRepository,
@@ -151,14 +208,56 @@ describe("createLoginUseCase", () => {
 
     try {
       await useCase.execute({
-        email: createEmailAddress("missing-slug@tenant.dev"),
+        email: createEmailAddress("multi@tenant.dev"),
         password: "valid-secret",
       });
-      throw new Error("Expected AUTH_TENANT_REQUIRED");
+      throw new Error("Expected AUTH_TENANT_AMBIGUOUS");
     } catch (error: unknown) {
       expect(isAppError(error)).toBe(true);
       if (isAppError(error)) {
-        expect(error.code).toBe("AUTH_TENANT_REQUIRED");
+        expect(error.code).toBe("AUTH_TENANT_AMBIGUOUS");
+        expect(error.details).toEqual({
+          tenants: [
+            { slug: "tenant-a", name: "Tenant A" },
+            { slug: "tenant-b", name: "Tenant B" },
+          ],
+        });
+      }
+    }
+  });
+
+  it("should reject login when email has no active membership anywhere and no slug is given", async () => {
+    const passwordHasher = createPasswordHasherStub();
+    const repositories = createInMemoryAuthRepositories();
+    await repositories.userRepository.create(
+      createUserEntity({
+        id: createUserId("no-membership-user"),
+        email: createEmailAddress("no-membership@tenant.dev"),
+        displayName: "No Membership User",
+        passwordHash: await passwordHasher.hash("valid-secret"),
+      }),
+    );
+    const useCase = createLoginUseCase({
+      userRepository: repositories.userRepository,
+      tenantRepository: repositories.tenantRepository,
+      membershipRepository: repositories.membershipRepository,
+      passwordHasher,
+      authTokenPort: createAuthTokenStub().port,
+      tenantMode: {
+        multiTenant: true,
+      },
+    });
+
+    try {
+      await useCase.execute({
+        email: createEmailAddress("no-membership@tenant.dev"),
+        password: "valid-secret",
+      });
+      throw new Error("Expected AUTH_FORBIDDEN");
+    } catch (error: unknown) {
+      expect(isAppError(error)).toBe(true);
+      if (isAppError(error)) {
+        expect(error.code).toBe("AUTH_FORBIDDEN");
       }
     }
   });

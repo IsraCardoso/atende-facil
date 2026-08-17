@@ -14,7 +14,7 @@ import { useChatwootPortal } from "../hooks/use-chatwoot-portal";
 export function InboxPage() {
   const { token } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { portalUrl, reason, loading: portalLoading } = useChatwootPortal(token);
+  const portal = useChatwootPortal(token);
 
   return (
     <AppShell fullHeight={true} mainClassName="p-0 md:p-0">
@@ -27,7 +27,11 @@ export function InboxPage() {
           {selectedId ? (
             <ChatwootEmbed conversationId={selectedId} token={token} />
           ) : (
-            <InboxEmptyState portalUrl={portalUrl} reason={reason} loading={portalLoading} />
+            <InboxEmptyState
+              onOpenPortal={portal.openPortal}
+              reason={portal.reason}
+              loading={portal.loading}
+            />
           )}
         </section>
       </div>
@@ -36,11 +40,11 @@ export function InboxPage() {
 }
 
 function InboxEmptyState({
-  portalUrl,
+  onOpenPortal,
   reason,
   loading,
 }: Readonly<{
-  portalUrl: string | null;
+  onOpenPortal: () => void;
   reason: string | null;
   loading: boolean;
 }>) {
@@ -52,16 +56,15 @@ function InboxEmptyState({
         description="Escolha um atendimento na lista à esquerda ou abra o painel Chatwoot."
         className="py-4"
       />
-      {loading && <Skeleton className="h-9 w-40" />}
-      {!loading && portalUrl && (
-        <Button asChild={true} variant="default">
-          <a href={portalUrl} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="size-4" />
-            Abrir Chatwoot
-          </a>
+      {loading ? (
+        <Skeleton className="h-9 w-40" />
+      ) : (
+        <Button variant="default" onClick={onOpenPortal}>
+          <ExternalLink className="size-4" />
+          Abrir Chatwoot
         </Button>
       )}
-      {!loading && !portalUrl && reason && (
+      {!loading && reason && (
         <p className="text-muted-foreground max-w-sm text-center text-sm">{reason}</p>
       )}
     </div>

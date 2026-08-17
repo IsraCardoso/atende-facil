@@ -1,7 +1,10 @@
+/** Repositorios de auth (usuario, tenant, membership) em memoria — para testes unitarios. Mesmo contrato dos repositorios Drizzle. */
 import type { TenantEntity, TenantMembershipEntity, UserEntity } from "../../domain";
 import type {
   MembershipRepositoryPort,
+  RemoveIfNotLastAdminResult,
   TenantRepositoryPort,
+  UpdateStatusIfNotLastAdminResult,
   UserRepositoryPort,
 } from "../../domain/ports";
 
@@ -40,6 +43,15 @@ function createUserRepository(store: {
       }
 
       return store.usersById.get(userId) ?? null;
+    },
+    async setChatwootUserId(userId, chatwootUserId): Promise<void> {
+      const user = store.usersById.get(userId);
+
+      if (!user) {
+        throw new Error("Usuário não encontrado para vincular ao Chatwoot.");
+      }
+
+      store.usersById.set(userId, { ...user, chatwootUserId, updatedAt: new Date() });
     },
   };
 }
@@ -130,6 +142,70 @@ function createMembershipRepository(store: {
       return membershipIds
         .map((membershipId) => store.membershipsById.get(membershipId))
         .filter((membership): membership is TenantMembershipEntity => membership !== undefined);
+    },
+    async listByTenant(tenantId) {
+      return Array.from(store.membershipsById.values()).filter(
+        (membership) => membership.tenantId === tenantId,
+      );
+    },
+    async updateStatusIfNotLastAdmin(
+      tenantId,
+      membershipId,
+      status,
+    ): Promise<UpdateStatusIfNotLastAdminResult> {
+      const membership = store.membershipsById.get(membershipId);
+
+      if (!membership) {
+        throw new Error("Membership não encontrada para atualizar status.");
+      }
+
+      const activeAdminCount = Array.from(store.membershipsById.values()).filter(
+        (candidate) =>
+          candidate.tenantId === tenantId &&
+          candidate.role === "admin" &&
+          candidate.status === "active",
+      ).length;
+
+      const isGuardedTarget = membership.role === "admin" && membership.status === "active";
+      if (isGuardedTarget && activeAdminCount <= 1) {
+        return { ok: false, reason: "LAST_ADMIN" };
+      }
+
+      const updated = { ...membership, status, updatedAt: new Date() };
+      store.membershipsById.set(membershipId, updated);
+
+      return { ok: true, membership: updated };
+    },
+    async removeIfNotLastAdmin(tenantId, userId): Promise<RemoveIfNotLastAdminResult> {
+      const tenantUserKey = createTenantUserKey(tenantId, userId);
+      const membershipId = store.membershipIdByTenantUser.get(tenantUserKey);
+
+      if (!membershipId) {
+        return { ok: true };
+      }
+
+      const membership = store.membershipsById.get(membershipId);
+      const activeAdminCount = Array.from(store.membershipsById.values()).filter(
+        (candidate) =>
+          candidate.tenantId === tenantId &&
+          candidate.role === "admin" &&
+          candidate.status === "active",
+      ).length;
+
+      const isGuardedTarget = membership?.role === "admin" && membership.status === "active";
+      if (isGuardedTarget && activeAdminCount <= 1) {
+        return { ok: false, reason: "LAST_ADMIN" };
+      }
+
+      store.membershipsById.delete(membershipId);
+      store.membershipIdByTenantUser.delete(tenantUserKey);
+
+      const remainingIds = (store.membershipIdsByUser.get(userId) ?? []).filter(
+        (id) => id !== membershipId,
+      );
+      store.membershipIdsByUser.set(userId, remainingIds);
+
+      return { ok: true };
     },
   };
 }

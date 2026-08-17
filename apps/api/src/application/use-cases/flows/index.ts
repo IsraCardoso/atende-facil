@@ -10,6 +10,8 @@ export type { DeleteFlowUseCase } from "./delete-flow-use-case";
 export { createDeleteFlowUseCase } from "./delete-flow-use-case";
 export type { GetFlowUseCase } from "./get-flow-use-case";
 export { createGetFlowUseCase } from "./get-flow-use-case";
+export type { GoLiveFlowUseCase } from "./go-live-flow-use-case";
+export { createGoLiveFlowUseCase } from "./go-live-flow-use-case";
 export type { ListFlowsUseCase } from "./list-flows-use-case";
 export { createListFlowsUseCase } from "./list-flows-use-case";
 export type { PublishFlowUseCase } from "./publish-flow-use-case";

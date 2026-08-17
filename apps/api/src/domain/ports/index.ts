@@ -9,9 +9,17 @@ export type {
   LoggerMetadata,
   MembershipRepositoryPort,
   PasswordHasherPort,
+  RemoveIfNotLastAdminResult,
   TenantRepositoryPort,
+  UpdateStatusIfNotLastAdminResult,
   UserRepositoryPort,
 } from "./auth-ports";
+export type {
+  ChatwootPlatformAddUserInput,
+  ChatwootPlatformCreateUserInput,
+  ChatwootPlatformPort,
+  ChatwootPlatformPortResolver,
+} from "./chatwoot-platform-ports";
 export type {
   ConversationFilters,
   ConversationRepositoryPort,

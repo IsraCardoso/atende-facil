@@ -5,8 +5,17 @@ import {
   createTenantMembershipEntity,
   type TenantMembershipEntity,
 } from "../../domain/auth-entities";
-import type { TenantId, TenantMembershipId, UserId } from "../../domain/auth-types";
-import type { MembershipRepositoryPort } from "../../domain/ports";
+import type {
+  MembershipStatus,
+  TenantId,
+  TenantMembershipId,
+  UserId,
+} from "../../domain/auth-types";
+import type {
+  MembershipRepositoryPort,
+  RemoveIfNotLastAdminResult,
+  UpdateStatusIfNotLastAdminResult,
+} from "../../domain/ports";
 
 type MembershipRow = typeof tenantMembershipsTable.$inferSelect;
 
@@ -74,6 +83,93 @@ export function createDrizzleMembershipRepository(
         .where(eq(tenantMembershipsTable.userId, userId));
 
       return rows.map(mapRowToEntity);
+    },
+
+    async listByTenant(tenantId: TenantId): Promise<readonly TenantMembershipEntity[]> {
+      const rows = await db
+        .select()
+        .from(tenantMembershipsTable)
+        .where(eq(tenantMembershipsTable.tenantId, tenantId));
+
+      return rows.map(mapRowToEntity);
+    },
+
+    async updateStatusIfNotLastAdmin(
+      tenantId: TenantId,
+      membershipId: TenantMembershipId,
+      status: MembershipStatus,
+    ): Promise<UpdateStatusIfNotLastAdminResult> {
+      return db.transaction(async (tx) => {
+        const lockedActiveAdmins = await tx
+          .select()
+          .from(tenantMembershipsTable)
+          .where(
+            and(
+              eq(tenantMembershipsTable.tenantId, tenantId),
+              eq(tenantMembershipsTable.role, "admin"),
+              eq(tenantMembershipsTable.status, "active"),
+            ),
+          )
+          .for("update");
+
+        const isGuardedTarget = lockedActiveAdmins.some((row) => row.id === membershipId);
+        if (isGuardedTarget && lockedActiveAdmins.length <= 1) {
+          return { ok: false, reason: "LAST_ADMIN" };
+        }
+
+        const updated = await tx
+          .update(tenantMembershipsTable)
+          .set({ status, updatedAt: new Date() })
+          .where(
+            and(
+              eq(tenantMembershipsTable.id, membershipId),
+              eq(tenantMembershipsTable.tenantId, tenantId),
+            ),
+          )
+          .returning();
+
+        const row = updated[0];
+        if (!row) {
+          throw new Error("Falha ao atualizar status do membership: registro nao encontrado.");
+        }
+
+        return { ok: true, membership: mapRowToEntity(row) };
+      });
+    },
+
+    async removeIfNotLastAdmin(
+      tenantId: TenantId,
+      userId: UserId,
+    ): Promise<RemoveIfNotLastAdminResult> {
+      return db.transaction(async (tx) => {
+        const lockedActiveAdmins = await tx
+          .select()
+          .from(tenantMembershipsTable)
+          .where(
+            and(
+              eq(tenantMembershipsTable.tenantId, tenantId),
+              eq(tenantMembershipsTable.role, "admin"),
+              eq(tenantMembershipsTable.status, "active"),
+            ),
+          )
+          .for("update");
+
+        const isGuardedTarget = lockedActiveAdmins.some((row) => row.userId === userId);
+        if (isGuardedTarget && lockedActiveAdmins.length <= 1) {
+          return { ok: false, reason: "LAST_ADMIN" };
+        }
+
+        await tx
+          .delete(tenantMembershipsTable)
+          .where(
+            and(
+              eq(tenantMembershipsTable.tenantId, tenantId),
+              eq(tenantMembershipsTable.userId, userId),
+            ),
+          );
+
+        return { ok: true };
+      });
     },
   };
 }

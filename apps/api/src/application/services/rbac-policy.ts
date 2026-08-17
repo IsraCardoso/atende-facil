@@ -2,7 +2,11 @@
 import type { UserRole } from "../../domain";
 import { createAppError } from "../errors/app-error";
 
-type RbacPermission = "auth.users.create" | "auth.users.read-current";
+type RbacPermission =
+  | "auth.users.create"
+  | "auth.users.read-current"
+  | "auth.users.deactivate"
+  | "auth.users.remove";
 
 type RbacPolicyService = Readonly<{
   isAllowed: (role: UserRole, permission: RbacPermission) => boolean;
@@ -10,7 +14,12 @@ type RbacPolicyService = Readonly<{
 }>;
 
 const permissionMatrixByRole: Readonly<Record<UserRole, readonly RbacPermission[]>> = {
-  admin: ["auth.users.create", "auth.users.read-current"],
+  admin: [
+    "auth.users.create",
+    "auth.users.read-current",
+    "auth.users.deactivate",
+    "auth.users.remove",
+  ],
   manager: ["auth.users.read-current"],
   agent: ["auth.users.read-current"],
 };

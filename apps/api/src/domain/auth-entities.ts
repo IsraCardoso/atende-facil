@@ -19,6 +19,8 @@ type UserEntity = Readonly<{
   email: EmailAddress;
   displayName: string;
   passwordHash: string;
+  /** ID do mesmo usuário no Chatwoot. `null` até o primeiro SSO provisionar o espelho. */
+  chatwootUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }>;
@@ -55,6 +57,7 @@ type CreateUserEntityInput = Readonly<{
   email: EmailAddress;
   displayName: string;
   passwordHash: string;
+  chatwootUserId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }>;
@@ -88,6 +91,7 @@ function createUserEntity(input: CreateUserEntityInput): UserEntity {
     email: input.email,
     displayName: requireNonEmptyString(input.displayName, "User.displayName"),
     passwordHash: requireNonEmptyString(input.passwordHash, "User.passwordHash"),
+    chatwootUserId: input.chatwootUserId ?? null,
     createdAt: resolveEntityDate(input.createdAt),
     updatedAt: resolveEntityDate(input.updatedAt),
   };

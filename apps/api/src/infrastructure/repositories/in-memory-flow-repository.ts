@@ -80,6 +80,33 @@ export function createInMemoryFlowRepository(): FlowRepositoryPort {
       return updated;
     },
 
+    async activateExclusive(tenantId: string, flowId: FlowId) {
+      const target = store.get(keyOf(tenantId, flowId));
+      if (!target) {
+        throw new Error("Flow nao encontrado para ativar.");
+      }
+
+      let previousActiveFlow: FlowEntity | null = null;
+
+      for (const flow of store.values()) {
+        if (
+          flow.tenantId === tenantId &&
+          flow.status === "active" &&
+          !flow.deletedAt &&
+          flow.id !== flowId
+        ) {
+          const demoted: FlowEntity = { ...flow, status: "published", updatedAt: new Date() };
+          store.set(keyOf(tenantId, flow.id), demoted);
+          previousActiveFlow = demoted;
+        }
+      }
+
+      const activated: FlowEntity = { ...target, status: "active", updatedAt: new Date() };
+      store.set(keyOf(tenantId, flowId), activated);
+
+      return { ok: true, activated, previousActiveFlow } as const;
+    },
+
     async softDelete(tenantId: string, flowId: FlowId): Promise<void> {
       const flow = store.get(keyOf(tenantId, flowId));
       if (!flow) {

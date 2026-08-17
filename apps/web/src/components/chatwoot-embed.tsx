@@ -174,7 +174,7 @@ export function ChatwootEmbed({ conversationId, token }: ChatwootEmbedProps) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4">
         <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-          Não foi possível carregar o Chatwoot embutido.
+          {urls.reason ?? "Não foi possível carregar o Chatwoot embutido."}
         </p>
         {urls.deepLink && (
           <a

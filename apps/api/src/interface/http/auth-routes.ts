@@ -3,11 +3,14 @@ import { Elysia } from "elysia";
 
 import type {
   CreateUserUseCase,
+  DeactivateTenantMemberUseCase,
   GetCurrentUserUseCase,
   LoginUseCase,
   RegisterTenantUseCase,
+  RemoveTenantMemberUseCase,
   VerifyAccessTokenUseCase,
 } from "../../application/use-cases";
+import { createUserId } from "../../domain";
 import { authenticateRequest } from "./auth-middleware";
 import {
   parseCreateUserInput,
@@ -22,6 +25,8 @@ type CreateAuthRoutesInput = Readonly<{
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
+  deactivateTenantMemberUseCase: DeactivateTenantMemberUseCase;
+  removeTenantMemberUseCase: RemoveTenantMemberUseCase;
 }>;
 
 export function createAuthRoutes(input: CreateAuthRoutesInput) {
@@ -31,6 +36,8 @@ export function createAuthRoutes(input: CreateAuthRoutesInput) {
     loginUseCase,
     getCurrentUserUseCase,
     verifyAccessTokenUseCase,
+    deactivateTenantMemberUseCase,
+    removeTenantMemberUseCase,
   } = input;
   const protectedRoutes = new Elysia()
     .derive(async ({ request }) => {
@@ -55,7 +62,25 @@ export function createAuthRoutes(input: CreateAuthRoutesInput) {
       );
       set.status = 201;
       return output;
-    });
+    })
+    .post("/users/:userId/deactivate", async ({ authClaims, params, correlationId }) =>
+      deactivateTenantMemberUseCase.execute({
+        actorUserId: authClaims.sub,
+        actorRole: authClaims.role,
+        tenantId: authClaims.tenantId,
+        targetUserId: createUserId(params.userId),
+        correlationId,
+      }),
+    )
+    .delete("/users/:userId", async ({ authClaims, params, correlationId }) =>
+      removeTenantMemberUseCase.execute({
+        actorUserId: authClaims.sub,
+        actorRole: authClaims.role,
+        tenantId: authClaims.tenantId,
+        targetUserId: createUserId(params.userId),
+        correlationId,
+      }),
+    );
 
   return new Elysia({ prefix: "/auth" })
     .post("/register-tenant", async ({ body, set }) => {

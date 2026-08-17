@@ -13,6 +13,7 @@ function mapRowToEntity(row: UserRow): UserEntity {
     email: row.email as EmailAddress,
     displayName: row.displayName,
     passwordHash: row.passwordHash,
+    chatwootUserId: row.chatwootUserId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -30,6 +31,7 @@ export function createDrizzleUserRepository(
           email: user.email,
           displayName: user.displayName,
           passwordHash: user.passwordHash,
+          chatwootUserId: user.chatwootUserId,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         })
@@ -55,6 +57,18 @@ export function createDrizzleUserRepository(
 
       const row = rows[0];
       return row ? mapRowToEntity(row) : null;
+    },
+
+    async setChatwootUserId(userId: UserId, chatwootUserId: string): Promise<void> {
+      const rows = await db
+        .update(usersTable)
+        .set({ chatwootUserId, updatedAt: new Date() })
+        .where(eq(usersTable.id, userId))
+        .returning({ id: usersTable.id });
+
+      if (rows.length === 0) {
+        throw new Error("Usuário não encontrado para vincular ao Chatwoot.");
+      }
     },
   };
 }

@@ -1,6 +1,7 @@
 import { createDatabaseConnection, createDatabaseUrl } from "db";
 
 import { createFlowResolverService } from "./application/services/flow-resolver-service";
+import { createGetChatwootSsoUrlUseCase } from "./application/use-cases/get-chatwoot-sso-url-use-case";
 import { createGetIntegrationOperationalSummaryUseCase } from "./application/use-cases/integration";
 import {
   createCreateScheduleUseCase,
@@ -20,6 +21,8 @@ import type { WhatsAppProvider } from "./domain/whatsapp-types";
 import { createAuthModule } from "./infrastructure/auth";
 import { createValkeyCacheAdapterFromUrl } from "./infrastructure/cache";
 import type { ChatwootHttpConfig } from "./infrastructure/chatwoot/chatwoot-http-adapter";
+import type { ChatwootPlatformConfig } from "./infrastructure/chatwoot/chatwoot-platform-adapter";
+import { createChatwootPlatformPortFactory } from "./infrastructure/chatwoot/chatwoot-platform-port-factory";
 import { createChatwootPortFactory } from "./infrastructure/chatwoot/chatwoot-port-factory";
 import type { ApiEnvironment } from "./infrastructure/config/env";
 import { loadApiEnvironment } from "./infrastructure/config/env";
@@ -65,6 +68,20 @@ function buildGlobalChatwootConfig(environment: ApiEnvironment): ChatwootHttpCon
   };
 }
 
+function buildGlobalChatwootPlatformConfig(
+  environment: ApiEnvironment,
+): ChatwootPlatformConfig | undefined {
+  if (!environment.chatwootApiUrl || !environment.chatwootPlatformToken) {
+    return undefined;
+  }
+
+  return {
+    apiUrl: environment.chatwootApiUrl,
+    platformToken: environment.chatwootPlatformToken,
+    accountId: environment.chatwootAccountId ?? "1",
+  };
+}
+
 export function bootstrapApi(): ApiRuntime {
   const env = loadApiEnvironment();
   const logger = createJsonLogger({
@@ -75,10 +92,27 @@ export function bootstrapApi(): ApiRuntime {
 
   const { db } = createDatabaseConnection(createDatabaseUrl(env.databaseUrl));
 
+  const tenantIntegrationRepository = db
+    ? createDrizzleTenantIntegrationRepository(db)
+    : createInMemoryTenantIntegrationRepository();
+
+  // Login único: só disponível quando há Platform App token global (master switch, RN-019).
+  // Tenant com platformToken próprio em tenant_integrations federa na SUA conta; sem config
+  // própria, cai no fallback global — nunca na conta de outro tenant (RN-026 R5). A factory é
+  // construída sempre (mesmo sem fallback global): deprovisionamento revoga acesso best-effort
+  // e só é chamado quando o usuário-alvo já tem chatwootUserId — o que só acontece se o SSO já
+  // foi habilitado em algum momento (globalmente ou por tenant).
+  const globalChatwootPlatformConfig = buildGlobalChatwootPlatformConfig(env);
+  const resolveChatwootPlatform = createChatwootPlatformPortFactory({
+    integrationRepository: tenantIntegrationRepository,
+    ...(globalChatwootPlatformConfig ? { globalFallbackConfig: globalChatwootPlatformConfig } : {}),
+  });
+
   const authModule = createAuthModule({
     environment: env,
     logger,
     db,
+    resolveChatwootPlatform,
   });
   const flowModule = createFlowModule({ db });
 
@@ -97,10 +131,6 @@ export function bootstrapApi(): ApiRuntime {
     tenantRepository: authModule.tenantRepository,
     cache: flowResolverCache,
   });
-
-  const tenantIntegrationRepository = db
-    ? createDrizzleTenantIntegrationRepository(db)
-    : createInMemoryTenantIntegrationRepository();
 
   const globalChatwootConfig = buildGlobalChatwootConfig(env);
   const resolveChatwootPort = createChatwootPortFactory({
@@ -173,11 +203,18 @@ export function bootstrapApi(): ApiRuntime {
     logger: appLoggerPort,
     chatwootAccessConfig: {
       chatwootAppUrl: env.chatwootAppUrl,
-      chatwootSsoSecret: env.chatwootSsoSecret,
       chatwootAccountId: env.chatwootAccountId ?? "1",
     },
     db,
   });
+
+  const getChatwootSsoUrl = globalChatwootPlatformConfig
+    ? createGetChatwootSsoUrlUseCase({
+        userRepository: authModule.userRepository,
+        resolveChatwootPlatform,
+        logger: appLoggerPort,
+      })
+    : undefined;
 
   const createSchedule = createCreateScheduleUseCase({
     scheduleRepository,
@@ -208,6 +245,7 @@ export function bootstrapApi(): ApiRuntime {
       authTokenPort: authModule.authTokenPort,
       chatwootWebhookToken: env.chatwootWebhookToken ?? "",
       logger: appLoggerPort,
+      ...(getChatwootSsoUrl ? { getChatwootSsoUrl } : {}),
     },
     flow: {
       createFlow: flowModule.createFlow,
@@ -217,6 +255,7 @@ export function bootstrapApi(): ApiRuntime {
       deleteFlow: flowModule.deleteFlow,
       publishFlow: flowModule.publishFlow,
       activateFlow: flowModule.activateFlow,
+      goLiveFlow: flowModule.goLiveFlow,
       deactivateFlow: flowModule.deactivateFlow,
       archiveFlow: flowModule.archiveFlow,
       validateFlow: flowModule.validateFlow,

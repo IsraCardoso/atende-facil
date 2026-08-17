@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 
 import type { createChatwootAccessService } from "../../application/services/chatwoot-access-service";
 import type { VerifyAccessTokenUseCase } from "../../application/use-cases";
+import type { GetChatwootSsoUrlUseCase } from "../../application/use-cases/get-chatwoot-sso-url-use-case";
 import type { GetIntegrationOperationalSummaryUseCase } from "../../application/use-cases/integration";
 import type {
   DeactivateWhatsAppIntegrationUseCase,
@@ -14,6 +15,7 @@ import type {
 } from "../../application/use-cases/whatsapp-integration";
 import type { TenantRepositoryPort } from "../../domain/ports/auth-ports";
 import { authenticateRequest } from "./auth-middleware";
+import { resolveCorrelationId } from "./correlation-id";
 import { createWhatsAppIntegrationRoutes } from "./whatsapp-integration-routes";
 
 const CHATWOOT_NOT_CONFIGURED_REASON =
@@ -22,6 +24,7 @@ const CHATWOOT_NOT_CONFIGURED_REASON =
 type CreateIntegrationRoutesInput = Readonly<{
   chatwootAccess: ReturnType<typeof createChatwootAccessService>;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
+  getChatwootSsoUrl?: GetChatwootSsoUrlUseCase;
   tenantRepository?: TenantRepositoryPort;
   getOperationalSummary?: GetIntegrationOperationalSummaryUseCase;
   whatsapp?: Readonly<{
@@ -49,21 +52,43 @@ export function createIntegrationRoutes(input: CreateIntegrationRoutesInput) {
     tenantRepository,
     whatsapp,
     getOperationalSummary,
+    getChatwootSsoUrl,
   } = input;
 
   const app = new Elysia({ prefix: "/integrations" })
     .derive(async ({ request }) => {
       const authClaims = await authenticateRequest(request, verifyAccessTokenUseCase);
-      return { authClaims };
+      return { authClaims, correlationId: resolveCorrelationId(request) };
     })
-    .get("/chatwoot/portal", () => {
+    .get("/chatwoot/portal", async ({ authClaims, correlationId }) => {
       if (!chatwootAccess.isAppConfigured) {
         return {
           portalUrl: null,
           reason: CHATWOOT_NOT_CONFIGURED_REASON,
         };
       }
-      return chatwootAccess.generatePortalUrl();
+
+      // Sem SSO configurado, cai no portal cru — o atendente ainda precisa logar no Chatwoot.
+      if (!getChatwootSsoUrl) {
+        return chatwootAccess.generatePortalUrl();
+      }
+
+      const sso = await getChatwootSsoUrl.execute({
+        userId: authClaims.sub,
+        role: authClaims.role,
+        correlationId,
+        tenantId: authClaims.tenantId,
+        redirectPath: chatwootAccess.dashboardPath,
+      });
+
+      if (!sso.ssoUrl) {
+        return {
+          ...chatwootAccess.generatePortalUrl(),
+          ...(sso.reason === undefined ? {} : { reason: sso.reason }),
+        };
+      }
+
+      return { portalUrl: sso.ssoUrl };
     });
 
   if (getOperationalSummary) {

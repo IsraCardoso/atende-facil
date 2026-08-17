@@ -41,7 +41,7 @@ const baseEnvironment: ApiEnvironment = {
   chatwootInboxId: null,
   chatwootWebhookToken: null,
   chatwootAppUrl: null,
-  chatwootSsoSecret: null,
+  chatwootPlatformToken: null,
   devMockWhatsappSend: false,
   corsOrigins: [],
   evolutionApiUrl: null,

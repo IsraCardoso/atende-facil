@@ -5,9 +5,11 @@ import { createAppError, isAppError, toAppErrorPayload } from "../../application
 import type { createChatwootAccessService } from "../../application/services/chatwoot-access-service";
 import type {
   CreateUserUseCase,
+  DeactivateTenantMemberUseCase,
   GetCurrentUserUseCase,
   LoginUseCase,
   RegisterTenantUseCase,
+  RemoveTenantMemberUseCase,
   VerifyAccessTokenUseCase,
 } from "../../application/use-cases";
 import type {
@@ -17,11 +19,13 @@ import type {
   DeactivateFlowUseCase,
   DeleteFlowUseCase,
   GetFlowUseCase,
+  GoLiveFlowUseCase,
   ListFlowsUseCase,
   PublishFlowUseCase,
   UpdateFlowDefinitionUseCase,
   ValidateFlowUseCase,
 } from "../../application/use-cases/flows";
+import type { GetChatwootSsoUrlUseCase } from "../../application/use-cases/get-chatwoot-sso-url-use-case";
 import type { createGetConversationUseCase } from "../../application/use-cases/get-conversation-use-case";
 import type { GetIntegrationOperationalSummaryUseCase } from "../../application/use-cases/integration";
 import type { createListConversationsUseCase } from "../../application/use-cases/list-conversations-use-case";
@@ -71,6 +75,8 @@ type CreateApiServerAuthDependencies = Readonly<{
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   verifyAccessTokenUseCase: VerifyAccessTokenUseCase;
+  deactivateTenantMemberUseCase: DeactivateTenantMemberUseCase;
+  removeTenantMemberUseCase: RemoveTenantMemberUseCase;
 }>;
 
 type CreateApiServerWhatsAppIntegrationDependencies = Readonly<{
@@ -103,6 +109,7 @@ type CreateApiServerConversationDependencies = Readonly<{
   authTokenPort: AuthTokenPort;
   chatwootWebhookToken: string;
   logger: AppLoggerPort;
+  getChatwootSsoUrl?: GetChatwootSsoUrlUseCase;
 }>;
 
 type CreateApiServerFlowDependencies = Readonly<{
@@ -113,6 +120,7 @@ type CreateApiServerFlowDependencies = Readonly<{
   deleteFlow: DeleteFlowUseCase;
   publishFlow: PublishFlowUseCase;
   activateFlow: ActivateFlowUseCase;
+  goLiveFlow: GoLiveFlowUseCase;
   deactivateFlow: DeactivateFlowUseCase;
   archiveFlow: ArchiveFlowUseCase;
   validateFlow: ValidateFlowUseCase;
@@ -258,6 +266,8 @@ export function createApiServer(input: CreateApiServerInput) {
         loginUseCase: auth.loginUseCase,
         getCurrentUserUseCase: auth.getCurrentUserUseCase,
         verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+        deactivateTenantMemberUseCase: auth.deactivateTenantMemberUseCase,
+        removeTenantMemberUseCase: auth.removeTenantMemberUseCase,
       }),
     );
 
@@ -288,12 +298,18 @@ export function createApiServer(input: CreateApiServerInput) {
           chatwootAccess: conversation.chatwootAccess,
           sessionRepository: conversation.sessionRepository,
           verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+          ...(conversation.getChatwootSsoUrl
+            ? { getChatwootSsoUrl: conversation.getChatwootSsoUrl }
+            : {}),
         }),
       )
       .use(
         createIntegrationRoutes({
           chatwootAccess: conversation.chatwootAccess,
           verifyAccessTokenUseCase: auth.verifyAccessTokenUseCase,
+          ...(conversation.getChatwootSsoUrl
+            ? { getChatwootSsoUrl: conversation.getChatwootSsoUrl }
+            : {}),
           ...(tenant?.tenantRepository ? { tenantRepository: tenant.tenantRepository } : {}),
           ...(whatsapp?.integration?.getOperationalSummary
             ? { getOperationalSummary: whatsapp.integration.getOperationalSummary }

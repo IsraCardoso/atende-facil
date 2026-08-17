@@ -98,6 +98,17 @@ if (-not $token) {
 
 if (-not $token) { throw "Nao foi possivel obter api_access_token do Chatwoot" }
 
+Write-Step "Platform App (login unico / SSO)"
+$platformToken = (docker exec spec-driven-chatwoot bundle exec rails runner @"
+app = PlatformApp.find_by(name: 'atende-facil') || PlatformApp.create!(name: 'atende-facil')
+puts app.access_token.token
+"@ 2>$null | Select-Object -Last 1).Trim()
+if ($platformToken) {
+  Write-Ok "Platform token disponivel (CHATWOOT_PLATFORM_TOKEN)"
+} else {
+  Write-Warn "Nao foi possivel mintar o Platform token - SSO ficara desabilitado (deep link continua funcionando)"
+}
+
 $apiHeaders = @{
   "Content-Type"     = "application/json"
   "api_access_token" = $token
@@ -145,6 +156,9 @@ $envUpdates = @{
   CHATWOOT_ACCOUNT_ID    = $accountId
   CHATWOOT_INBOX_ID      = $inboxId
   CHATWOOT_WEBHOOK_TOKEN = $webhookToken
+}
+if ($platformToken) {
+  $envUpdates.CHATWOOT_PLATFORM_TOKEN = $platformToken
 }
 
 foreach ($entry in $envUpdates.GetEnumerator()) {

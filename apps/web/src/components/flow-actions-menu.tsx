@@ -1,5 +1,5 @@
 /** Menu de ações de fluxo — padrão billing `ActionsMenu` (MoreVertical + ícones). */
-import { Archive, MoreVertical, PauseCircle, PlayCircle, Upload } from "lucide-react";
+import { Archive, MoreVertical, PauseCircle, PlayCircle, Upload, Zap } from "lucide-react";
 import { Button } from "ui/button";
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "ui/dropdown-menu";
 
-type FlowAction = "publish" | "activate" | "deactivate" | "archive";
+type FlowAction = "go-live" | "publish" | "activate" | "deactivate" | "archive";
 
 type FlowActionsMenuProps = Readonly<{
   flowName: string;
@@ -39,6 +39,12 @@ export function FlowActionsMenu({ flowName, status, onAction }: FlowActionsMenuP
       <DropdownMenuContent align="end" className="z-[200]">
         <DropdownMenuLabel>Ações</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {(status === "draft" || status === "published") && (
+          <DropdownMenuItem onClick={() => onAction("go-live")}>
+            <Zap className="text-success size-4" />
+            Ativar atendimento
+          </DropdownMenuItem>
+        )}
         {status === "draft" && (
           <DropdownMenuItem onClick={() => onAction("publish")}>
             <Upload className="text-primary size-4" />
